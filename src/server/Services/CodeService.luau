@@ -37,7 +37,7 @@ local function redeem(player: Player, input: any): (boolean, string?)
 		return false, "Not ready"
 	end
 	local now = os.clock()
-	local state = attempts[player] or { last = 0, failures = 0, lockedUntil = 0 }
+	local state: Attempts = attempts[player] or { last = 0, failures = 0, lockedUntil = 0 }
 	attempts[player] = state
 	if now < state.lockedUntil then
 		return false, `Too many tries. Wait {math.ceil(state.lockedUntil - now)}s and check the spelling.`

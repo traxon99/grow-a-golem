@@ -169,7 +169,7 @@ local function ensureViewport(): ViewportFrame
 
 	viewport, camera, trailBand = vp, cam, band
 
-	RunService.RenderStepped:Connect(function(dt)
+	RunService.RenderStepped:Connect(function(dt: number)
 		if not vp.Parent or not camera then
 			return
 		end

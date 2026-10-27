@@ -71,7 +71,10 @@ local shopSession: { [Player]: string } = {}
 local trackWindows: { [Player]: { start: number, count: number } } = {}
 
 local function call(label: string, fn: () -> ())
-	local ok, err = pcall(fn)
+	local ok, err = pcall(function(): any
+		fn()
+		return nil
+	end)
 	if not ok then
 		-- Quiet on purpose: this fires a lot in unpublished places.
 		if Config.Analytics.debug then
@@ -139,11 +142,9 @@ end
 local SHOP_STEPS = { "Opened", "Purchase prompted", "Purchase completed" }
 
 local function shopStep(player: Player, step: number, sku: string?)
-	local session = shopSession[player]
-	if not session or step == 1 then
-		session = HttpService:GenerateGUID(false)
-		shopSession[player] = session
-	end
+	local existing = shopSession[player]
+	local session: string = if existing and step ~= 1 then existing else HttpService:GenerateGUID(false)
+	shopSession[player] = session
 	call("shop", function()
 		RobloxAnalytics:LogFunnelStepEvent(player, "Shop", session, step, SHOP_STEPS[step], fields(sku))
 	end)
@@ -166,11 +167,9 @@ end
 -- What the client may report: only menu moments the server can't see.
 local function onTrack(player: Player, name: any, kind: any, key: any)
 	local now = os.clock()
-	local window = trackWindows[player]
-	if not window or now - window.start >= TRACK_WINDOW then
-		window = { start = now, count = 0 }
-		trackWindows[player] = window
-	end
+	local existing = trackWindows[player]
+	local window = if existing and now - existing.start < TRACK_WINDOW then existing else { start = now, count = 0 }
+	trackWindows[player] = window
 	window.count += 1
 	if window.count > MAX_TRACKS_PER_WINDOW then
 		return
@@ -219,7 +218,7 @@ end
 local function flush(player: Player)
 	local queue = pendingEconomy[player]
 	pendingEconomy[player] = nil
-	for _, entry in queue or {} do
+	for _, entry in queue or ({} :: any) do
 		local flowType = if entry.flow == "source"
 			then Enum.AnalyticsEconomyFlowType.Source
 			else Enum.AnalyticsEconomyFlowType.Sink
@@ -238,7 +237,7 @@ local function flush(player: Player)
 
 	local spells = pendingSpells[player]
 	pendingSpells[player] = nil
-	for spellId, count in spells or {} do
+	for spellId, count in spells or ({} :: any) do
 		AnalyticsService.custom(player, "SpellsCast", count, spellId)
 	end
 end

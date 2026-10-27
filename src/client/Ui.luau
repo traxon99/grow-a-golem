@@ -190,7 +190,7 @@ end
 -- so callers can recolor it (rune glow, gold rim).
 function Ui.surface(target: GuiObject, material: string, options: { tint: Color3?, details: boolean? }?): UIStroke
 	local m = Ui.Materials[material]
-	local opts = options or {}
+	local opts: { tint: Color3?, details: boolean? } = options or {}
 	for _, name in SURFACE_PARTS do
 		for _, child in target:GetChildren() do
 			if child.Name == name then
@@ -283,7 +283,7 @@ function Ui.label(parent: Instance, text: string, size: UDim2, position: UDim2, 
 	-- A soft dark outline keeps text readable over textured surfaces.
 	l.TextStrokeColor3 = Color3.fromRGB(16, 12, 10)
 	l.TextStrokeTransparency = 0.55
-	for key, value in props or {} do
+	for key, value in props or ({} :: any) do
 		(l :: any)[key] = value
 	end
 	l.Parent = parent
@@ -424,7 +424,7 @@ end
 -- Event modifiers like { minerals = 2 } as "2x minerals".
 function Ui.modifierText(modifiers: { [string]: number }?): string
 	local parts = {}
-	for stat, mult in modifiers or {} do
+	for stat, mult in modifiers or ({} :: any) do
 		table.insert(parts, `{mult}x {if stat == "xp" then "XP" else stat}`)
 	end
 	table.sort(parts)

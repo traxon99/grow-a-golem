@@ -2,7 +2,10 @@
 -- All balance numbers and content live here so tuning never means touching
 -- game logic. Names are placeholders we can rename freely.
 
-local Config = {}
+-- Typed as a map of anything: tables here have entries of different shapes
+-- (quests, rewards, tutorial steps) and gain keys after they're defined (the
+-- #15 expansion below), which strict mode would otherwise reject.
+local Config: { [string]: any } = {}
 
 Config.TickRate = 10 -- server game-logic updates per second
 
@@ -141,7 +144,8 @@ Config.Enemies = {
 
 -- One boss per zone. It slams the ground: a red circle appears, then hits
 -- every golem still inside it. Steer out of the circle to dodge.
-Config.Bosses = {
+-- A typed local, so entries of different shapes are accepted (see the top).
+local bosses: { [any]: any } = {
 	[1] = {
 		displayName = "Old Rockjaw",
 		maxHealth = 900,
@@ -188,6 +192,7 @@ Config.Bosses = {
 		respawn = 90,
 	},
 }
+Config.Bosses = bosses
 
 -- Share of max health a boss heals each second while nobody is near it.
 Config.BossRegenPerSecond = 0.03
@@ -203,7 +208,8 @@ Config.Nodes = {
 
 -- `gate` lists what a player needs before they can travel here.
 Config.ZoneOrder = { 1, 2, 3 }
-Config.Zones = {
+-- A typed local, so entries of different shapes are accepted (see the top).
+local zones: { [any]: any } = {
 	[1] = {
 		name = "Mossy Quarry",
 		center = Vector3.new(0, 60, 0), -- top surface of the floating island
@@ -259,6 +265,7 @@ Config.Zones = {
 		offlineMinerals = { iron = 3, crystal = 2 },
 	},
 }
+Config.Zones = zones
 
 ---------------------------------------------------------------- artifacts
 
@@ -475,7 +482,8 @@ Config.Trading = {
 Config.Offline = { baseCapHours = 2, minSeconds = 60 }
 
 -- 7-day login track. Missing a single day keeps your streak.
-Config.DailyRewards = {
+-- A typed local, so entries of different shapes are accepted (see the top).
+local dailyRewards: { [any]: any } = {
 	{ minerals = { stone = 100 } },
 	{ minerals = { stone = 200, copper = 40 } },
 	{ minerals = { copper = 100 } },
@@ -484,17 +492,21 @@ Config.DailyRewards = {
 	{ minerals = { iron = 100 } },
 	{ minerals = { iron = 150, crystal = 40 }, xp = 1000 },
 }
+Config.DailyRewards = dailyRewards
 
 -- Session gifts unlock after this many minutes in one session.
-Config.SessionRewards = {
+-- A typed local, so entries of different shapes are accepted (see the top).
+local sessionRewards: { [any]: any } = {
 	{ minutes = 5, minerals = { stone = 60 } },
 	{ minutes = 15, minerals = { copper = 40 } },
 	{ minutes = 30, minerals = { iron = 30 }, xp = 200 },
 	{ minutes = 60, minerals = { crystal = 25 }, xp = 500 },
 }
+Config.SessionRewards = sessionRewards
 
 -- `event` names match what the server fires; `target` is how many to do.
-Config.QuestPool = {
+-- A typed local, so entries of different shapes are accepted (see the top).
+local questPool: { [any]: any } = {
 	{
 		id = "defeat50",
 		text = "Defeat 50 enemies",
@@ -539,7 +551,9 @@ Config.QuestPool = {
 		reward = { minerals = { copper = 60 } },
 	},
 }
-Config.WeeklyQuestPool = {
+Config.QuestPool = questPool
+-- A typed local, so entries of different shapes are accepted (see the top).
+local weeklyQuestPool: { [any]: any } = {
 	{
 		id = "w_defeat1000",
 		text = "Defeat 1,000 enemies",
@@ -562,6 +576,7 @@ Config.WeeklyQuestPool = {
 		reward = { xp = 4000, minerals = { crystal = 60 } },
 	},
 }
+Config.WeeklyQuestPool = weeklyQuestPool
 Config.DailyQuestCount = 3
 
 -- Set to your Roblox group id to give a one-time reward for joining. 0 = off.
@@ -585,7 +600,15 @@ Config.Codes = {
 -- `track` is an optional reward track paid in a currency earned only by
 -- playing during the event. Unfinished progress carries over to the next
 -- run, and once a track is finished it starts fresh at the next run.
-Config.Events = {
+-- A typed local, so entries of different shapes are accepted (see the top).
+-- Typed locals too: the rewards and steps below differ in shape.
+local weekendTiers: { any } = {
+	{ tokens = 40, reward = { minerals = { stone = 300 } } },
+	{ tokens = 120, reward = { minerals = { copper = 150 }, xp = 400 } },
+	{ tokens = 250, reward = { minerals = { iron = 120 } } },
+	{ tokens = 450, reward = { minerals = { iron = 150, crystal = 50 }, xp = 1500 } },
+}
+local events: { [any]: any } = {
 	{
 		id = "doubleMinerals",
 		name = "Double Minerals Weekend",
@@ -595,15 +618,11 @@ Config.Events = {
 		track = {
 			currency = "Weekend Tokens",
 			earn = { enemyDefeated = 1, nodeMined = 1, bossDefeated = 15 },
-			tiers = {
-				{ tokens = 40, reward = { minerals = { stone = 300 } } },
-				{ tokens = 120, reward = { minerals = { copper = 150 }, xp = 400 } },
-				{ tokens = 250, reward = { minerals = { iron = 120 } } },
-				{ tokens = 450, reward = { minerals = { iron = 150, crystal = 50 }, xp = 1500 } },
-			},
+			tiers = weekendTiers,
 		},
 	},
 }
+Config.Events = events
 
 Config.CodeLimits = {
 	cooldown = 2, -- seconds between attempts
@@ -883,29 +902,32 @@ Config.SoundEffects = {
 -- (the Forge tab), "spell" (a spell button), or nil. `reward` is granted
 -- flat when the step completes. `touchText` / `gamepadText` replace `text` on
 -- those devices.
-Config.Tutorial = {
-	steerSeconds = 2, -- seconds of steering that finish the first step
-	steps = {
-		{
-			id = "steer",
-			text = "Your golem fights on its own. Steer it with WASD or the stick!",
-			touchText = "Your golem fights on its own. Steer it with the stick!",
-		},
-		{ id = "mine", text = "Walk to the glowing rock. Your golem mines it!", pointer = "node" },
-		{ id = "forge", text = "Open Forge and build your first part!", pointer = "forge", topUpStone = true },
-		{
-			id = "quake",
-			text = "Press Q to smash enemies with Quake!",
-			touchText = "Tap Quake to smash enemies!",
-			gamepadText = "Press X to smash enemies with Quake!",
-			pointer = "spell",
-			spell = "quake",
-			reward = { xp = 20 },
-		},
-		{ id = "level", text = "Defeat enemies to reach level 2!" },
+-- A typed local, so entries of different shapes are accepted (see the top).
+local tutorialSteps: { any } = {
+	{
+		id = "steer",
+		text = "Your golem fights on its own. Steer it with WASD or the stick!",
+		touchText = "Your golem fights on its own. Steer it with the stick!",
 	},
+	{ id = "mine", text = "Walk to the glowing rock. Your golem mines it!", pointer = "node" },
+	{ id = "forge", text = "Open Forge and build your first part!", pointer = "forge", topUpStone = true },
+	{
+		id = "quake",
+		text = "Press Q to smash enemies with Quake!",
+		touchText = "Tap Quake to smash enemies!",
+		gamepadText = "Press X to smash enemies with Quake!",
+		pointer = "spell",
+		spell = "quake",
+		reward = { xp = 20 },
+	},
+	{ id = "level", text = "Defeat enemies to reach level 2!" },
+}
+local tutorial: { [any]: any } = {
+	steerSeconds = 2, -- seconds of steering that finish the first step
+	steps = tutorialSteps,
 	doneText = "You're ready! Follow the Next goal at the top to grow your golem.",
 }
+Config.Tutorial = tutorial
 
 ---------------------------------------------------------------- analytics
 

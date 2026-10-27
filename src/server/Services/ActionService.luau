@@ -22,11 +22,9 @@ end
 
 local function onRequest(player: Player, name: any, ...: any): (boolean, string?)
 	local now = os.clock()
-	local window = windows[player]
-	if not window or now - window.start >= 1 then
-		window = { start = now, count = 0 }
-		windows[player] = window
-	end
+	local existing = windows[player]
+	local window = if existing and now - existing.start < 1 then existing else { start = now, count = 0 }
+	windows[player] = window
 	window.count += 1
 	if window.count > MAX_REQUESTS_PER_SECOND then
 		return false, "Slow down a little!"

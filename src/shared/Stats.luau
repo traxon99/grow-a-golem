@@ -300,7 +300,7 @@ end
 -- instead. Returns the chance per roll, rolls left before one is guaranteed,
 -- and whether spares are what this source is rolling for right now.
 function Stats.spareOdds(data: any, zoneId: number, source: string, luckMult: number): (number, number, boolean)
-	local chance, rollsLeft, unfound = Stats.artifactOdds(data, zoneId, source, luckMult)
+	local _chance, _rollsLeft, unfound = Stats.artifactOdds(data, zoneId, source, luckMult)
 	if unfound > 0 then
 		return 0, 0, false
 	end

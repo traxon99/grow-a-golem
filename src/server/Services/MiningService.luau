@@ -62,7 +62,7 @@ local function placeNode(zoneId: number)
 		* CFrame.Angles(0, math.rad(math.random(0, 359)), 0)
 
 	-- Ore chunks poke out of the rock at angles, low-poly style.
-	local chunks = {}
+	local chunks: { { part: BasePart, offset: CFrame, size: Vector3 } } = {}
 	local count = if mineral == "stone" then 2 else 5
 	for i = 1, count do
 		local s = math.min(def.size.X, def.size.Z) * (0.35 + math.random() * 0.25)
@@ -88,7 +88,7 @@ local function placeNode(zoneId: number)
 		chunk.Material = if GLOWING[mineral] then Enum.Material.Neon else def.material
 		chunk.CFrame = part.CFrame * offset
 		chunk.Parent = part
-		table.insert(chunks, { part = chunk, offset = offset, size = size })
+		table.insert(chunks, { part = chunk :: BasePart, offset = offset, size = size })
 	end
 	if GLOWING[mineral] then
 		local light = Instance.new("PointLight")

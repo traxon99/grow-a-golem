@@ -69,17 +69,32 @@ baseline: dict[str, int] = json.loads(BASELINE.read_text())
 worse = sorted(f for f in counts if counts[f] > baseline.get(f, 0))
 better = sorted(f for f in baseline if counts.get(f, 0) < baseline[f])
 
+def annotate(level: str, title: str, rows: list[str]) -> None:
+    """GitHub shows at most 10 annotations of each level per step, so pack the
+    rows into 8 or fewer, one row per line (%0A is an annotation newline)."""
+    if not rows or not os.environ.get("GITHUB_ACTIONS"):
+        return
+    size = -(-len(rows) // 8)
+    for start in range(0, len(rows), size):
+        body = "%0A".join(row.replace("%", "%25") for row in rows[start : start + size])
+        print(f"::{level} title={title}::{body}")
+
+
+def short(raw: str) -> str:
+    return raw.replace(str(ROOT) + "/", "")
+
+
 for f in worse:
-    print(f"::error file={f}::{f} has {counts[f]} type diagnostics, baseline is {baseline.get(f, 0)}")
+    print(f"{f} has {counts[f]} type diagnostics, baseline is {baseline.get(f, 0)}")
     for raw in lines[f]:
-        print("  " + raw.replace(str(ROOT) + "/", ""))
-        # One annotation per diagnostic, so the PR shows each line and message.
-        match = HEADER.match(raw)
-        if match:
-            message = raw[match.end() :].strip()
-            print(f"::warning file={f},line={match['line']},col={match['col']}::{match['kind']}: {message}")
+        print("  " + short(raw))
 for f in better:
     print(f"{f}: {counts.get(f, 0)} type diagnostics, down from {baseline[f]}. Run scripts/typecheck.py --update to lock it in.")
+
+if worse:
+    print(f"::error title=Type check::{', '.join(worse)} gained type diagnostics (each listed below)")
+annotate("warning", "New type diagnostics", [short(raw) for f in worse for raw in lines[f]])
+annotate("notice", "Fewer type diagnostics", [f"{f}: {counts.get(f, 0)}, baseline {baseline[f]}" for f in better])
 
 if worse:
     sys.exit(f"{len(worse)} file(s) gained type diagnostics. Fix them, or explain in the PR why the baseline must rise.")

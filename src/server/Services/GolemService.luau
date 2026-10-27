@@ -100,13 +100,13 @@ local function visualKey(player: Player, data: any, stats: Stats.GolemStats): st
 	return key
 end
 
--- Builds the golem standing on `ground`, facing `look`.
+-- Builds the golem standing on `ground`, facing `facing`.
 local function buildModel(
 	player: Player,
 	data: any,
 	stats: Stats.GolemStats,
 	ground: Vector3,
-	look: Vector3
+	facing: Vector3
 ): (Model, Humanoid, BasePart, Seat, number)
 	local s = stats.scale
 	local model = Instance.new("Model")
@@ -118,7 +118,7 @@ local function buildModel(
 	root.CanCollide = true
 	root.Massless = false
 	local position = ground + Vector3.new(0, groundOffset, 0)
-	root.CFrame = CFrame.lookAt(position, position + Vector3.new(look.X, 0, look.Z))
+	root.CFrame = CFrame.lookAt(position, position + Vector3.new(facing.X, 0, facing.Z))
 	root.Parent = model
 	model.PrimaryPart = root
 
@@ -134,10 +134,10 @@ local function buildModel(
 	local V = Vector3.new
 	local neon = Enum.Material.Neon
 	local RUNE_COLOR = CosmeticLooks.accent(skinId)
-	local partAssets = {}
-	for name, slot in
+	local partAssets: { [string]: { string } } = {}
+	local partSlots: { [string]: string } =
 		{ LeftLeg = "legs", RightLeg = "legs", Torso = "torso", Head = "core", LeftArm = "armL", RightArm = "armR" }
-	do
+	for name, slot in partSlots do
 		local tier = data.golem.parts[slot]
 		if tier then
 			partAssets[name] = { "Golem", tier, name }
