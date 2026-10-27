@@ -99,6 +99,7 @@ Owner rows can start now. Gate: the owner signs off on the store page and the pu
 | R3.6 | Publish the store description once it matches the build | Owner | `docs/launch/game-page.md` | Waiting: R3.5 |
 | R3.7 | Check analytics events appear in the Creator Dashboard | Owner | none | Waiting: R1.5 |
 | R3.8 | Release plan: shut down servers running the version without save leases before going live | Owner | `docs/playtest.md` | Open |
+| R3.9 | Redraw the concept icon and thumbnails so they read at small size: a face-first icon, a real boss, a growth shot | Code | `assets/keyart`, `scripts/create_keyart.py`, `docs/launch/game-page.md` | In progress: Claude for @traxon99, claude/project-thread-pklm20, 2026-10-27 |
 
 ## Phase 4: Soft launch
 
@@ -118,10 +119,11 @@ Code rows can start any time, but Phase 1 fixes come first, and building on unte
 | --- | --- | --- | --- | --- |
 | R5.1 | Build the co-op tower from `docs/expansion-design.md` | Code, Studio | new service, `PartyService`, `WorldService`, `Menus.luau`, `Config.luau` | Open |
 | R5.2 | Make trades crash-safe across both players' saves | Code, Studio | `TradeService`, `DataService` | Done: #32 |
-| R5.3 | Give zones 4–6 their own scenery and atmosphere | Code | `src/server/Models/Islands.luau`, `WorldService` | Open |
+| R5.3 | Give zones 4–6 their own scenery and atmosphere | Code | `src/server/Models/Islands.luau`, `WorldService`, `theme` lines of `Config.Zones[4–6]`, `Config.Visuals`, `zoneTint` in `src/client/Fx.luau` | In progress: Claude for @traxon99, claude/project-thread-snc8t6, 2026-10-27 |
 | R5.4 | Measure the full path toward the 20-hour goal; plan content per update from the data | Studio | `docs/expansion-design.md` | Waiting: Phase 2 |
 | R5.5 | Decide whether to move saves to ProfileStore | Code | `DataService` | Open |
-| R5.6 | Clear out old trade journal records (`TradeJournal_v1`) once both saves have settled; they're tiny, so this is low priority | Code | `TradeService`, `src/shared/TradeJournal.luau` | Open |
+| R5.6 | Add StyLua, selene and luau-lsp type checks to CI without reformatting files other rows have claimed | Code | `.github/workflows/check.yml`, `stylua.toml`, `selene.toml`, `scripts/lint.py`, `scripts/type-baseline.json`, `.claude/skills/auto-ship/SKILL.md` | In progress: Claude for @traxon99, claude/project-thread-jbo1mb, 2026-10-27 |
+| R5.7 | Clear out old trade journal records (`TradeJournal_v1`) once both saves have settled; they're tiny, so this is low priority | Code | `TradeService`, `src/shared/TradeJournal.luau` | Open |
 
 ## Found in testing
 
