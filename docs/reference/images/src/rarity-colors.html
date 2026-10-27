@@ -1,0 +1,11 @@
+<link rel="stylesheet" href="common.css"><div class="screen" style="background:#20252c;height:420px">
+<script>
+const r=[["Common","●","#b9bec6","#4a4f57"],["Uncommon","▲","#5fd36a","#1f5a26"],["Rare","◆","#4aa3ff","#163f73"],["Epic","✦","#a46bff","#3b2073"],["Legendary","★","#ffb02e","#6b4300"],["Mythic","✹","#ff4f8b","#6b1033"]];
+r.forEach((c,i)=>document.write(`<div class="panel" style="left:${40+i*205}px;top:60px;width:185px;height:240px;border-color:${c[2]};border-width:6px;background:${c[3]}">
+<div class="outlined" style="text-align:center;font-size:64px;color:${c[2]};margin-top:30px">${c[1]}</div>
+<div class="outlined" style="text-align:center;font-size:24px;margin-top:20px">${c[0]}</div>
+<div style="text-align:center;font:700 14px monospace;color:#ddd;margin-top:14px">${c[2]}</div></div>`));
+</script>
+<div class="note" style="left:40px;top:320px;width:1200px">Common ladder in top Roblox games (gray, green, blue, purple, gold, red/pink). This is widespread practice, not an official standard. Always pair the color with a shape symbol and the tier name, because over 5% of players have some color blindness.</div>
+<div class="title">Rarity colors with symbols (original diagram)</div>
+</div>
