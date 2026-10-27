@@ -54,11 +54,13 @@ end
 -- Rolls for an artifact drop. `source` is "drop" or "boss".
 function ArtifactService.roll(player: Player, zoneId: number, source: string)
 	local data = DataService.get(player)
-	local golem = GolemService.get(player)
 	if not data then
 		return
 	end
-	local chance, rollsLeft = Stats.artifactOdds(data, zoneId, source, if golem then golem.stats.luckMult else 1)
+	-- Luck from right now, so a boost that just ran out stops counting on this
+	-- exact roll and the roll always matches the odds the menus show.
+	local luckMult = Stats.compute(data, GolemService.context(player)).luckMult
+	local chance, rollsLeft = Stats.artifactOdds(data, zoneId, source, luckMult)
 	if chance <= 0 then
 		return -- nothing left to find here
 	end

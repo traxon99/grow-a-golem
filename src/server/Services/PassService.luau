@@ -15,6 +15,7 @@ local Stats = require(Shared:WaitForChild("Stats"))
 
 local DataService = require(script.Parent.DataService)
 local Events = require(script.Parent.Events)
+local PolicyService = require(script.Parent.PolicyService)
 
 local MAX_RECEIPTS_KEPT = 50
 
@@ -68,11 +69,18 @@ end
 local function grantProduct(player: Player, key: string)
 	local product = Config.Products[key]
 	local data = DataService.get(player)
+	local name = product.name
 	if product.boost then
+		local boost = product.boost
+		if product.paidRandom and not PolicyService.paidRandomAllowed(player) then
+			-- Paid random items are restricted for this player: never grant one.
+			boost = product.restrictedAlternative
+			name = `{product.minutes} min of 2x {boost} (2x Luck isn't available for your account)`
+		end
 		DataService.update(player, function(d)
 			local now = os.time()
-			local current = math.max(d.boosts[product.boost] or 0, now)
-			d.boosts[product.boost] = current + product.minutes * 60
+			local current = math.max(d.boosts[boost] or 0, now)
+			d.boosts[boost] = current + product.minutes * 60
 		end)
 	elseif product.packMinutes and data then
 		-- A mineral pack is worth a few hours of mining in your best zone.
@@ -84,7 +92,7 @@ local function grantProduct(player: Player, key: string)
 		DataService.addMinerals(player, minerals, "purchase")
 	end
 	Events.fire("purchased", player, "product", key)
-	Remotes.Notify:FireClient(player, "message", `Thanks! {product.name} added.`)
+	Remotes.Notify:FireClient(player, "message", `Thanks! {name} added.`)
 end
 
 local function processReceipt(receipt: any): Enum.ProductPurchaseDecision
@@ -99,6 +107,10 @@ local function processReceipt(receipt: any): Enum.ProductPurchaseDecision
 	local key = productKeyById[receipt.ProductId]
 	if not key then
 		warn(`[PassService] Unknown product id {receipt.ProductId}`)
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+	if Config.Products[key].paidRandom and not PolicyService.isReady(player) then
+		-- Wait for the policy lookup so we know what we're allowed to grant.
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 
@@ -118,13 +130,42 @@ local function processReceipt(receipt: any): Enum.ProductPurchaseDecision
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end
 
+-- When a boost runs out nothing in the save changes, so nudge the golem stats
+-- and the client snapshot at that moment: the odds shown drop back right away.
+local activeBoosts: { [Player]: string } = {}
+local function watchBoosts()
+	while true do
+		task.wait(1)
+		local now = os.time()
+		for _, player in Players:GetPlayers() do
+			local data = DataService.get(player)
+			if data then
+				local active = {}
+				for boost, endsAt in data.boosts do
+					if endsAt > now then
+						table.insert(active, boost)
+					end
+				end
+				table.sort(active)
+				local signature = table.concat(active, ",")
+				if activeBoosts[player] ~= nil and activeBoosts[player] ~= signature then
+					DataService.markChanged(player)
+				end
+				activeBoosts[player] = signature
+			end
+		end
+	end
+end
+
 function PassService.start()
 	DataService.addProvider("passes", PassService.passes)
+	task.spawn(watchBoosts)
 	DataService.ProfileLoaded:Connect(function(player)
 		task.spawn(checkPasses, player)
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		owned[player] = nil
+		activeBoosts[player] = nil
 	end)
 
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, purchased)

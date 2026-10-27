@@ -53,12 +53,12 @@ Paid luck stacking to a non-guaranteed chase (PS99 Huge Hunter), paid griefing g
 | 2x Luck 30 min | Product | R$39 | **Paid probability modifier**: full rules apply |
 
 - All pass and product ids are 0 (not created). No subscriptions, no ads, no written Creator Rewards strategy.
-- No PolicyService gating. Live-odds-while-boosted not confirmed.
+- 2x Luck is gated by `PolicyService` (hidden where paid random items are restricted, fail closed) and the Shop shows the player's real odds now and with the boost, live while it's active (#26).
 - No whale pass and no paid power over other players. Good fit for 9-15.
 
 ## Gaps worth closing
 
-1. **P0:** PolicyService gate and live odds for 2x Luck (see safety doc). Consider dropping 2x Luck if gating proves hard; 2x XP covers the same impulse.
+1. ~~**P0:** PolicyService gate and live odds for 2x Luck (see safety doc).~~ Done in #26.
 2. **P0 (#9):** Create real ids, hide items with id 0, and audit all shop copy for price display, confirm step, and banned wording.
 3. **P1 (#14):** Direct-purchase cosmetics (golem skins, trails, nametag colors) as the main growth line; no random cosmetic boxes.
 4. **P1:** Write a Creator Rewards note: target 10+ minute sessions and returning spenders; measure with #11 analytics.

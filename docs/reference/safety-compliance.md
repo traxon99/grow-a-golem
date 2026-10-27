@@ -62,8 +62,8 @@ Testable checks: grep for `PolicyService` in server code before any shop/trade f
 ## Grow A Golem today
 
 - Artifact drops have published odds (0.6% per enemy, 30% per boss) and pity (300 enemy rolls, 4 boss rolls), shown in the Artifacts menu and Shop. Good baseline.
-- **2x Luck 30 min (R$39) is a paid probability modifier.** It is covered by Roblox's rules. We have not confirmed that displayed odds update live while it is active.
-- **No `PolicyService` usage found.** 2x Luck and any future trading are therefore not gated.
+- **2x Luck 30 min (R$39) is a paid probability modifier** (`paidRandom = true` in `Config.Products`). The Shop row states the player's actual odds on their current island and what 2x Luck changes them to, plus the pity count, before purchase. While it's active the Shop and the Artifacts menu show the boosted odds, refresh every second, and drop back the moment it ends (`PassService` re-sends state on expiry; `ArtifactService.roll` reads luck at roll time from the same `Stats.artifactOdds` the menus use).
+- **`PolicyService` gates 2x Luck (#26).** The server module `src/server/Services/PolicyService.luau` calls `GetPolicyInfoForPlayerAsync` on join (3 tries, `Config.PolicyCheck`). 2x Luck only shows when `ArePaidRandomItemsRestricted` is explicitly false; on error or before the check it stays hidden (fail closed). A luck receipt that arrives anyway for a restricted player grants the same time of 2x XP instead, and waits until the check has finished. `IsPaidItemTradingAllowed` is read too (`PolicyService.paidTradingAllowed`) for future trading (#13), fail closed.
 - Only player-entered text is redeem codes (not shown to others). No TextService filtering needed yet, but required before any naming feature.
 - Codes are rate-limited. No social links in-game found.
 - No ads. No subscriptions. Group join reward exists (group id not set).
@@ -72,10 +72,10 @@ Testable checks: grep for `PolicyService` in server code before any shop/trade f
 
 ## Gaps worth closing
 
-1. **P0: Add server-side PolicyService check** and hide/block 2x Luck when `ArePaidRandomItemsRestricted`; fail closed. Required before monetization goes live.
-2. **P0: Live odds while 2x Luck active.** Drive both the RNG and the odds UI from the same Config table so they cannot drift; show pity progress.
+1. ~~**P0: Add server-side PolicyService check** and hide/block 2x Luck when `ArePaidRandomItemsRestricted`; fail closed.~~ Done in #26.
+2. ~~**P0: Live odds while 2x Luck active.**~~ Done in #26: RNG and menus share `Stats.artifactOdds`; pity shown in both.
 3. **P0 (#9): Playtest audit** of shop copy against rules 6-7 and of the reveal card against rule 4.
-4. **P1 (#13): Gate trading** on `IsPaidItemTradingAllowed`; never trade paid outcomes for restricted users.
+4. **P1 (#13): Gate trading** on `IsPaidItemTradingAllowed` (already read by `PolicyService.paidTradingAllowed`); never trade paid outcomes for restricted users.
 5. **P1 (#14): Cosmetics/pets direct purchase only.** No eggs or crates for Robux.
 6. **P1 (#12): Codes** stay free, posted in-game and on the Roblox group page, never "follow us for codes".
 7. **P1: Questionnaire and Select eligibility plan** (honest Mild/Minimal, 2FA/ID, seeding to 250 engaged plays).
