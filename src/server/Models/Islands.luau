@@ -38,6 +38,27 @@ local THEMES: { [string]: Theme } = {
 		rock = Color3.fromRGB(112, 120, 146),
 		decor = { crystalCluster = 26, glassTree = 20, rock = 18, shardSpike = 20, frostBush = 24 },
 	},
+	storm = {
+		ground = Color3.fromRGB(96, 108, 128),
+		patch = Color3.fromRGB(110, 124, 146),
+		dirt = Color3.fromRGB(62, 66, 82),
+		rock = Color3.fromRGB(78, 84, 104),
+		decor = { stormSpire = 18, stormglassVein = 22, rock = 26, shardSpike = 14, deadTree = 10 },
+	},
+	ruins = {
+		ground = Color3.fromRGB(176, 166, 128),
+		patch = Color3.fromRGB(150, 168, 132),
+		dirt = Color3.fromRGB(110, 98, 78),
+		rock = Color3.fromRGB(140, 136, 120),
+		decor = { pillar = 22, archway = 6, kelp = 30, coral = 26, rock = 14 },
+	},
+	forge = {
+		ground = Color3.fromRGB(88, 78, 74),
+		patch = Color3.fromRGB(104, 92, 84),
+		dirt = Color3.fromRGB(70, 60, 56),
+		rock = Color3.fromRGB(64, 58, 58),
+		decor = { anvil = 14, chimney = 10, gear = 14, crack = 20, basalt = 12, rock = 14 },
+	},
 }
 
 -- Ground patches in a slightly different shade break up the flat top.
@@ -332,6 +353,158 @@ function DECOR.frostBush(parent, rng, at, _theme)
 		cframe = at * CFrame.new(0, s * 0.3, 0) * CFrame.Angles(math.rad(45), rng:NextNumber(0, math.pi), math.rad(45)),
 		color = Build.vary(Color3.fromRGB(200, 230, 240), rng, 0.06),
 	})
+end
+
+-- Storm Peak: dark slate spires with a glowing stormglass streak.
+function DECOR.stormSpire(parent, rng, at, theme)
+	local h = rng:NextNumber(12, 24)
+	local w = h * 0.2
+	local tilt = at * CFrame.Angles(rng:NextNumber(-0.12, 0.12), 0, rng:NextNumber(-0.12, 0.12))
+	Build.part(parent, {
+		size = Vector3.new(w, h, w),
+		cframe = tilt * CFrame.new(0, h / 2 - 1, 0) * CFrame.Angles(0, math.rad(45), 0),
+		color = Build.vary(theme.rock, rng, 0.05),
+		material = Enum.Material.Slate,
+	})
+	local streak = Build.part(parent, {
+		size = Vector3.new(0.3, h * 0.7, 0.3),
+		-- On one face of the turned spire, so it shows.
+		cframe = tilt * CFrame.Angles(0, math.rad(45), 0) * CFrame.new(w / 2 + 0.1, h * 0.45, 0) * CFrame.Angles(0, 0, math.rad(rng:NextNumber(-8, 8))),
+		color = Color3.fromRGB(120, 210, 255),
+		material = Enum.Material.Neon,
+	})
+	if rng:NextNumber() < 0.4 then
+		local light = Instance.new("PointLight")
+		light.Color = streak.Color
+		light.Range = 12
+		light.Brightness = 1
+		light.Parent = streak
+	end
+end
+
+function DECOR.stormglassVein(parent, rng, at, _theme)
+	for _ = 1, rng:NextInteger(2, 4) do
+		local h = rng:NextNumber(1.5, 4)
+		Build.part(parent, {
+			size = Vector3.new(h * 0.35, h, h * 0.35),
+			cframe = at * CFrame.new(rng:NextNumber(-2, 2), h / 2 - 0.4, rng:NextNumber(-2, 2)) * Build.tumble(rng, 30),
+			color = Build.vary(Color3.fromRGB(100, 190, 255), rng, 0.08),
+			material = Enum.Material.Glass,
+		})
+	end
+end
+
+-- Sunken Ruins: broken pillars, arches, kelp and coral on pale sand.
+function DECOR.pillar(parent, rng, at, theme)
+	local h = rng:NextNumber(4, 14)
+	local stone = Build.vary(theme.rock, rng, 0.05)
+	Build.cylinder(parent, 1, 4.4, at * CFrame.new(0, 0.5, 0), stone)
+	Build.cylinder(parent, h, 3.2, at * CFrame.new(0, h / 2 + 1, 0) * CFrame.Angles(rng:NextNumber(-0.05, 0.05), 0, 0), stone)
+	if rng:NextNumber() < 0.5 then
+		-- The fallen top lies beside the stump.
+		Build.cylinder(parent, rng:NextNumber(3, 6), 3.2, at * CFrame.new(3.5, 1.6, rng:NextNumber(-2, 2)) * CFrame.Angles(0, rng:NextNumber(0, math.pi), math.rad(90)), stone)
+	end
+end
+
+function DECOR.archway(parent, rng, at, theme)
+	local stone = Build.vary(theme.rock, rng, 0.04)
+	local h = rng:NextNumber(10, 14)
+	for _, x in { -5, 5 } do
+		Build.part(parent, { size = Vector3.new(2.4, h, 2.4), cframe = at * CFrame.new(x, h / 2, 0), color = stone })
+	end
+	Build.part(parent, { size = Vector3.new(13, 2.2, 3), cframe = at * CFrame.new(0, h + 1.1, 0) * CFrame.Angles(0, 0, math.rad(rng:NextNumber(-4, 4))), color = stone })
+	Build.part(parent, {
+		size = Vector3.new(1.4, 1.4, 0.2),
+		cframe = at * CFrame.new(0, h + 1.1, -1.6) * CFrame.Angles(0, 0, math.rad(45)),
+		color = Color3.fromRGB(80, 220, 200),
+		material = Enum.Material.Neon,
+	})
+end
+
+function DECOR.kelp(parent, rng, at, _theme)
+	local green = Color3.fromRGB(60, 140, 96)
+	for _ = 1, rng:NextInteger(2, 4) do
+		local h = rng:NextNumber(4, 9)
+		Build.part(parent, {
+			size = Vector3.new(0.5, h, 0.9),
+			cframe = at * CFrame.new(rng:NextNumber(-1.5, 1.5), h / 2, rng:NextNumber(-1.5, 1.5)) * CFrame.Angles(rng:NextNumber(-0.2, 0.2), rng:NextNumber(0, math.pi), rng:NextNumber(-0.2, 0.2)),
+			color = Build.vary(green, rng, 0.1),
+		})
+	end
+end
+
+local CORAL_COLORS = {
+	Color3.fromRGB(255, 130, 120),
+	Color3.fromRGB(255, 190, 110),
+	Color3.fromRGB(190, 120, 220),
+	Color3.fromRGB(80, 200, 190),
+}
+
+function DECOR.coral(parent, rng, at, _theme)
+	local color = CORAL_COLORS[rng:NextInteger(1, #CORAL_COLORS)]
+	for i = 1, rng:NextInteger(3, 5) do
+		local h = rng:NextNumber(1.2, 3.2)
+		Build.part(parent, {
+			size = Vector3.new(0.6, h, 0.6),
+			cframe = at * CFrame.Angles(0, i * 1.3, rng:NextNumber(0.2, 0.7)) * CFrame.new(0, h / 2, 0),
+			color = Build.vary(color, rng, 0.06),
+		})
+	end
+end
+
+-- Sky Forge: anvils, smoking chimneys and big brass gears.
+function DECOR.anvil(parent, rng, at, _theme)
+	local iron = Color3.fromRGB(70, 72, 80)
+	local turn = at * CFrame.Angles(0, rng:NextNumber(0, math.pi), 0)
+	Build.part(parent, { size = Vector3.new(2.4, 2, 2.4), cframe = turn * CFrame.new(0, 1, 0), color = Color3.fromRGB(96, 70, 50) })
+	Build.part(parent, { size = Vector3.new(1.2, 1, 1.2), cframe = turn * CFrame.new(0, 2.5, 0), color = iron, material = Enum.Material.Metal })
+	Build.part(parent, { size = Vector3.new(4, 1, 1.6), cframe = turn * CFrame.new(0.4, 3.4, 0), color = iron, material = Enum.Material.Metal })
+	Build.part(parent, {
+		size = Vector3.new(1.2, 0.3, 0.8),
+		cframe = turn * CFrame.new(-0.6, 4.05, 0),
+		color = Color3.fromRGB(255, 170, 60),
+		material = Enum.Material.Neon,
+	})
+end
+
+function DECOR.chimney(parent, rng, at, theme)
+	local h = rng:NextNumber(10, 18)
+	Build.part(parent, { size = Vector3.new(4, h, 4), cframe = at * CFrame.new(0, h / 2, 0), color = Build.vary(theme.rock, rng, 0.05), material = Enum.Material.Brick })
+	local mouth = Build.part(parent, {
+		size = Vector3.new(3, 0.4, 3),
+		cframe = at * CFrame.new(0, h + 0.2, 0),
+		color = Color3.fromRGB(255, 140, 50),
+		material = Enum.Material.Neon,
+	})
+	local smoke = Instance.new("ParticleEmitter")
+	smoke.Texture = "rbxasset://textures/particles/smoke_main.dds"
+	smoke.Color = ColorSequence.new(Color3.fromRGB(120, 112, 108))
+	smoke.Rotation = NumberRange.new(0, 360)
+	smoke.RotSpeed = NumberRange.new(-20, 20)
+	smoke.Size = NumberSequence.new(1.5, 4)
+	smoke.Transparency = NumberSequence.new(0.4, 1)
+	smoke.Lifetime = NumberRange.new(3, 5)
+	smoke.Rate = 2
+	smoke.Speed = NumberRange.new(2, 4)
+	smoke.Parent = mouth
+end
+
+function DECOR.gear(parent, rng, at, _theme)
+	local brass = Build.vary(Color3.fromRGB(196, 150, 70), rng, 0.05)
+	local d = rng:NextNumber(5, 9)
+	-- Half buried and standing on edge, so it reads from far away.
+	local hub = at * CFrame.new(0, d * 0.3, 0) * CFrame.Angles(0, rng:NextNumber(0, math.pi), 0)
+	-- A raw cylinder lies along X, which is the edge-on axis we want here.
+	Build.part(parent, { size = Vector3.new(1, d, d), cframe = hub, color = brass, material = Enum.Material.Metal, shape = Enum.PartType.Cylinder })
+	for i = 0, 5 do
+		local angle = i * math.pi / 3
+		Build.part(parent, {
+			size = Vector3.new(0.9, 1.4, 1.4),
+			cframe = hub * CFrame.Angles(angle, 0, 0) * CFrame.new(0, d / 2 + 0.4, 0),
+			color = brass,
+			material = Enum.Material.Metal,
+		})
+	end
 end
 
 ---------------------------------------------------------------- floating extras

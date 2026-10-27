@@ -184,7 +184,7 @@ local function each(folderName: string, callback: (Instance) -> ())
 	return container
 end
 
--- Slightly warmer or cooler color grading per island.
+-- Slightly warmer or cooler color grading and sky haze per island.
 local function zoneTint()
 	local color = Lighting:FindFirstChildOfClass("ColorCorrectionEffect")
 	local zoneId = (player:GetAttribute("GolemZone") :: number?) or 1
@@ -192,6 +192,11 @@ local function zoneTint()
 	local tint = zone and Config.Visuals.zoneTints[zone.theme or ""]
 	if color and tint then
 		TweenService:Create(color, TweenInfo.new(2), { TintColor = tint }):Play()
+	end
+	local atmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
+	local haze = zone and Config.Visuals.zoneAtmosphere[zone.theme or ""]
+	if atmosphere and haze then
+		TweenService:Create(atmosphere, TweenInfo.new(2), { Color = haze.color, Decay = haze.decay, Density = haze.density }):Play()
 	end
 end
 
