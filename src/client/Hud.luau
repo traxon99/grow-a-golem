@@ -40,7 +40,8 @@ local function nextGoal(snap: any): (string, number?)
 
 	if next(data.golem.parts) == nil then
 		local cost = Stats.partCost("armL", "stone")
-		return "Mine stone, then open Forge to build your first part", math.min((data.minerals.stone or 0) / cost.stone, 1)
+		return "Mine stone, then open Forge to build your first part",
+			math.min((data.minerals.stone or 0) / cost.stone, 1)
 	end
 	if Config.Bosses[zoneId] and not Stats.bossDefeated(data, zoneId) then
 		return `Defeat {Config.Bosses[zoneId].displayName} in the far corner of the island`, nil
@@ -66,7 +67,8 @@ local function nextGoal(snap: any): (string, number?)
 		local found, total = Stats.zoneArtifactCount(data, zoneId)
 		return `Find {total - found} more artifacts in {Config.Zones[zoneId].name} ({found} / {total})`, found / total
 	end
-	return `Reach level {Config.Awakening.minLevel} to Awaken`, data.golem.xp / Stats.xpForLevel(Config.Awakening.minLevel)
+	return `Reach level {Config.Awakening.minLevel} to Awaken`,
+		data.golem.xp / Stats.xpForLevel(Config.Awakening.minLevel)
 end
 
 function Hud.start()
@@ -101,7 +103,12 @@ function Hud.start()
 
 	local mineralLabels: { [string]: TextLabel } = {}
 	for index, id in Config.MineralOrder do
-		local l = Ui.label(stats, `{Config.Minerals[id].displayName}: 0`, UDim2.new(1, -20, 0, 20), UDim2.fromOffset(10, 48 + (index - 1) * 26))
+		local l = Ui.label(
+			stats,
+			`{Config.Minerals[id].displayName}: 0`,
+			UDim2.new(1, -20, 0, 20),
+			UDim2.fromOffset(10, 48 + (index - 1) * 26)
+		)
 		l.TextColor3 = Config.Minerals[id].color:Lerp(Ui.Colors.text, 0.35)
 		mineralLabels[id] = l
 	end
@@ -221,8 +228,15 @@ function Hud.start()
 	banner.Parent = gui
 	Ui.corner(banner, 10)
 	Ui.surface(banner, "wood", { details = true }) -- a notice board
-	local bannerTitle = Ui.label(banner, "", UDim2.new(1, -16, 0, 20), UDim2.fromOffset(8, 4), { TextColor3 = Ui.Colors.warn })
-	local bannerInfo = Ui.label(banner, "", UDim2.new(1, -16, 0, 16), UDim2.fromOffset(8, 26), { TextColor3 = Ui.Colors.quiet, Font = Enum.Font.Gotham })
+	local bannerTitle =
+		Ui.label(banner, "", UDim2.new(1, -16, 0, 20), UDim2.fromOffset(8, 4), { TextColor3 = Ui.Colors.warn })
+	local bannerInfo = Ui.label(
+		banner,
+		"",
+		UDim2.new(1, -16, 0, 16),
+		UDim2.fromOffset(8, 26),
+		{ TextColor3 = Ui.Colors.quiet, Font = Enum.Font.Gotham }
+	)
 	task.spawn(function()
 		while true do
 			local now = State.serverNow()
@@ -232,7 +246,8 @@ function Hud.start()
 				local first = active[1]
 				local effects = Ui.modifierText(first.event.modifiers)
 				bannerTitle.Text = if #active > 1 then `{first.event.name} +{#active - 1} more` else first.event.name
-				bannerInfo.Text = (if effects ~= "" then effects .. "  ·  " else "") .. `ends in {Ui.duration(first.endsAt - now)}`
+				bannerInfo.Text = (if effects ~= "" then effects .. "  ·  " else "")
+					.. `ends in {Ui.duration(first.endsAt - now)}`
 			end
 			task.wait(1)
 		end
@@ -271,7 +286,12 @@ function Hud.start()
 		local size = Stats.sizeForLevel(level)
 		levelLabel.Text = `Level {level}  ·  Size {size}`
 		local floor, ceiling = Stats.xpForLevel(level), Stats.xpForLevel(level + 1)
-		xpFill.Size = UDim2.fromScale(if level >= Config.Golem.maxLevel then 1 else math.clamp((data.golem.xp - floor) / math.max(ceiling - floor, 1), 0, 1), 1)
+		xpFill.Size = UDim2.fromScale(
+			if level >= Config.Golem.maxLevel
+				then 1
+				else math.clamp((data.golem.xp - floor) / math.max(ceiling - floor, 1), 0, 1),
+			1
+		)
 		-- The tutorial gives one instruction at a time; the goal takes over after.
 		local inTutorial = data.tutorial and not data.tutorial.done and data.tutorial.step >= 1
 		local goalText, progress = nextGoal(snap)
@@ -279,7 +299,8 @@ function Hud.start()
 		goal.Visible = not inTutorial
 		goalBack.Visible = progress ~= nil and not inTutorial
 		if progress then
-			TweenService:Create(goalFill, TweenInfo.new(0.3), { Size = UDim2.fromScale(math.clamp(progress, 0, 1), 1) }):Play()
+			TweenService:Create(goalFill, TweenInfo.new(0.3), { Size = UDim2.fromScale(math.clamp(progress, 0, 1), 1) })
+				:Play()
 		end
 
 		if not hintShown then

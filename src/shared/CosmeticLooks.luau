@@ -100,16 +100,52 @@ local function pebblePup(): { Piece }
 	local stone, dark = Color3.fromRGB(128, 122, 110), Color3.fromRGB(98, 93, 85)
 	local pieces: { Piece } = {
 		{ name = "Body", size = V(2, 1.6, 2.6), at = at(0, 0, 0), color = stone, material = Enum.Material.Slate },
-		{ name = "Head", size = V(1.7, 1.5, 1.5), at = at(0, 0.9, -1.5), color = stone, material = Enum.Material.Slate },
-		{ name = "Snout", size = V(0.9, 0.6, 0.5), at = at(0, 0.6, -2.4), color = dark, material = Enum.Material.Slate },
+		{
+			name = "Head",
+			size = V(1.7, 1.5, 1.5),
+			at = at(0, 0.9, -1.5),
+			color = stone,
+			material = Enum.Material.Slate,
+		},
+		{
+			name = "Snout",
+			size = V(0.9, 0.6, 0.5),
+			at = at(0, 0.6, -2.4),
+			color = dark,
+			material = Enum.Material.Slate,
+		},
 		{ name = "Nose", size = V(0.3, 0.25, 0.15), at = at(0, 0.85, -2.68), color = Color3.fromRGB(30, 30, 30) },
-		{ name = "Tail", size = V(0.4, 0.4, 1.1), at = at(0, 0.7, 1.6, 0.6), color = dark, material = Enum.Material.Slate },
+		{
+			name = "Tail",
+			size = V(0.4, 0.4, 1.1),
+			at = at(0, 0.7, 1.6, 0.6),
+			color = dark,
+			material = Enum.Material.Slate,
+		},
 	}
 	for _, side in { -1, 1 } do
-		table.insert(pieces, { name = "Ear", size = V(0.4, 0.7, 0.3), at = at(side * 0.55, 1.85, -1.4, 0, 0, side * -0.3), color = dark, material = Enum.Material.Slate })
-		table.insert(pieces, { name = "Eye", size = V(0.25, 0.25, 0.1), at = at(side * 0.4, 1.15, -2.27), color = CosmeticLooks.RUNE_COLOR, material = Enum.Material.Neon })
+		table.insert(pieces, {
+			name = "Ear",
+			size = V(0.4, 0.7, 0.3),
+			at = at(side * 0.55, 1.85, -1.4, 0, 0, side * -0.3),
+			color = dark,
+			material = Enum.Material.Slate,
+		})
+		table.insert(pieces, {
+			name = "Eye",
+			size = V(0.25, 0.25, 0.1),
+			at = at(side * 0.4, 1.15, -2.27),
+			color = CosmeticLooks.RUNE_COLOR,
+			material = Enum.Material.Neon,
+		})
 		for _, z in { -0.85, 0.85 } do
-			table.insert(pieces, { name = "Leg", size = V(0.55, 0.7, 0.55), at = at(side * 0.6, -1.05, z), color = dark, material = Enum.Material.Slate })
+			table.insert(pieces, {
+				name = "Leg",
+				size = V(0.55, 0.7, 0.55),
+				at = at(side * 0.6, -1.05, z),
+				color = dark,
+				material = Enum.Material.Slate,
+			})
 		end
 	end
 	return pieces
@@ -118,32 +154,97 @@ end
 local function emberSprite(): { Piece }
 	local flame = Color3.fromRGB(255, 140, 40)
 	local pieces: { Piece } = {
-		{ name = "Body", size = V(1.6, 1.6, 1.6), at = at(0, 0, 0), color = flame, material = Enum.Material.Neon, shape = "ball" },
-		{ name = "Glow", size = V(2.2, 2.2, 2.2), at = at(0, 0, 0), color = Color3.fromRGB(255, 90, 20), material = Enum.Material.Neon, shape = "ball", transparency = 0.7 },
-		{ name = "Flame", size = V(0.8, 0.9, 0.8), at = at(0, 1, 0.1, 0, 0.8, 0), color = flame, material = Enum.Material.Neon },
-		{ name = "FlameTip", size = V(0.45, 0.6, 0.45), at = at(0, 1.6, 0.2, 0, 0.3, 0), color = Color3.fromRGB(255, 220, 110), material = Enum.Material.Neon },
+		{
+			name = "Body",
+			size = V(1.6, 1.6, 1.6),
+			at = at(0, 0, 0),
+			color = flame,
+			material = Enum.Material.Neon,
+			shape = "ball",
+		},
+		{
+			name = "Glow",
+			size = V(2.2, 2.2, 2.2),
+			at = at(0, 0, 0),
+			color = Color3.fromRGB(255, 90, 20),
+			material = Enum.Material.Neon,
+			shape = "ball",
+			transparency = 0.7,
+		},
+		{
+			name = "Flame",
+			size = V(0.8, 0.9, 0.8),
+			at = at(0, 1, 0.1, 0, 0.8, 0),
+			color = flame,
+			material = Enum.Material.Neon,
+		},
+		{
+			name = "FlameTip",
+			size = V(0.45, 0.6, 0.45),
+			at = at(0, 1.6, 0.2, 0, 0.3, 0),
+			color = Color3.fromRGB(255, 220, 110),
+			material = Enum.Material.Neon,
+		},
 	}
 	for _, side in { -1, 1 } do
-		table.insert(pieces, { name = "Wing", size = V(1.4, 0.1, 0.8), at = at(side * 1.2, 0.2, 0.3, 0, 0, side * 0.4), color = Color3.fromRGB(255, 200, 90), material = Enum.Material.Neon, transparency = 0.2 })
-		table.insert(pieces, { name = "Eye", size = V(0.22, 0.3, 0.1), at = at(side * 0.3, 0.15, -0.8), color = Color3.fromRGB(60, 20, 10) })
+		table.insert(pieces, {
+			name = "Wing",
+			size = V(1.4, 0.1, 0.8),
+			at = at(side * 1.2, 0.2, 0.3, 0, 0, side * 0.4),
+			color = Color3.fromRGB(255, 200, 90),
+			material = Enum.Material.Neon,
+			transparency = 0.2,
+		})
+		table.insert(pieces, {
+			name = "Eye",
+			size = V(0.22, 0.3, 0.1),
+			at = at(side * 0.3, 0.15, -0.8),
+			color = Color3.fromRGB(60, 20, 10),
+		})
 	end
 	return pieces
 end
 
 local function crystalOwl(): { Piece }
-	local crystal, deep, gold = Color3.fromRGB(150, 110, 255), Color3.fromRGB(120, 85, 220), Color3.fromRGB(255, 190, 70)
+	local crystal, deep, gold =
+		Color3.fromRGB(150, 110, 255), Color3.fromRGB(120, 85, 220), Color3.fromRGB(255, 190, 70)
 	local glass = Enum.Material.Glass
 	local pieces: { Piece } = {
 		{ name = "Body", size = V(1.8, 2, 1.6), at = at(0, 0, 0), color = crystal, material = glass },
-		{ name = "Belly", size = V(1.2, 1.3, 0.2), at = at(0, -0.2, -0.82), color = Color3.fromRGB(200, 180, 255), material = glass },
+		{
+			name = "Belly",
+			size = V(1.2, 1.3, 0.2),
+			at = at(0, -0.2, -0.82),
+			color = Color3.fromRGB(200, 180, 255),
+			material = glass,
+		},
 		{ name = "Head", size = V(1.7, 1.3, 1.5), at = at(0, 1.55, 0), color = crystal, material = glass },
 		{ name = "Beak", size = V(0.3, 0.35, 0.3), at = at(0, 1.3, -0.85), color = gold },
 	}
 	for _, side in { -1, 1 } do
-		table.insert(pieces, { name = "Tuft", size = V(0.35, 0.6, 0.35), at = at(side * 0.6, 2.4, 0, 0, 0, side * -0.35), color = deep, material = glass })
-		table.insert(pieces, { name = "Eye", size = V(0.5, 0.5, 0.5), at = at(side * 0.4, 1.65, -0.72), color = Color3.fromRGB(255, 240, 140), material = Enum.Material.Neon, shape = "ball" })
-		table.insert(pieces, { name = "Wing", size = V(0.3, 1.6, 1.2), at = at(side * 1.05, -0.05, 0.1), color = deep, material = glass })
-		table.insert(pieces, { name = "Foot", size = V(0.6, 0.25, 0.5), at = at(side * 0.45, -1.1, -0.2), color = gold })
+		table.insert(pieces, {
+			name = "Tuft",
+			size = V(0.35, 0.6, 0.35),
+			at = at(side * 0.6, 2.4, 0, 0, 0, side * -0.35),
+			color = deep,
+			material = glass,
+		})
+		table.insert(pieces, {
+			name = "Eye",
+			size = V(0.5, 0.5, 0.5),
+			at = at(side * 0.4, 1.65, -0.72),
+			color = Color3.fromRGB(255, 240, 140),
+			material = Enum.Material.Neon,
+			shape = "ball",
+		})
+		table.insert(
+			pieces,
+			{ name = "Wing", size = V(0.3, 1.6, 1.2), at = at(side * 1.05, -0.05, 0.1), color = deep, material = glass }
+		)
+		table.insert(
+			pieces,
+			{ name = "Foot", size = V(0.6, 0.25, 0.5), at = at(side * 0.45, -1.1, -0.2), color = gold }
+		)
 	end
 	return pieces
 end
@@ -208,19 +309,99 @@ local OUTFITS: { [string]: Palette } = {
 local function outfitPieces(palette: Palette): { Piece }
 	local fabric = Enum.Material.Fabric
 	local pieces: { Piece } = {
-		{ name = "HatBrim", anchor = "head", size = V(2, 0.12, 2), at = at(0, 0.5, 0), color = palette.hat, material = fabric, shape = "cylinder" },
-		{ name = "HatBand", anchor = "head", size = V(1.22, 0.14, 1.22), at = at(0, 0.62, 0), color = palette.band, material = fabric, shape = "cylinder" },
-		{ name = "Hat1", anchor = "head", size = V(1.15, 0.45, 1.15), at = at(0, 0.8, 0), color = palette.hat, material = fabric, shape = "cylinder" },
-		{ name = "Hat2", anchor = "head", size = V(0.85, 0.4, 0.85), at = at(0, 1.2, 0.05), color = palette.hat, material = fabric, shape = "cylinder" },
-		{ name = "Hat3", anchor = "head", size = V(0.55, 0.35, 0.55), at = at(0, 1.54, 0.15), color = palette.hat, material = fabric, shape = "cylinder" },
-		{ name = "HatTip", anchor = "head", size = V(0.3, 0.3, 0.3), at = at(0, 1.78, 0.28), color = if palette.stars then palette.gem else palette.hat, material = if palette.stars then Enum.Material.Neon else fabric, shape = "ball" },
-		{ name = "Cape", anchor = "torso", size = V(1.7, 2.1, 0.1), at = at(0, -0.35, 0.6), color = palette.cape, material = fabric },
-		{ name = "Staff", anchor = "hand", size = V(0.2, 4, 0.2), at = at(0, 1.2, 0), color = palette.staff, material = Enum.Material.Wood, shape = "cylinder" },
-		{ name = "Gem", anchor = "hand", size = V(0.5, 0.5, 0.5), at = at(0, 3.3, 0), color = palette.gem, material = Enum.Material.Neon, shape = "ball" },
+		{
+			name = "HatBrim",
+			anchor = "head",
+			size = V(2, 0.12, 2),
+			at = at(0, 0.5, 0),
+			color = palette.hat,
+			material = fabric,
+			shape = "cylinder",
+		},
+		{
+			name = "HatBand",
+			anchor = "head",
+			size = V(1.22, 0.14, 1.22),
+			at = at(0, 0.62, 0),
+			color = palette.band,
+			material = fabric,
+			shape = "cylinder",
+		},
+		{
+			name = "Hat1",
+			anchor = "head",
+			size = V(1.15, 0.45, 1.15),
+			at = at(0, 0.8, 0),
+			color = palette.hat,
+			material = fabric,
+			shape = "cylinder",
+		},
+		{
+			name = "Hat2",
+			anchor = "head",
+			size = V(0.85, 0.4, 0.85),
+			at = at(0, 1.2, 0.05),
+			color = palette.hat,
+			material = fabric,
+			shape = "cylinder",
+		},
+		{
+			name = "Hat3",
+			anchor = "head",
+			size = V(0.55, 0.35, 0.55),
+			at = at(0, 1.54, 0.15),
+			color = palette.hat,
+			material = fabric,
+			shape = "cylinder",
+		},
+		{
+			name = "HatTip",
+			anchor = "head",
+			size = V(0.3, 0.3, 0.3),
+			at = at(0, 1.78, 0.28),
+			color = if palette.stars then palette.gem else palette.hat,
+			material = if palette.stars then Enum.Material.Neon else fabric,
+			shape = "ball",
+		},
+		{
+			name = "Cape",
+			anchor = "torso",
+			size = V(1.7, 2.1, 0.1),
+			at = at(0, -0.35, 0.6),
+			color = palette.cape,
+			material = fabric,
+		},
+		{
+			name = "Staff",
+			anchor = "hand",
+			size = V(0.2, 4, 0.2),
+			at = at(0, 1.2, 0),
+			color = palette.staff,
+			material = Enum.Material.Wood,
+			shape = "cylinder",
+		},
+		{
+			name = "Gem",
+			anchor = "hand",
+			size = V(0.5, 0.5, 0.5),
+			at = at(0, 3.3, 0),
+			color = palette.gem,
+			material = Enum.Material.Neon,
+			shape = "ball",
+		},
 	}
 	if palette.stars then
-		for _, spot in { at(-0.4, 0.1, 0.66, 0, 0, 0.6), at(0.35, -0.6, 0.66, 0, 0, 0.2), at(-0.1, -1.1, 0.66, 0, 0, 0.9) } do
-			table.insert(pieces, { name = "Star", anchor = "torso", size = V(0.18, 0.18, 0.04), at = spot, color = palette.band, material = Enum.Material.Neon })
+		for _, spot in
+			{ at(-0.4, 0.1, 0.66, 0, 0, 0.6), at(0.35, -0.6, 0.66, 0, 0, 0.2), at(-0.1, -1.1, 0.66, 0, 0, 0.9) }
+		do
+			table.insert(pieces, {
+				name = "Star",
+				anchor = "torso",
+				size = V(0.18, 0.18, 0.04),
+				at = spot,
+				color = palette.band,
+				material = Enum.Material.Neon,
+			})
 		end
 	end
 	return pieces

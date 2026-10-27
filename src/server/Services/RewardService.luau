@@ -98,7 +98,11 @@ local function onProgress(eventName: string)
 					data.quests.progress[id] = progress + 1
 					changed = true
 					if progress + 1 == quest.target then
-						Remotes.Notify:FireClient(player, "message", `Quest complete: {quest.text}! Claim it in Quests.`)
+						Remotes.Notify:FireClient(
+							player,
+							"message",
+							`Quest complete: {quest.text}! Claim it in Quests.`
+						)
 					end
 				end
 			end

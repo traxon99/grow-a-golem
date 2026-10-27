@@ -114,9 +114,13 @@ function ArtifactService.roll(player: Player, zoneId: number, source: string)
 		DataService.update(player, function(d)
 			ArtifactService.addCopy(d, id, 0, boosted)
 		end)
-		Remotes.Notify:FireClient(player, "message",
-			if boosted then `Spare {Config.Artifacts[id].name} found! Spares from 2x Luck can't be traded.`
-			else `Spare {Config.Artifacts[id].name} found! Trade it from the Trade tab.`)
+		Remotes.Notify:FireClient(
+			player,
+			"message",
+			if boosted
+				then `Spare {Config.Artifacts[id].name} found! Spares from 2x Luck can't be traded.`
+				else `Spare {Config.Artifacts[id].name} found! Trade it from the Trade tab.`
+		)
 		return
 	end
 	local options = unfound(data, zoneId, source)

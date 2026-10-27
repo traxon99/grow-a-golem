@@ -170,7 +170,7 @@ end
 
 ---------------------------------------------------------------- the swap
 
-local function receive(player: Player): ((any, string) -> ())
+local function receive(player: Player): (any, string) -> ()
 	local golem = GolemService.get(player)
 	local slots = if golem then golem.stats.artifactSlots else Config.Golem.baseArtifactSlots
 	return function(data: any, id: string)
@@ -255,9 +255,12 @@ local function settle(player: Player)
 		return
 	end
 	if settleLoaded(player, pending.id, status) then
-		say(player, if status == "committed"
-			then "Your last trade finished. Check your artifacts!"
-			else "Your last trade didn't go through, so your artifacts were returned.")
+		say(
+			player,
+			if status == "committed"
+				then "Your last trade finished. Check your artifacts!"
+				else "Your last trade didn't go through, so your artifacts were returned."
+		)
 	end
 end
 
@@ -284,9 +287,12 @@ local function finish(a: Player, b: Player, id: string)
 	for _, player in { a, b } do
 		local other = if player == a then b else a
 		if settleLoaded(player, id, status) then
-			say(player, if status == "committed"
-				then `Trade complete with {other.DisplayName}!`
-				else "The trade couldn't be saved, so it was cancelled. Your artifacts are back.")
+			say(
+				player,
+				if status == "committed"
+					then `Trade complete with {other.DisplayName}!`
+					else "The trade couldn't be saved, so it was cancelled. Your artifacts are back."
+			)
 		end
 	end
 	if status == "committed" then
@@ -540,13 +546,22 @@ local function snapshot(player: Player): any
 	for _, id in Config.ArtifactOrder do
 		local total = data.artifacts.spares[id] or 0
 		if total > 0 then
-			table.insert(spares, { id = id, name = Config.Artifacts[id].name, tradable = Stats.tradableSpares(data, id), bound = total - Stats.tradableSpares(data, id) })
+			table.insert(spares, {
+				id = id,
+				name = Config.Artifacts[id].name,
+				tradable = Stats.tradableSpares(data, id),
+				bound = total - Stats.tradableSpares(data, id),
+			})
 		end
 	end
 
 	local partners = {}
 	for _, other in Players:GetPlayers() do
-		if other ~= player and DataService.get(other) and (PartyService.sameParty(player, other) or PartyService.friendNow(player, other)) then
+		if
+			other ~= player
+			and DataService.get(other)
+			and (PartyService.sameParty(player, other) or PartyService.friendNow(player, other))
+		then
 			table.insert(partners, { userId = other.UserId, name = other.DisplayName, busy = tradeOf[other] ~= nil })
 		end
 	end

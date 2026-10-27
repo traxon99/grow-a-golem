@@ -36,7 +36,14 @@ function Build.part(parent: Instance, props: PartProps): Part
 end
 
 -- An upright cylinder (Roblox cylinders lie along X, so this stands it up).
-function Build.cylinder(parent: Instance, height: number, diameter: number, cframe: CFrame, color: Color3, material: Enum.Material?): Part
+function Build.cylinder(
+	parent: Instance,
+	height: number,
+	diameter: number,
+	cframe: CFrame,
+	color: Color3,
+	material: Enum.Material?
+): Part
 	return Build.part(parent, {
 		size = Vector3.new(height, diameter, diameter),
 		cframe = cframe * CFrame.Angles(0, 0, math.rad(90)),
@@ -101,7 +108,12 @@ function Build.attachAsset(parent: Instance, root: BasePart, path: { string }, s
 	for _, item in model:GetDescendants() do
 		if item:IsA("BasePart") then
 			table.insert(parts, item)
-		elseif item:IsA("LuaSourceContainer") or item:IsA("Humanoid") or item:IsA("JointInstance") or item:IsA("Constraint") then
+		elseif
+			item:IsA("LuaSourceContainer")
+			or item:IsA("Humanoid")
+			or item:IsA("JointInstance")
+			or item:IsA("Constraint")
+		then
 			item:Destroy()
 		end
 	end
@@ -144,8 +156,9 @@ function Build.attachAsset(parent: Instance, root: BasePart, path: { string }, s
 			end
 		end
 		if kind then
-			local parentPart = if part == body then root else (body :: BasePart)
-			local pivot = part.CFrame * CFrame.new(0, if kind == "arm" or kind == "leg" then part.Size.Y * 0.5 else 0, 0)
+			local parentPart = if part == body then root else body :: BasePart
+			local pivot = part.CFrame
+				* CFrame.new(0, if kind == "arm" or kind == "leg" then part.Size.Y * 0.5 else 0, 0)
 			local motor = Build.joint(parentPart, part, parentPart.CFrame:ToObjectSpace(pivot), "ArtJoint")
 			motor:SetAttribute("Kind", kind)
 			motor:SetAttribute("Side", if root.CFrame:PointToObjectSpace(part.Position).X < 0 then -1 else 1)
@@ -162,7 +175,14 @@ function Build.attachAsset(parent: Instance, root: BasePart, path: { string }, s
 end
 
 export type Rig = {
-	part: (name: string, size: Vector3, offset: CFrame, color: Color3, material: Enum.Material?, transparency: number?) -> Part,
+	part: (
+		name: string,
+		size: Vector3,
+		offset: CFrame,
+		color: Color3,
+		material: Enum.Material?,
+		transparency: number?
+	) -> Part,
 	joint: (part0: BasePart, part1: BasePart, pivot: Vector3, name: string, attributes: { [string]: any }) -> Motor6D,
 	weld: (part0: BasePart, part1: BasePart) -> (),
 }

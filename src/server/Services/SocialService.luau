@@ -27,7 +27,10 @@ local function card(other: Player, data: any): any
 	local parts = {}
 	for _, slot in Config.SlotOrder do
 		local tier = data.golem.parts[slot]
-		table.insert(parts, `{Config.Slots[slot].displayName}: {if tier then Config.Tiers[tier].displayName else "Bare stone"}`)
+		table.insert(
+			parts,
+			`{Config.Slots[slot].displayName}: {if tier then Config.Tiers[tier].displayName else "Bare stone"}`
+		)
 	end
 	local equipped = {}
 	for _, id in data.artifacts.equipped do
@@ -68,7 +71,10 @@ local function snapshot(player: Player): any
 	end
 	local titles = {}
 	for _, id in Config.TitleOrder do
-		table.insert(titles, { id = id, name = Config.Titles[id].name, earned = data ~= nil and Stats.titleEarned(data, id) })
+		table.insert(
+			titles,
+			{ id = id, name = Config.Titles[id].name, earned = data ~= nil and Stats.titleEarned(data, id) }
+		)
 	end
 	return { others = others, titles = titles }
 end

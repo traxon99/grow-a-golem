@@ -70,7 +70,11 @@ local function onCastSpell(player: Player, spellId: any)
 	if spellId == "quake" then
 		local radius = spell.radius * golem.stats.scale
 		for _, enemy in EnemyService.findInRadius(golem.root.Position, radius, golem.zoneId) do
-			EnemyService.damage(enemy, spell.damage * golem.stats.spellPowerMult * (1 + 0.05 * (golem.stats.level - 1)), player)
+			EnemyService.damage(
+				enemy,
+				spell.damage * golem.stats.spellPowerMult * (1 + 0.05 * (golem.stats.level - 1)),
+				player
+			)
 		end
 		ringEffect(ground, radius, Color3.fromRGB(90, 200, 255))
 	elseif spellId == "mend" then

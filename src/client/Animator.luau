@@ -170,12 +170,17 @@ local function animate(rig: Rig, dt: number, now: number, serverNow: number)
 			-- Negative X rotation leans the body forward.
 			local lunge = punch * 0.06 * size
 			local y = bob * 0.04 * size + breathe * 0.01 * size - smash * 0.06 * size
-			transform = CFrame.new(0, y, -lunge) * CFrame.Angles(-punch * 0.12 + raise * 0.15 - smash * 0.25, 0, swing * 0.04)
+			transform = CFrame.new(0, y, -lunge)
+				* CFrame.Angles(-punch * 0.12 + raise * 0.15 - smash * 0.25, 0, swing * 0.04)
 			if downed then
 				transform = CFrame.new(0, -0.12 * size, 0) * CFrame.Angles(-0.35, 0, 0)
 			end
 		elseif kind == "head" then
-			transform = CFrame.Angles(breathe * 0.05 - bob * 0.04 - punch * 0.1, math.sin(now * 0.7 + rig.idleOffset) * 0.12 * (1 - rig.walk), 0)
+			transform = CFrame.Angles(
+				breathe * 0.05 - bob * 0.04 - punch * 0.1,
+				math.sin(now * 0.7 + rig.idleOffset) * 0.12 * (1 - rig.walk),
+				0
+			)
 			if downed then
 				transform = CFrame.Angles(-0.5, 0, 0)
 			end

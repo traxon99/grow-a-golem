@@ -65,7 +65,8 @@ local function applySkin(model: Model, data: any, skinId: string?)
 		if part:IsA("BasePart") then
 			local slot = part:GetAttribute("LookSlot")
 			if type(slot) == "string" then
-				local color, material = CosmeticLooks.partLook(data.golem.parts[slot], part:GetAttribute("LookShade") :: number?, skinId)
+				local color, material =
+					CosmeticLooks.partLook(data.golem.parts[slot], part:GetAttribute("LookShade") :: number?, skinId)
 				part.Color = color
 				part.Material = material
 			elseif part:GetAttribute("LookAccent") then
@@ -175,7 +176,8 @@ local function ensureViewport(): ViewportFrame
 		angle = (angle + dt * SPIN_SPEED) % (math.pi * 2)
 		local direction = CFrame.Angles(0, angle, 0):VectorToWorldSpace(focus.look)
 		local distance = focus.radius * 1.6
-		camera.CFrame = CFrame.lookAt(focus.center + direction * distance + Vector3.new(0, focus.radius * 0.25, 0), focus.center)
+		camera.CFrame =
+			CFrame.lookAt(focus.center + direction * distance + Vector3.new(0, focus.radius * 0.25, 0), focus.center)
 	end)
 	return vp
 end
@@ -245,7 +247,13 @@ function Wardrobe.render(list: ScrollingFrame, snap: any, nextOrder: () -> numbe
 		build(data)
 	end
 	local previewing = previewId and Config.Cosmetics[previewId]
-	Ui.label(holder, if previewing then `Preview: {previewing.name}` else "Your golem", UDim2.new(1, -110, 0, 24), UDim2.fromOffset(14, 10), { ZIndex = 2 })
+	Ui.label(
+		holder,
+		if previewing then `Preview: {previewing.name}` else "Your golem",
+		UDim2.new(1, -110, 0, 24),
+		UDim2.fromOffset(14, 10),
+		{ ZIndex = 2 }
+	)
 	if previewing then
 		local back = Ui.button(holder, "Back", UDim2.fromOffset(80, 30), UDim2.new(1, -92, 0, 10), true, function()
 			showPreview(nil)
@@ -255,7 +263,11 @@ function Wardrobe.render(list: ScrollingFrame, snap: any, nextOrder: () -> numbe
 
 	for _, entry in Config.CosmeticSlots do
 		local worn = Stats.equippedCosmetic(data, entry.id)
-		Ui.heading(list, nextOrder(), entry.name .. (if worn then `  ·  wearing {Config.Cosmetics[worn].name}` else ""))
+		Ui.heading(
+			list,
+			nextOrder(),
+			entry.name .. (if worn then `  ·  wearing {Config.Cosmetics[worn].name}` else "")
+		)
 		for _, id in Config.CosmeticOrder do
 			local cosmetic = Config.Cosmetics[id]
 			if cosmetic.slot ~= entry.id then
@@ -279,7 +291,9 @@ function Wardrobe.render(list: ScrollingFrame, snap: any, nextOrder: () -> numbe
 				end
 			elseif cosmetic.unlock then
 				local current, needed = Stats.cosmeticProgress(data, id)
-				subtitle = howToEarn(cosmetic.unlock) .. (if needed > 1 then `  ({current} / {needed})` else "") .. ". Free!"
+				subtitle = howToEarn(cosmetic.unlock)
+					.. (if needed > 1 then `  ({current} / {needed})` else "")
+					.. ". Free!"
 				buttonText = "Locked"
 				enabled = false
 				onClick = function() end
@@ -314,7 +328,12 @@ function Wardrobe.render(list: ScrollingFrame, snap: any, nextOrder: () -> numbe
 			end
 		end
 	end
-	Ui.row(list, nextOrder(), "Fair play", "Looks never change stats. Paid items are exactly what you preview: no random boxes.")
+	Ui.row(
+		list,
+		nextOrder(),
+		"Fair play",
+		"Looks never change stats. Paid items are exactly what you preview: no random boxes."
+	)
 end
 
 return Wardrobe

@@ -132,7 +132,8 @@ function Tutorial.start()
 
 	local function pop()
 		scale.Scale = 1.12
-		TweenService:Create(scale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+		TweenService:Create(scale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
+			:Play()
 	end
 
 	---------------------------------------------------------------- pointers
@@ -150,7 +151,13 @@ function Tutorial.start()
 		beam, fromAttachment, toAttachment = nil, nil, nil
 	end
 	local function beamBetween(root: BasePart, node: BasePart)
-		if beam and fromAttachment and fromAttachment.Parent == root and toAttachment and toAttachment.Parent == node then
+		if
+			beam
+			and fromAttachment
+			and fromAttachment.Parent == root
+			and toAttachment
+			and toAttachment.Parent == node
+		then
 			toAttachment.Position = Vector3.new(0, node.Size.Y / 2, 0) -- nodes shrink as they're mined
 			return
 		end
@@ -237,7 +244,8 @@ function Tutorial.start()
 		local inset = gui.AbsolutePosition -- the top bar inset, if any
 		if side == "right" then
 			hint.AnchorPoint = Vector2.new(0, 0.5)
-			hint.Position = UDim2.fromOffset(position.X - inset.X + size.X + 10 + bob, position.Y - inset.Y + size.Y / 2)
+			hint.Position =
+				UDim2.fromOffset(position.X - inset.X + size.X + 10 + bob, position.Y - inset.Y + size.Y / 2)
 		else
 			hint.AnchorPoint = Vector2.new(0.5, 1)
 			hint.Position = UDim2.fromOffset(position.X - inset.X + size.X / 2, position.Y - inset.Y - 8 + bob)
