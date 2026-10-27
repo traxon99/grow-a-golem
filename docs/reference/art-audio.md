@@ -47,7 +47,7 @@ Button scale-bounce about 1.05-1.1x over 0.1 s; click SFX on every button; pop s
 - Feedback: hit flashes, damage numbers, debris, boss HP bar, artifact reveal card, level-up banner.
 - Audio: built-in client sounds (`rbxasset://sounds/...`) re-pitched via `Config.SoundEffects`; `Config.Sounds` moment ids (artifact, levelUp, grow) are 0, so they fall back to the re-pitched effects. 19 original synthesized WAV files are ready for upload in `assets/audio/`, but no valid numeric Roblox IDs or universe permissions have been supplied. No music or volume settings. See `assets/README.md` and [launch/plan.md](../launch/plan.md).
 - No shared rarity color table with symbols found; no ReducedMotion gating.
-- Two 512px icon alternatives and three 1920x1080 thumbnail illustrations now exist in `assets/keyart/` (editable SVG and exported PNG). They are draft illustrations, not gameplay captures or published page assets.
+- Two face-first 512px icon alternatives (checked at 48px) and four 1920x1080 thumbnail illustrations (ride, Old Rockjaw's slam, party, growth) now exist in `assets/keyart/` (editable SVG and exported PNG). They are draft illustrations, not gameplay captures or published page assets.
 - UI surfaces use five original materials (wood, stone, metal, studs, crystal), drawn in code with optional tiling textures in `assets/ui-textures/`; see [ui-materials.md](ui-materials.md).
 
 ## Gaps worth closing
