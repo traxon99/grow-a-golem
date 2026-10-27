@@ -465,8 +465,15 @@ Config.Products = {
 	mineralsMedium = { id = 0, name = "Mineral Crate", price = 149, packMinutes = 120 },
 	mineralsLarge = { id = 0, name = "Mineral Vault", price = 449, packMinutes = 480 },
 	boostXp = { id = 0, name = "2x XP (30 min)", price = 39, boost = "xp", minutes = 30 },
-	boostLuck = { id = 0, name = "2x Luck (30 min)", price = 39, boost = "luck", minutes = 30 },
+	-- 2x Luck changes random artifact odds, so Roblox counts it as a paid
+	-- random item: it's hidden for players whose PolicyService says those are
+	-- restricted. If one of them is charged anyway (an old prompt, a tampered
+	-- client), they get the same time of `restrictedAlternative` instead.
+	boostLuck = { id = 0, name = "2x Luck (30 min)", price = 39, boost = "luck", minutes = 30, paidRandom = true, restrictedAlternative = "xp" },
 }
+-- PolicyService lookups are retried this many times, this many seconds apart.
+-- If every try fails we fail closed: paid random items stay hidden.
+Config.PolicyCheck = { attempts = 3, retrySeconds = 5 }
 
 ---------------------------------------------------------------- cosmetics
 

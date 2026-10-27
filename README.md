@@ -44,6 +44,7 @@ Let go of the controls and the golem plays itself: it fights enemies nearby, and
 | Redeemable codes (Codes box in the Shop) | `CodeService`, `Config.Codes` |
 | Limited-time events, event reward tracks, HUD event banner, Events menu | `LiveEventService`, `Config.Events` |
 | Game passes, developer products, receipts | `PassService` |
+| Roblox policy checks: hides 2x Luck where paid random items are restricted (fails closed) | `PolicyService` |
 | Cosmetics: 4 golem skins, 3 wizard outfits, 3 pets, 2 trails, Wardrobe with 3D preview (looks only, never stats) | `CosmeticService`, `Config.Cosmetics`, `src/shared/CosmeticLooks.luau`, client `Wardrobe` |
 | Roblox Analytics: onboarding, zone and shop funnels, economy, progression | `AnalyticsService` |
 | First-time tutorial (5 steps with pointers, skippable, onboarding funnel) | `TutorialService`, client `Tutorial`, `Config.Tutorial` |

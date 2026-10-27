@@ -26,6 +26,25 @@ local function tierRank(tier: string?): number
 	return if tier then (table.find(Config.TierOrder, tier) or 0) else 0
 end
 
+local function percent(chance: number): string
+	return `{string.format("%.2f", chance * 100)}%`
+end
+
+-- One island's artifact odds at a given luck, per enemy and per boss.
+local function oddsText(data: any, zoneId: number, luckMult: number): string
+	local parts = {}
+	for _, source in { "drop", "boss" } do
+		local chance, _, unfound = Stats.artifactOdds(data, zoneId, source, luckMult)
+		local who = if source == "boss" then "boss" else "enemy"
+		table.insert(parts, if unfound > 0 then `{percent(chance)} per {who}` else `{who} artifacts all found`)
+	end
+	return table.concat(parts, ", ")
+end
+
+local function luckBoostEndsIn(data: any): number
+	return math.max(((data.boosts or {}).luck or 0) - State.serverNow(), 0)
+end
+
 ---------------------------------------------------------------- tabs
 
 local function renderForge(list: ScrollingFrame, snap: any)
@@ -96,6 +115,10 @@ local function renderArtifacts(list: ScrollingFrame, snap: any)
 		return order
 	end
 	Ui.heading(list, nextOrder(), `Equipped {#data.artifacts.equipped} / {stats.artifactSlots}  ·  Found {Stats.artifactsFound(data)} / {#Config.ArtifactOrder}`)
+	local boostLeft = luckBoostEndsIn(data)
+	if boostLeft > 0 then
+		Ui.row(list, nextOrder(), `2x Luck is on for {Ui.duration(boostLeft)}`, "The odds below already include it and drop back when it ends.")
+	end
 
 	local sourceHint = { drop = "Rare drop from enemies", boss = "Dropped by the zone boss", hidden = "A glowing relic hidden on the island" }
 	for _, zoneId in Config.ZoneOrder do
@@ -369,20 +392,55 @@ local function renderShop(list: ScrollingFrame, snap: any)
 
 	Ui.heading(list, nextOrder(), "Packs and boosts")
 	local now = State.serverNow()
+	local policy = snap.policy or {}
 	for _, key in Config.ProductOrder do
 		local product = Config.Products[key]
+		local activeFor = if product.boost then math.max((data.boosts[product.boost] or 0) - now, 0) else 0
+		if product.paidRandom and not policy.paidRandomItems then
+			-- Hidden where Roblox restricts paid random items, and until the
+			-- server has checked. Time already bought still shows.
+			if activeFor > 0 then
+				Ui.row(list, nextOrder(), product.name, `Active for {Ui.duration(activeFor)}`)
+			end
+			continue
+		end
 		local subtitle = if product.boost then "Stacks with itself" else "Scales with your best island"
 		if product.boost == "luck" then
-			subtitle = `Doubles artifact odds: {string.format("%.2f", Config.ArtifactDropChance * 100)}% to {string.format("%.2f", Config.ArtifactDropChance * 200)}% per enemy, {math.floor(Config.ArtifactBossChance * 100)}% to {math.floor(math.min(Config.ArtifactBossChance * 200, 100))}% per boss`
+			subtitle = `Doubles your artifact odds for {product.minutes} min. Your real odds are just below.`
 		end
-		if product.boost and (data.boosts[product.boost] or 0) > now then
-			subtitle = `Active for {Ui.duration(data.boosts[product.boost] - now)}`
+		if activeFor > 0 then
+			subtitle = `Active for {Ui.duration(activeFor)}`
 		end
 		Ui.row(list, nextOrder(), product.name, subtitle,
 			if product.id == 0 then "Coming soon" else `R$ {product.price}`, product.id ~= 0, function()
 				Remotes.Track:FireServer("purchasePrompted", "product", key)
 				MarketplaceService:PromptProductPurchase(player, product.id)
 			end)
+		if product.boost == "luck" then
+			-- The player's actual odds on this island right now, from the same
+			-- numbers the server rolls with, and what the boost changes them to.
+			local zoneId = if snap.golem then snap.golem.zoneId else 1
+			local luckMult = Stats.compute(data, State.context()).luckMult
+			local zoneName = Config.Zones[zoneId].name
+			if activeFor > 0 then
+				Ui.row(list, nextOrder(), `Your odds now on {zoneName} (2x Luck on)`,
+					`{oddsText(data, zoneId, luckMult)}. Without it: {oddsText(data, zoneId, luckMult / 2)}.`)
+			else
+				Ui.row(list, nextOrder(), `Your odds now on {zoneName}`,
+					`{oddsText(data, zoneId, luckMult)}. With 2x Luck: {oddsText(data, zoneId, luckMult * 2)}.`)
+			end
+			local pity = {}
+			for _, source in { "drop", "boss" } do
+				local _, rollsLeft, unfound = Stats.artifactOdds(data, zoneId, source, luckMult)
+				local what = if source == "boss" then "boss defeats" else "enemies"
+				if unfound > 0 then
+					table.insert(pity, `{rollsLeft} more {what}`)
+				end
+			end
+			if #pity > 0 then
+				Ui.row(list, nextOrder(), "Bad-luck protection (boost or not)", `One is guaranteed here within {table.concat(pity, " or ")}.`)
+			end
+		end
 	end
 	Ui.row(list, nextOrder(), "Fair play", "Everything that makes you stronger can also be earned by playing.")
 end
@@ -616,7 +674,7 @@ function Menus.start()
 	task.spawn(function()
 		while true do
 			task.wait(1)
-			if openTab and (TABS[openTab].id == "quests" or TABS[openTab].id == "shop" or TABS[openTab].id == "awaken" or TABS[openTab].id == "events") then
+			if openTab and (TABS[openTab].id == "quests" or TABS[openTab].id == "shop" or TABS[openTab].id == "artifacts" or TABS[openTab].id == "awaken" or TABS[openTab].id == "events") then
 				Menus.refresh()
 			end
 		end
