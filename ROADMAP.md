@@ -121,7 +121,7 @@ Code rows can start any time, but Phase 1 fixes come first, and building on unte
 | R5.2 | Make trades crash-safe across both players' saves | Code, Studio | `TradeService`, `DataService` | In progress: Claude for @shmurkles, claude/r5-2-crash-safe-trades, 2026-10-27 |
 | R5.3 | Give zones 4–6 their own scenery and atmosphere | Code | `src/server/Models/Islands.luau`, `WorldService`, `theme` lines of `Config.Zones[4–6]`, `Config.Visuals`, `zoneTint` in `src/client/Fx.luau` | In progress: Claude for @traxon99, claude/project-thread-snc8t6, 2026-10-27 |
 | R5.4 | Measure the full path toward the 20-hour goal; plan content per update from the data | Studio | `docs/expansion-design.md` | Waiting: Phase 2 |
-| R5.5 | Decide whether to move saves to ProfileStore | Code | `DataService` | Open |
+| R5.5 | Decide whether to move saves to ProfileStore | Code | `DataService` | In progress: Claude for @shmurkles, claude/r5-5-profilestore-decision, 2026-10-27 |
 | R5.6 | Add StyLua, selene and luau-lsp type checks to CI without reformatting files other rows have claimed | Code | `.github/workflows/check.yml`, `stylua.toml`, `selene.toml`, `scripts/lint.py`, `scripts/type-baseline.json`, `.claude/skills/auto-ship/SKILL.md` | In progress: Claude for @traxon99, claude/project-thread-jbo1mb, 2026-10-27 |
 
 ## Found in testing
