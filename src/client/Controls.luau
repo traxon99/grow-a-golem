@@ -9,7 +9,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
-local Remotes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remotes"))
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared:WaitForChild("Config"))
+local Remotes = require(Shared:WaitForChild("Remotes"))
 
 local SEND_INTERVAL = 0.1
 
@@ -117,12 +119,16 @@ function Controls.start()
 	end
 	player.CharacterAdded:Connect(onCharacter)
 
-	ContextActionService:BindAction("CastQuake", function(_, state)
-		if state == Enum.UserInputState.Begin then
-			Controls.castSpell("quake")
-		end
-		return Enum.ContextActionResult.Sink
-	end, false, Enum.KeyCode.Q, Enum.KeyCode.ButtonX)
+	local gamepadButtons = { Enum.KeyCode.ButtonX, Enum.KeyCode.ButtonY, Enum.KeyCode.ButtonB }
+	for index, spellId in Config.SpellOrder do
+		local spell = Config.Spells[spellId]
+		ContextActionService:BindAction("Cast_" .. spellId, function(_, state)
+			if state == Enum.UserInputState.Begin then
+				Controls.castSpell(spellId)
+			end
+			return Enum.ContextActionResult.Sink
+		end, false, spell.key, gamepadButtons[index])
+	end
 end
 
 return Controls

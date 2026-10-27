@@ -1,7 +1,8 @@
 --!strict
--- Loads, holds, and saves each player's progress.
--- Milestone 1 uses DataStoreService directly; we swap to ProfileStore
--- (session locking) once the GitHub/Wally setup is in place.
+-- Loads, holds, and saves each player's progress, and sends the client a
+-- snapshot of it whenever it changes (at most every Config.Data.pushInterval).
+-- Uses DataStoreService directly; swapping to ProfileStore for session
+-- locking is a later improvement.
 
 local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
@@ -11,16 +12,13 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
-
-export type PlayerData = {
-	version: number,
-	minerals: { [string]: number },
-	golem: { xp: number },
-}
+local Stats = require(Shared:WaitForChild("Stats"))
 
 type Profile = {
-	data: PlayerData,
+	data: any,
 	canSave: boolean,
+	loadedAt: number, -- os.time() when this session started
+	previousLogout: number, -- lastLogout from the save, before this session
 }
 
 local DataService = {}
@@ -37,16 +35,35 @@ if not store then
 end
 
 local profiles: { [Player]: Profile } = {}
+local dirty: { [Player]: boolean } = {}
+local providers: { [string]: (Player) -> any } = {}
 
 local loadedEvent = Instance.new("BindableEvent")
-DataService.ProfileLoaded = loadedEvent.Event -- fires (player)
+DataService.ProfileLoaded = loadedEvent.Event -- (player)
+local changedEvent = Instance.new("BindableEvent")
+DataService.Changed = changedEvent.Event -- (player)
 
-local function defaultData(): PlayerData
+local function defaultData(): any
 	local minerals = {}
 	for _, id in Config.MineralOrder do
 		minerals[id] = 0
 	end
-	return { version = 1, minerals = minerals, golem = { xp = 0 } }
+	return {
+		version = 1,
+		minerals = minerals,
+		golem = { xp = 0, parts = {} },
+		bossesDefeated = {}, -- ["1"] = true
+		artifacts = { found = {}, equipped = {} },
+		skills = {},
+		awakening = { count = 0, shards = 0, upgrades = {} },
+		daily = { streak = 0, lastClaimDay = 0 },
+		quests = { day = 0, week = 0, ids = {}, weeklyId = "", progress = {}, claimed = {} },
+		boosts = { xp = 0, luck = 0 },
+		receipts = {},
+		groupRewardClaimed = false,
+		lastLogout = 0,
+		totals = { enemies = 0, nodes = 0, bosses = 0 },
+	}
 end
 
 -- Fills in any fields added since the save was written.
@@ -76,50 +93,68 @@ local function withRetries(label: string, fn: () -> any): (boolean, any)
 	return false, nil
 end
 
-local function setupLeaderstats(player: Player, data: PlayerData)
+local function setupLeaderstats(player: Player)
 	local leaderstats = Instance.new("Folder")
 	leaderstats.Name = "leaderstats"
-	for _, id in Config.MineralOrder do
+	for _, name in { "Level", "Awakenings" } do
 		local value = Instance.new("IntValue")
-		value.Name = Config.Minerals[id].displayName
-		value.Value = data.minerals[id]
+		value.Name = name
 		value.Parent = leaderstats
 	end
 	leaderstats.Parent = player
 end
 
-local function pushState(player: Player)
+local function updateLeaderstats(player: Player, data: any)
+	local leaderstats = player:FindFirstChild("leaderstats")
+	if not leaderstats then
+		return
+	end
+	local level = leaderstats:FindFirstChild("Level") :: IntValue?
+	local awakenings = leaderstats:FindFirstChild("Awakenings") :: IntValue?
+	if level then
+		level.Value = Stats.levelForXp(data.golem.xp)
+	end
+	if awakenings then
+		awakenings.Value = data.awakening.count
+	end
+end
+
+local function sendSnapshot(player: Player)
 	local profile = profiles[player]
 	if not profile then
 		return
 	end
-	Remotes.StateUpdate:FireClient(player, {
-		minerals = profile.data.minerals,
-		xp = profile.data.golem.xp,
-	})
-	local leaderstats = player:FindFirstChild("leaderstats")
-	if leaderstats then
-		for _, id in Config.MineralOrder do
-			local value = leaderstats:FindFirstChild(Config.Minerals[id].displayName) :: IntValue?
-			if value then
-				value.Value = profile.data.minerals[id]
-			end
+	local snapshot: { [string]: any } = {
+		data = profile.data,
+		serverTime = os.time(),
+		sessionStart = profile.loadedAt,
+		canSave = profile.canSave,
+	}
+	for key, provider in providers do
+		local ok, value = pcall(provider, player)
+		if ok then
+			snapshot[key] = value
+		else
+			warn(`[DataService] snapshot provider {key} failed: {value}`)
 		end
 	end
+	Remotes.StateUpdate:FireClient(player, snapshot)
+	updateLeaderstats(player, profile.data)
 end
 
-local function save(player: Player)
+local function save(player: Player): boolean
 	local profile = profiles[player]
 	if not profile or not profile.canSave or not store then
-		return
+		return false
 	end
 	local data = profile.data
 	local dataStore = store
-	withRetries(`save {player.UserId}`, function()
+	local ok = withRetries(`save {player.UserId}`, function()
 		dataStore:UpdateAsync(storeKey(player), function()
 			return data
 		end)
 	end)
+	return ok
 end
 
 local function load(player: Player)
@@ -132,12 +167,11 @@ local function load(player: Player)
 	end
 
 	local canSave = true
-	local data: PlayerData
+	local data: any
 	if ok then
 		data = if type(saved) == "table" then saved else defaultData()
 		reconcile(data, defaultData())
 	elseif RunService:IsStudio() then
-		-- Usually means "Enable Studio Access to API Services" is off.
 		warn("[DataService] Could not load data in Studio; playing without saving.")
 		data = defaultData()
 		canSave = false
@@ -150,33 +184,90 @@ local function load(player: Player)
 	if not player.Parent then
 		return -- left while loading
 	end
-	profiles[player] = { data = data, canSave = canSave }
-	setupLeaderstats(player, data)
-	pushState(player)
+	profiles[player] = {
+		data = data,
+		canSave = canSave,
+		loadedAt = os.time(),
+		previousLogout = data.lastLogout,
+	}
+	setupLeaderstats(player)
 	loadedEvent:Fire(player)
+	sendSnapshot(player)
 end
 
-function DataService.get(player: Player): PlayerData?
+---------------------------------------------------------------- public API
+
+function DataService.get(player: Player): any
 	local profile = profiles[player]
 	return profile and profile.data
 end
 
-function DataService.addMineral(player: Player, mineralId: string, amount: number)
-	local profile = profiles[player]
-	if not profile or Config.Minerals[mineralId] == nil or amount <= 0 then
-		return
+function DataService.getSession(player: Player): Profile?
+	return profiles[player]
+end
+
+-- Adds a field to every snapshot sent to that player's client.
+function DataService.addProvider(key: string, provider: (Player) -> any)
+	providers[key] = provider
+end
+
+-- Marks a player's data as changed: the client gets a fresh snapshot soon,
+-- and listeners (like golem stats) recalculate.
+function DataService.markChanged(player: Player)
+	if profiles[player] then
+		dirty[player] = true
+		changedEvent:Fire(player)
 	end
-	profile.data.minerals[mineralId] += math.floor(amount)
-	pushState(player)
+end
+
+-- Runs fn on the player's data, then marks it changed. Returns false if not loaded.
+function DataService.update(player: Player, fn: (any) -> ()): boolean
+	local profile = profiles[player]
+	if not profile then
+		return false
+	end
+	fn(profile.data)
+	DataService.markChanged(player)
+	return true
+end
+
+-- Raw grants with no multipliers. Use EconomyService for gameplay rewards.
+function DataService.addMinerals(player: Player, minerals: { [string]: number })
+	DataService.update(player, function(data)
+		for id, amount in minerals do
+			if Config.Minerals[id] and amount > 0 then
+				data.minerals[id] = (data.minerals[id] or 0) + math.floor(amount)
+			end
+		end
+	end)
 end
 
 function DataService.addXp(player: Player, amount: number)
-	local profile = profiles[player]
-	if not profile or amount <= 0 then
+	if amount <= 0 then
 		return
 	end
-	profile.data.golem.xp += math.floor(amount)
-	pushState(player)
+	DataService.update(player, function(data)
+		data.golem.xp += math.floor(amount)
+	end)
+end
+
+-- Removes a cost if the player can afford all of it. Returns success.
+function DataService.spend(player: Player, cost: { [string]: number }): boolean
+	local data = DataService.get(player)
+	if not data or not Stats.canAfford(data, cost) then
+		return false
+	end
+	DataService.update(player, function(d)
+		for id, amount in cost do
+			d.minerals[id] -= amount
+		end
+	end)
+	return true
+end
+
+-- Saves right away (used after purchases). Returns true only if it was written.
+function DataService.saveNow(player: Player): boolean
+	return save(player)
 end
 
 function DataService.start()
@@ -186,13 +277,19 @@ function DataService.start()
 	end
 
 	Players.PlayerRemoving:Connect(function(player)
+		local profile = profiles[player]
+		if profile then
+			profile.data.lastLogout = os.time()
+		end
 		save(player)
 		profiles[player] = nil
+		dirty[player] = nil
 	end)
 
 	game:BindToClose(function()
 		local pending = 0
-		for player in profiles do
+		for player, profile in profiles do
+			profile.data.lastLogout = os.time()
 			pending += 1
 			task.spawn(function()
 				save(player)
@@ -207,8 +304,19 @@ function DataService.start()
 	task.spawn(function()
 		while true do
 			task.wait(Config.Data.autosaveInterval)
-			for player in profiles do
+			for player, profile in profiles do
+				profile.data.lastLogout = os.time()
 				task.spawn(save, player)
+			end
+		end
+	end)
+
+	task.spawn(function()
+		while true do
+			task.wait(Config.Data.pushInterval)
+			for player in dirty do
+				dirty[player] = nil
+				sendSnapshot(player)
 			end
 		end
 	end)
