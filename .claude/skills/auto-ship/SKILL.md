@@ -68,7 +68,9 @@ Read `README.md` for where each system lives, then follow the patterns already i
 
 ## 5. Verify, then review
 
-**Syntax-check every changed `.luau` file.** Download the official Luau release into your scratchpad (`https://github.com/luau-lang/luau/releases/latest/download/luau-ubuntu.zip`), unzip it, and run `luau-compile --null <file>` on each changed file. That catches parse errors only; a full type check isn't available in the cloud sandbox. If the download or run is refused, say so in the PR body and read the changed code once more by hand instead.
+**Syntax-check every changed `.luau` file.** Download the official Luau release into your scratchpad (`https://github.com/luau-lang/luau/releases/latest/download/luau-ubuntu.zip`), unzip it, and run `luau-compile --null <file>` on each changed file. If the download or run is refused, say so in the PR body and read the changed code once more by hand instead.
+
+CI does the rest on the PR: StyLua, selene, the luau-lsp type check against `scripts/type-baseline.json`, the offline tests and the Rojo build (README "Verification and launch preparation"). You can run the same pinned tools from GitHub releases in your scratchpad to catch problems before pushing, except selene's Roblox standard library, which the sandbox can't download. If you change a file listed in `.styluaignore`, leave it unformatted unless no other `In progress` roadmap row touches it.
 
 Studio can't run here, so nothing executes the game before merge. Write numbered playtest steps for whoever playtests (what to do in Studio, what they should see, what to look for in the Output window) for the PR body and the final message.
 
@@ -104,7 +106,8 @@ The closing keyword links the PR in the issue's Development panel and closes the
 
 Subscribe to the PR's activity. The harness's PR-driving rules cover conflicts, red CI and review findings; follow those.
 
-- Once the PR has no merge conflict and every CI check on its head has passed (or the repo has no CI), merge it. Don't wait for a human review unless the repo requires one.
+- Wait for both CI jobs on the PR's head (`check` and `lint` in "Luau and Rojo checks") to finish. Never merge while one is pending or red. Fix a red check on the branch and push; if a file's type diagnostics rose, fix the new ones rather than raising its count in `scripts/type-baseline.json`.
+- Once the PR has no merge conflict and every check has passed, merge it. Don't wait for a human review unless the repo requires one.
 - Merge with **`merge_method: "merge"`** (a merge commit), the convention in this repo's history. Never squash: after a squash merge the designated branch can't be reset to `main` without a force push.
 - Don't delete the designated branch; later threads reuse branch names.
 - Repo rules beat the caller's request. If branch protection, a ruleset or CODEOWNERS requires an approval, or the merge is refused for any review reason, leave the PR open, request the required reviewers, and tell the caller whose approval it waits on. Never approve the PR yourself or route around the rule.
