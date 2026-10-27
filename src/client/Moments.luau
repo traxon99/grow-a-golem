@@ -7,7 +7,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -15,6 +14,7 @@ local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Stats = require(Shared:WaitForChild("Stats"))
 
+local Sfx = require(script.Parent:WaitForChild("Sfx"))
 local State = require(script.Parent:WaitForChild("State"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
 
@@ -23,17 +23,6 @@ local Moments = {}
 local player = Players.LocalPlayer
 
 local GOLD = Color3.fromRGB(255, 214, 90)
-
-local function playSound(id: number)
-	if id == 0 then
-		return
-	end
-	local sound = Instance.new("Sound")
-	sound.SoundId = `rbxassetid://{id}`
-	sound.Volume = 0.6
-	SoundService:PlayLocalSound(sound)
-	task.delay(5, sound.Destroy, sound)
-end
 
 local function bar(parent: Instance, size: UDim2, position: UDim2, color: Color3): (Frame, Frame)
 	local back = Instance.new("Frame")
@@ -213,7 +202,7 @@ local function startReveal(gui: ScreenGui)
 			line("Tap to continue", 160, 16, Ui.Colors.quiet, Enum.Font.Gotham)
 		end
 
-		playSound(Config.Sounds.artifact)
+		Sfx.moment("artifact")
 		local pop = TweenService:Create(card, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
 			Size = UDim2.fromOffset(360, 190),
 		})
@@ -309,7 +298,7 @@ local function startLevelUp(gui: ScreenGui)
 		end
 		sub.Text = table.concat(extra, "  ")
 		sub.Visible = #extra > 0
-		playSound(if grew then Config.Sounds.grow else Config.Sounds.levelUp)
+		Sfx.moment(if grew then "grow" else "levelUp")
 		task.delay(2.5, function()
 			if token == mine then
 				banner.Visible = false

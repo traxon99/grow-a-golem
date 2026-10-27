@@ -440,6 +440,36 @@ Config.Visuals = {
 -- 0 = silent. Paste rbxassetid numbers from the Creator Store.
 Config.Sounds = { artifact = 0, levelUp = 0, grow = 0 }
 
+-- Everyday sound effects. Each `id` is either a sound that ships inside every
+-- Roblox client ("rbxasset://sounds/..."), which always works, or an asset id
+-- number from the Creator Store. `speed` changes pitch and length, so a few
+-- built-in sounds cover many effects. When a moment above is 0, the effect
+-- with the same name here plays instead.
+local THUD = "rbxasset://sounds/action_jump_land.mp3"
+local WIND = "rbxasset://sounds/action_falling.ogg"
+local SPLASH = "rbxasset://sounds/impact_water.mp3"
+local WHOOSH = "rbxasset://sounds/action_jump.mp3"
+Config.SoundEffects = {
+	golemStep = { id = THUD, speed = 0.5, volume = 0.35, bass = true },
+	bossStep = { id = THUD, speed = 0.4, volume = 0.5, bass = true },
+	punch = { id = THUD, speed = 0.85, volume = 0.5, distortion = 0.35 },
+	mine = { id = THUD, speed = 1.7, volume = 0.4, distortion = 0.2 },
+	mineBreak = { id = THUD, speed = 1.2, volume = 0.6, distortion = 0.5 },
+	enemyAttack = { id = WHOOSH, speed = 1.3, volume = 0.3 },
+	defeat = { id = WHOOSH, speed = 0.8, volume = 0.45 },
+	quake = { id = THUD, speed = 0.32, volume = 1, distortion = 0.6, reverb = true },
+	mend = { id = SPLASH, speed = 1.8, volume = 0.5, reverb = true },
+	magnet = { id = WIND, speed = 1.6, volume = 0.5, length = 1.2 },
+	slamWarn = { id = WIND, speed = 0.6, volume = 0.6, length = 1.5 },
+	slam = { id = THUD, speed = 0.25, volume = 1, distortion = 0.7, reverb = true },
+	downed = { id = "rbxasset://sounds/uuhhh.mp3", speed = 0.55, volume = 0.6, reverb = true },
+	artifact = { id = SPLASH, speed = 2.4, volume = 0.7, reverb = true },
+	levelUp = { id = SPLASH, speed = 2, volume = 0.7, reverb = true },
+	grow = { id = THUD, speed = 0.45, volume = 0.9, reverb = true },
+	click = { id = THUD, speed = 2.6, volume = 0.25 },
+	wind = { id = WIND, speed = 0.45, volume = 0.07, loop = true },
+}
+
 ---------------------------------------------------------------- data
 
 Config.Data = {
