@@ -189,7 +189,8 @@ write('thumbnail-party', svg(1920, 1080, DAY, body))
 body = '<circle cx="1450" cy="300" r="300" fill="url(#sun)"/>'
 body += cloud(300, 260, 1.2) + cloud(1750, 560, 0.9)
 body += island(960, 860, 1800, '#7cc25a')
-body += golem(1180, 960, 1.55, CRYSTAL)
+# The rider stays the same size, so the golem's growth reads against it.
+body += golem(1180, 960, 1.55, CRYSTAL, rider=False) + wizard(1482, 297, 0.6)
 body += golem(480, 960, 0.5, STONE)
 body += '<path d="M600 700 C 700 560, 820 520, 900 520" fill="none" stroke="#ffffff" stroke-width="14" stroke-linecap="round" stroke-dasharray="4 30"/>'
 body += poly([(890, 495), (940, 522), (888, 548)], '#ffffff', False)
