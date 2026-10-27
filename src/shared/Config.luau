@@ -398,6 +398,21 @@ Config.DailyQuestCount = 3
 -- Set to your Roblox group id to give a one-time reward for joining. 0 = off.
 Config.Group = { id = 0, reward = { minerals = { stone = 300, copper = 60 } } }
 
+-- Redeemable codes. Post them with updates and on the group wall. Players type
+-- them in the Shop; each works once per player. Keys must be UPPERCASE (what
+-- players type is upper-cased first). `expires` is a UTC unix time, or nil
+-- for never. Tip: https://www.unixtimestamp.com turns a date into one.
+Config.Codes = {
+	GOLEM100 = { reward = { minerals = { stone = 100 } } },
+	ROCKSOLID = { reward = { minerals = { stone = 200, copper = 50 }, xp = 150 } },
+}
+Config.CodeLimits = {
+	cooldown = 2, -- seconds between attempts
+	maxFailures = 5, -- wrong codes in a row before a short lockout
+	lockoutSeconds = 60,
+	maxLength = 24,
+}
+
 ---------------------------------------------------------------- shop
 
 -- Create these in the Creator Dashboard (Monetization) and paste the ids.

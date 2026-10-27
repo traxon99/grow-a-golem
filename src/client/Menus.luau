@@ -305,6 +305,11 @@ local function renderParty(list: ScrollingFrame, snap: any)
 	Ui.row(list, nextOrder(), "How parties work", "Members near a kill share its rewards. Each friend adds +10% minerals.")
 end
 
+-- The code being typed survives re-renders, and the list doesn't re-render
+-- while the box has focus (that would drop the keyboard).
+local codeDraft = ""
+local codeBox: TextBox? = nil
+
 local function renderShop(list: ScrollingFrame, snap: any)
 	local data = snap.data
 	local passes = snap.passes or {}
@@ -313,6 +318,39 @@ local function renderShop(list: ScrollingFrame, snap: any)
 		order += 1
 		return order
 	end
+	Ui.heading(list, nextOrder(), "Codes")
+	local function redeem()
+		if codeDraft ~= "" and State.request("redeemCode", codeDraft) then
+			codeDraft = ""
+		end
+		Menus.refresh()
+	end
+	local codeRow = Ui.row(list, nextOrder(), "", nil, "Redeem", true, redeem)
+	local box = Instance.new("TextBox")
+	box.Name = "CodeBox"
+	box.Size = UDim2.new(1, -150, 1, -12)
+	box.Position = UDim2.fromOffset(6, 6)
+	box.BackgroundColor3 = Ui.Colors.panel
+	box.TextColor3 = Ui.Colors.text
+	box.PlaceholderText = "Type a code"
+	box.PlaceholderColor3 = Ui.Colors.quiet
+	box.Text = codeDraft
+	box.Font = Enum.Font.GothamBold
+	box.TextScaled = true
+	box.ClearTextOnFocus = false
+	box.Parent = codeRow
+	Ui.corner(box, 6)
+	codeBox = box
+	box:GetPropertyChangedSignal("Text"):Connect(function()
+		codeDraft = string.sub(box.Text, 1, Config.CodeLimits.maxLength)
+	end)
+	box.FocusLost:Connect(function(enterPressed)
+		if enterPressed then
+			redeem()
+		end
+	end)
+	Ui.row(list, nextOrder(), "Where to find codes", "New codes come out with updates and on our group wall.")
+
 	Ui.heading(list, nextOrder(), "Game passes (forever)")
 	for _, key in Config.GamePassOrder do
 		local pass = Config.GamePasses[key]
@@ -386,6 +424,10 @@ function Menus.refresh()
 	if not openTab or not State.snapshot then
 		return
 	end
+	if codeBox and codeBox.Parent and codeBox:IsFocused() then
+		return
+	end
+	codeBox = nil
 	local scroll = list.CanvasPosition
 	for _, child in list:GetChildren() do
 		if not child:IsA("UIListLayout") then
