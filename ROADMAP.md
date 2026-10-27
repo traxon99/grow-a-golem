@@ -99,6 +99,7 @@ Owner rows can start now. Gate: the owner signs off on the store page and the pu
 | R3.6 | Publish the store description once it matches the build | Owner | `docs/launch/game-page.md` | Waiting: R3.5 |
 | R3.7 | Check analytics events appear in the Creator Dashboard | Owner | none | Waiting: R1.5 |
 | R3.8 | Release plan: shut down servers running the version without save leases before going live | Owner | `docs/playtest.md` | Open |
+| R3.9 | Redraw the concept icon and thumbnails so they read at small size: a face-first icon, a real boss, a growth shot | Code | `assets/keyart`, `scripts/create_keyart.py`, `docs/launch/game-page.md` | In progress: Claude for @traxon99, claude/project-thread-pklm20, 2026-10-27 |
 
 ## Phase 4: Soft launch
 
