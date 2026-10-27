@@ -355,6 +355,71 @@ Config.Party = {
 	inviteTimeout = 60,
 }
 
+---------------------------------------------------------------- hub and trading
+
+-- The hub is a small safe island (no enemies, no nodes) where every golem in
+-- the server idles on show. Its zone id is 0 so it never clashes with the
+-- numbered islands in Config.Zones. Travel menu entry: "Golem Hub".
+Config.HubZone = 0
+Config.Hub = {
+	name = "Golem Hub",
+	center = Vector3.new(-500, 60, 0), -- top surface of the floating island
+	size = Vector3.new(180, 6, 180),
+	color = Color3.fromRGB(150, 140, 120),
+	material = Enum.Material.Cobblestone,
+	theme = "meadow",
+	spread = 45, -- golems arrive this many studs from the middle at most
+	maxInspect = 24, -- inspect cards sent per player
+	inspectRange = 14, -- studs (at golem size 1) to see the Inspect prompt
+	refreshSeconds = 5, -- how often cards refresh for players standing in the hub
+}
+
+-- Titles are shown on the nametag. Each is earned by playing (same unlock
+-- kinds as cosmetics: boss, awaken, zoneSet, level) and is never for sale.
+Config.TitleOrder = {
+	"rockjawSlayer", "matronBreaker", "stagHunter",
+	"collectorQuarry", "collectorEmber", "collectorGlasswood",
+	"awakened", "veteran",
+}
+Config.Titles = {
+	rockjawSlayer = { name = "Rockjaw Slayer", unlock = { kind = "boss", zone = 1 } },
+	matronBreaker = { name = "Matron Breaker", unlock = { kind = "boss", zone = 2 } },
+	stagHunter = { name = "Stag Hunter", unlock = { kind = "boss", zone = 3 } },
+	collectorQuarry = { name = "Collector: Mossy Quarry", unlock = { kind = "zoneSet", zone = 1 } },
+	collectorEmber = { name = "Collector: Ember Flats", unlock = { kind = "zoneSet", zone = 2 } },
+	collectorGlasswood = { name = "Collector: Glasswood", unlock = { kind = "zoneSet", zone = 3 } },
+	awakened = { name = "Awakened", unlock = { kind = "awaken", count = 1 } },
+	veteran = { name = "Veteran", unlock = { kind = "level", level = 30 } },
+}
+
+-- Artifacts found from a boss or a hidden relic are announced to the server
+-- (players can turn announcements off in the Hub tab). Enemy drops are not.
+Config.AnnounceSources = { boss = true, hidden = true }
+
+-- Trading moves spare artifact copies only. A spare is a second copy of an
+-- artifact you already found: once you have every artifact from a source on
+-- an island, the same odds and bad-luck protection give spares instead. Spares
+-- found while 2x Luck (bought with Robux) is on are bound to you and can never
+-- be traded, so nothing bought with Robux changes hands. No minerals, no
+-- cosmetics, no text: there is nothing to type, so nothing to filter or scam.
+Config.Trading = {
+	maxItems = 6, -- distinct artifacts per side
+	countdownSeconds = 5, -- both players must wait this long before Confirm
+	requestTimeout = 60,
+	requestCooldown = 3, -- seconds between a player's trade requests
+	idleTimeout = 300, -- an open trade closes after this long
+	dailyLimit = 10, -- completed trades per player per UTC day
+	minAccountAgeDays = 7, -- fresh accounts can't trade (alt and scam protection)
+	saveAttempts = 3, -- tries to save both players right after a trade
+	sweepSeconds = 5, -- how often idle trades are checked
+	logKept = 30, -- trade records kept per player, keyed by UserId
+	-- Value points per artifact source, only used for the "this is lopsided"
+	-- warning. The warning shows when you give more than this many times what
+	-- you get, and the Confirm button then says "Confirm anyway".
+	value = { drop = 1, boss = 3, hidden = 5 },
+	lopsidedRatio = 1.5,
+}
+
 ---------------------------------------------------------------- retention
 
 Config.Offline = { baseCapHours = 2, minSeconds = 60 }

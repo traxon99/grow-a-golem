@@ -63,7 +63,8 @@ Testable checks: grep for `PolicyService` in server code before any shop/trade f
 
 - Artifact drops have published odds (0.6% per enemy, 30% per boss) and pity (300 enemy rolls, 4 boss rolls), shown in the Artifacts menu and Shop. Good baseline.
 - **2x Luck 30 min (R$39) is a paid probability modifier** (`paidRandom = true` in `Config.Products`). The Shop row states the player's actual odds on their current island and what 2x Luck changes them to, plus the pity count, before purchase. While it's active the Shop and the Artifacts menu show the boosted odds, refresh every second, and drop back the moment it ends (`PassService` re-sends state on expiry; `ArtifactService.roll` reads luck at roll time from the same `Stats.artifactOdds` the menus use).
-- **`PolicyService` gates 2x Luck (#26).** The server module `src/server/Services/PolicyService.luau` calls `GetPolicyInfoForPlayerAsync` on join (3 tries, `Config.PolicyCheck`). 2x Luck only shows when `ArePaidRandomItemsRestricted` is explicitly false; on error or before the check it stays hidden (fail closed). A luck receipt that arrives anyway for a restricted player grants the same time of 2x XP instead, and waits until the check has finished. `IsPaidItemTradingAllowed` is read too (`PolicyService.paidTradingAllowed`) for future trading (#13), fail closed.
+- **`PolicyService` gates 2x Luck (#26).** The server module `src/server/Services/PolicyService.luau` calls `GetPolicyInfoForPlayerAsync` on join (3 tries, `Config.PolicyCheck`). 2x Luck only shows when `ArePaidRandomItemsRestricted` is explicitly false; on error or before the check it stays hidden (fail closed). A luck receipt that arrives anyway for a restricted player grants the same time of 2x XP instead, and waits until the check has finished. `IsPaidItemTradingAllowed` is read too (`PolicyService.paidTradingAllowed`) and gates all trading (#13), fail closed: if it isn't explicitly true, or the lookup failed, the Trade tab says trading is off.
+- **Trading (#13)** moves spare artifact copies only, between friends or party members, with Ready, a 5 second countdown and Confirm on both sides, a lopsided warning and a daily limit. Spares found while Robux-bought 2x Luck is on are bound and cannot be traded, so nothing bought with Robux changes hands. No chat or text input is involved, and no mineral or cosmetic trading.
 - Only player-entered text is redeem codes (not shown to others). No TextService filtering needed yet, but required before any naming feature.
 - Codes are rate-limited. No social links in-game found.
 - No ads. No subscriptions. Group join reward exists (group id not set).
@@ -75,7 +76,7 @@ Testable checks: grep for `PolicyService` in server code before any shop/trade f
 1. ~~**P0: Add server-side PolicyService check** and hide/block 2x Luck when `ArePaidRandomItemsRestricted`; fail closed.~~ Done in #26.
 2. ~~**P0: Live odds while 2x Luck active.**~~ Done in #26: RNG and menus share `Stats.artifactOdds`; pity shown in both.
 3. **P0 (#9): Playtest audit** of shop copy against rules 6-7 and of the reveal card against rule 4.
-4. **P1 (#13): Gate trading** on `IsPaidItemTradingAllowed` (already read by `PolicyService.paidTradingAllowed`); never trade paid outcomes for restricted users.
+4. ~~**P1 (#13): Gate trading** on `IsPaidItemTradingAllowed`; never trade paid outcomes for restricted users.~~ Done in #13 (`TradeService`).
 5. **P1 (#14): Cosmetics/pets direct purchase only.** No eggs or crates for Robux.
 6. **P1 (#12): Codes** stay free, posted in-game and on the Roblox group page, never "follow us for codes".
 7. **P1: Questionnaire and Select eligibility plan** (honest Mild/Minimal, 2FA/ID, seeding to 250 engaged plays).

@@ -78,6 +78,15 @@ local function travel(player: Player, zoneId: any): (boolean, string?)
 	if not GolemService.isActive(golem) then
 		return false, "Wait for your golem to reform"
 	end
+	if zoneId == golem.zoneId then
+		return false, "You're already there"
+	end
+	if zoneId == Config.HubZone then
+		-- The hub is always open and has no enemies.
+		GolemService.sendToZone(golem, zoneId)
+		DataService.markChanged(player)
+		return true, `Welcome to the {Config.Hub.name}! Walk up to a golem to inspect it.`
+	end
 	local unlocked, reason = Stats.zoneUnlocked(data, zoneId)
 	if not unlocked then
 		return false, reason

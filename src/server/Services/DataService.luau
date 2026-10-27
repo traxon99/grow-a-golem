@@ -55,7 +55,7 @@ local function defaultData(): any
 		minerals = minerals,
 		golem = { xp = 0, parts = {} },
 		bossesDefeated = {}, -- ["1"] = true
-		artifacts = { found = {}, equipped = {}, pity = {} }, -- pity["drop1"] = rolls since last find
+		artifacts = { found = {}, equipped = {}, pity = {}, spares = {}, boundSpares = {} }, -- pity["drop1"] = rolls since last find; spares[id] = extra copies, boundSpares[id] = how many of those can't be traded
 		skills = {},
 		awakening = { count = 0, shards = 0, upgrades = {} },
 		daily = { streak = 0, lastClaimDay = 0 },
@@ -69,6 +69,8 @@ local function defaultData(): any
 		totals = { enemies = 0, nodes = 0, bosses = 0 },
 		tutorial = { step = 0, done = false }, -- step 0 = not started yet
 		cosmetics = { owned = {}, equipped = {} }, -- owned[id] = true, equipped[slot] = id
+		social = { title = "", announce = true }, -- worn title id ("" = none), hear rare-find announcements
+		trades = { day = 0, count = 0, log = {} }, -- completed trades today, and a record of recent ones
 	}
 end
 

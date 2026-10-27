@@ -29,14 +29,16 @@ Last updated: 2026-10-27. Read [safety-compliance.md](safety-compliance.md) firs
 - Co-op parties up to 4; kills within 80 studs are shared.
 - Friend bonus +10% per friend, up to +30%.
 - Global leaderboards.
-- No trading yet; hub and trading planned (#13).
+- **Golem Hub (#13):** a safe island (zone id 0, `Config.Hub`, Travel tab) with no enemies. Golems idle there on show. Walking up to a golem shows an Inspect prompt (also the Hub tab list): level, size, Awakenings, parts, equipped artifacts, found count, bosses beaten. No hangout, drawing or free-text features.
+- **Titles:** 8 earned titles in `Config.Titles` (boss kills, zone collections, Awakening, level 30) worn on the nametag. Never sold, no player-entered text, so no TextService filtering is needed.
+- **Rare-find shout:** boss and hidden-relic artifact finds are announced to the server unless a player turns announcements off in the Hub tab (`data.social.announce`).
+- **Trading (`TradeService`, Trade tab):** spare artifact copies only. Once every artifact from an island source is found, the same drop odds and pity give spare copies (shown in the Artifacts menu and Shop). Fail-closed `IsPaidItemTradingAllowed` gate, friends or party members only, account at least 7 days old, 10 trades per UTC day, both players Ready then a 5 second countdown then both Confirm, any change resets, lopsided-trade warning, atomic swap that re-checks both saves with no waiting, a trade log keyed by UserId in both saves. Spares found under Robux-bought 2x Luck are bound and never tradable. No minerals, no cosmetics, no text.
 - No player-entered text visible to others; no chat features beyond Roblox default.
-- No PolicyService usage found.
 
 ## Gaps worth closing
 
-1. **P1 (#13):** Hub design with no hangout or drawing features; emote and ping communication.
-2. **P1 (#13):** If trading ships: `IsPaidItemTradingAllowed` gate, two-sided confirm, value warning, trade log keyed by UserId (RTBF-friendly), and no trading of Robux-bought items at launch.
+1. ~~**P1 (#13):** Hub design with no hangout or drawing features.~~ Done. Emotes and pings are still open.
+2. ~~**P1 (#13):** If trading ships: `IsPaidItemTradingAllowed` gate, two-sided confirm, value warning, trade log keyed by UserId, no trading of Robux-bought items.~~ Done. Known limit: saves use plain DataStore calls without session locking, so if one of the two saves right after a trade fails while the other succeeds, a copy could be duplicated or lost. Moving to ProfileStore fixes it.
 3. **P1:** Co-op world boss or shared event so parties have a reason to form (also [live-ops.md](live-ops.md)).
 4. **P2:** Free private servers (goodwill; inference).
 5. **P2:** Make sure leaderboards show only Roblox display names and can drop a user on RTBF.

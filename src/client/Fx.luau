@@ -188,7 +188,7 @@ end
 local function zoneTint()
 	local color = Lighting:FindFirstChildOfClass("ColorCorrectionEffect")
 	local zoneId = (player:GetAttribute("GolemZone") :: number?) or 1
-	local zone = Config.Zones[zoneId]
+	local zone = if zoneId == Config.HubZone then Config.Hub else Config.Zones[zoneId]
 	local tint = zone and Config.Visuals.zoneTints[zone.theme or ""]
 	if color and tint then
 		TweenService:Create(color, TweenInfo.new(2), { TintColor = tint }):Play()

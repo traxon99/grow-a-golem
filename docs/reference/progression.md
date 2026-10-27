@@ -42,6 +42,7 @@ Last updated: 2026-10-27. See also [gameplay-loops.md](gameplay-loops.md) and [m
 - Skill tree: 3 branches x 5 nodes; respec costs stone.
 - **Awakening** (rebirth) from level 20: shards = level - 15; +10% minerals per awakening; shard upgrades.
 - 18 artifacts (drop, boss, hidden), 0.6% per enemy, 30% per boss, pity 300 enemy / 4 boss rolls, zone set bonuses, odds shown in Artifacts menu and Shop.
+- Once every artifact from an island source is found, the same roll (same odds, same pity, shown in the menus) gives a spare copy of one of them instead (`Stats.spareOdds`). Spares are tradable (see social.md), except those found under Robux-bought 2x Luck. Titles (`Config.Titles`) are earned from boss kills, zone collections, Awakening and level 30.
 - Compared with norms: structure matches the genre. Awakening's +10% minerals is small next to PS99's +75% per rebirth and does not yet unlock a new system. Size step at 28 is the last; levels 29-60 have no size milestone.
 
 ## Gaps worth closing

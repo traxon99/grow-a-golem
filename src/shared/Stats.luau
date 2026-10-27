@@ -221,6 +221,36 @@ function Stats.artifactOdds(data: any, zoneId: number, source: string, luckMult:
 	return chance, rollsLeft, unfound
 end
 
+-- Once every artifact from a source on an island is found, the same roll
+-- (same chance, same bad-luck protection) gives a spare copy to trade
+-- instead. Returns the chance per roll, rolls left before one is guaranteed,
+-- and whether spares are what this source is rolling for right now.
+function Stats.spareOdds(data: any, zoneId: number, source: string, luckMult: number): (number, number, boolean)
+	local chance, rollsLeft, unfound = Stats.artifactOdds(data, zoneId, source, luckMult)
+	if unfound > 0 then
+		return 0, 0, false
+	end
+	local total = 0
+	for _, artifact in Config.Artifacts do
+		if artifact.zone == zoneId and artifact.source == source then
+			total += 1
+		end
+	end
+	if total == 0 then
+		return 0, 0, false
+	end
+	local base = if source == "boss" then Config.ArtifactBossChance else Config.ArtifactDropChance
+	local rolls = (data.artifacts.pity or {})[Stats.pityKey(zoneId, source)] or 0
+	return math.min(base * luckMult, 1), math.max(Config.ArtifactPity[source] - rolls, 1), true
+end
+
+-- Spare copies of an artifact that can be traded (the rest are bound).
+function Stats.tradableSpares(data: any, artifactId: string): number
+	local spares = (data.artifacts.spares or {})[artifactId] or 0
+	local bound = (data.artifacts.boundSpares or {})[artifactId] or 0
+	return math.max(spares - bound, 0)
+end
+
 ---------------------------------------------------------------- bonuses
 
 local function addBonus(total: { [string]: number }, bonus: { [string]: number }, times: number)
@@ -287,9 +317,7 @@ end
 -- Cosmetics are looks only: nothing in this file's stat math reads them.
 
 -- How far a player is toward earning a cosmetic: (current, needed).
-function Stats.cosmeticProgress(data: any, id: string): (number, number)
-	local cosmetic = Config.Cosmetics[id]
-	local unlock = cosmetic and cosmetic.unlock
+function Stats.unlockProgress(data: any, unlock: any): (number, number)
 	if not unlock then
 		return 0, 1
 	end
@@ -310,9 +338,33 @@ function Stats.cosmeticProgress(data: any, id: string): (number, number)
 	return 0, 1
 end
 
+function Stats.cosmeticProgress(data: any, id: string): (number, number)
+	local cosmetic = Config.Cosmetics[id]
+	return Stats.unlockProgress(data, cosmetic and cosmetic.unlock)
+end
+
 function Stats.cosmeticEarned(data: any, id: string): boolean
 	local current, needed = Stats.cosmeticProgress(data, id)
 	return current >= needed
+end
+
+-- Titles use the same unlock kinds as cosmetics.
+function Stats.titleEarned(data: any, id: string): boolean
+	local title = Config.Titles[id]
+	if not title then
+		return false
+	end
+	local current, needed = Stats.unlockProgress(data, title.unlock)
+	return current >= needed
+end
+
+-- The title shown on the nametag, or nil (also nil if it isn't earned).
+function Stats.equippedTitle(data: any): string?
+	local id = data.social and data.social.title
+	if type(id) == "string" and Stats.titleEarned(data, id) then
+		return Config.Titles[id].name
+	end
+	return nil
 end
 
 function Stats.ownsCosmetic(data: any, id: string): boolean

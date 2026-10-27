@@ -35,8 +35,11 @@ local function oddsText(data: any, zoneId: number, luckMult: number): string
 	local parts = {}
 	for _, source in { "drop", "boss" } do
 		local chance, _, unfound = Stats.artifactOdds(data, zoneId, source, luckMult)
+		local spareChance, _, spares = Stats.spareOdds(data, zoneId, source, luckMult)
 		local who = if source == "boss" then "boss" else "enemy"
-		table.insert(parts, if unfound > 0 then `{percent(chance)} per {who}` else `{who} artifacts all found`)
+		table.insert(parts, if unfound > 0 then `{percent(chance)} per {who}`
+			elseif spares then `{who} artifacts all found, {percent(spareChance)} per {who} for a spare copy`
+			else `{who} artifacts all found`)
 	end
 	return table.concat(parts, ", ")
 end
@@ -84,6 +87,11 @@ local function renderTravel(list: ScrollingFrame, snap: any)
 	local data = snap.data
 	local currentZone = if snap.golem then snap.golem.zoneId else 1
 	Ui.heading(list, 1, "Islands")
+	local inHub = currentZone == Config.HubZone
+	Ui.row(list, 2, Config.Hub.name, if inHub then "You are here" else "A safe island to show off your golem and meet other players",
+		"Travel", not inHub, function()
+			State.request("travel", Config.HubZone)
+		end)
 	for index, zoneId in Config.ZoneOrder do
 		local zone = Config.Zones[zoneId]
 		local unlocked, reason = Stats.zoneUnlocked(data, zoneId)
@@ -100,7 +108,7 @@ local function renderTravel(list: ScrollingFrame, snap: any)
 		else
 			subtitle = `Locked: {reason}`
 		end
-		Ui.row(list, index + 1, zone.name, subtitle, "Travel", unlocked and zoneId ~= currentZone, function()
+		Ui.row(list, index + 2, zone.name, subtitle, "Travel", unlocked and zoneId ~= currentZone, function()
 			State.request("travel", zoneId)
 		end)
 	end
@@ -132,6 +140,15 @@ local function renderArtifacts(list: ScrollingFrame, snap: any)
 				local who = if source == "boss" then "boss defeat" else "enemy defeated"
 				Ui.row(list, nextOrder(), `Odds: {string.format("%.2f", chance * 100)}% per {who}`,
 					`{unfound} left to find. One is guaranteed within {rollsLeft} more.`)
+			else
+				-- Everything from this source is found, so the same roll now
+				-- gives spare copies to trade (see the Trade tab).
+				local spareChance, spareLeft, spares = Stats.spareOdds(data, zoneId, source, stats.luckMult)
+				if spares then
+					local who = if source == "boss" then "boss defeat" else "enemy defeated"
+					Ui.row(list, nextOrder(), `Spare copies: {string.format("%.2f", spareChance * 100)}% per {who}`,
+						`All found here. A spare to trade is guaranteed within {spareLeft} more.`)
+				end
 			end
 		end
 		for _, id in Config.ArtifactOrder do
@@ -139,7 +156,9 @@ local function renderArtifacts(list: ScrollingFrame, snap: any)
 			if artifact.zone == zoneId then
 				if data.artifacts.found[id] then
 					local equipped = table.find(data.artifacts.equipped, id) ~= nil
-					Ui.row(list, nextOrder(), artifact.name, Ui.bonusText(artifact.bonus),
+					local spare = (data.artifacts.spares or {})[id] or 0
+					local spareText = if spare > 0 then `  ·  {spare} spare ({Stats.tradableSpares(data, id)} tradable)` else ""
+					Ui.row(list, nextOrder(), artifact.name, Ui.bonusText(artifact.bonus) .. spareText,
 						if equipped then "Unequip" else "Equip", true, function()
 							State.request(if equipped then "unequipArtifact" else "equipArtifact", id)
 						end)
@@ -419,7 +438,7 @@ local function renderShop(list: ScrollingFrame, snap: any)
 		if product.boost == "luck" then
 			-- The player's actual odds on this island right now, from the same
 			-- numbers the server rolls with, and what the boost changes them to.
-			local zoneId = if snap.golem then snap.golem.zoneId else 1
+			local zoneId = if snap.golem and snap.golem.zoneId ~= Config.HubZone then snap.golem.zoneId else 1
 			local luckMult = Stats.compute(data, State.context()).luckMult
 			local zoneName = Config.Zones[zoneId].name
 			if activeFor > 0 then
@@ -432,14 +451,18 @@ local function renderShop(list: ScrollingFrame, snap: any)
 			local pity = {}
 			for _, source in { "drop", "boss" } do
 				local _, rollsLeft, unfound = Stats.artifactOdds(data, zoneId, source, luckMult)
+				local _, spareLeft, spares = Stats.spareOdds(data, zoneId, source, luckMult)
 				local what = if source == "boss" then "boss defeats" else "enemies"
 				if unfound > 0 then
 					table.insert(pity, `{rollsLeft} more {what}`)
+				elseif spares then
+					table.insert(pity, `{spareLeft} more {what} for a spare copy`)
 				end
 			end
 			if #pity > 0 then
 				Ui.row(list, nextOrder(), "Bad-luck protection (boost or not)", `One is guaranteed here within {table.concat(pity, " or ")}.`)
 			end
+			Ui.row(list, nextOrder(), "Trading", "Spare copies found while 2x Luck is on can never be traded.")
 		end
 	end
 	Ui.row(list, nextOrder(), "Fair play", "Everything that makes you stronger can also be earned by playing.")
@@ -542,6 +565,199 @@ local function renderRanks(list: ScrollingFrame, snap: any)
 	end
 end
 
+---------------------------------------------------------------- hub
+
+-- Whose inspect card is open in the Hub tab.
+local inspectedId: number? = nil
+
+local function unlockText(unlock: any): string
+	if unlock.kind == "boss" then
+		return `Defeat {Config.Bosses[unlock.zone].displayName}`
+	elseif unlock.kind == "zoneSet" then
+		return `Find every artifact in {Config.Zones[unlock.zone].name}`
+	elseif unlock.kind == "awaken" then
+		return `Awaken {unlock.count} time{if unlock.count == 1 then "" else "s"}`
+	elseif unlock.kind == "level" then
+		return `Reach level {unlock.level}`
+	end
+	return "Keep playing"
+end
+
+local function renderHub(list: ScrollingFrame, snap: any)
+	local hub = snap.hub
+	if not hub then
+		return
+	end
+	local data = snap.data
+	local order = 0
+	local function nextOrder(): number
+		order += 1
+		return order
+	end
+
+	Ui.heading(list, nextOrder(), `Players in this server ({#hub.others})`)
+	if #hub.others == 0 then
+		Ui.row(list, nextOrder(), "Nobody else is here yet", "Golems in the Golem Hub show off their parts. Open Travel to visit.")
+	end
+	for _, other in hub.others do
+		local shown = inspectedId == other.userId
+		local name = if other.title then `{other.name} · {other.title}` else other.name
+		Ui.row(list, nextOrder(), name, `Level {other.level}  ·  Size {other.size}  ·  {other.awakenings} Awakenings`,
+			if shown then "Hide" else "Inspect", true, function()
+				inspectedId = if shown then nil else other.userId
+				Menus.refresh()
+			end)
+		if shown then
+			Ui.row(list, nextOrder(), "Golem parts", table.concat(other.parts, "  ·  "))
+			Ui.row(list, nextOrder(), `Artifacts found {other.artifactsFound} / {#Config.ArtifactOrder}  ·  Zone bosses beaten {other.bosses} / {#Config.ZoneOrder}`,
+				if #other.equipped > 0 then `Wearing: {table.concat(other.equipped, ", ")}` else "No artifacts equipped")
+		end
+	end
+
+	Ui.heading(list, nextOrder(), "Titles (shown on your nametag)")
+	local wearing = Stats.equippedTitle(data)
+	Ui.row(list, nextOrder(), "No title", if wearing == nil then "Wearing nothing" else nil, "Remove", wearing ~= nil, function()
+		State.request("setTitle", "")
+	end)
+	for _, title in hub.titles do
+		local def = Config.Titles[title.id]
+		local on = wearing == title.name
+		Ui.row(list, nextOrder(), title.name, if title.earned then "Earned" else unlockText(def.unlock),
+			if on then "Wearing" elseif title.earned then "Wear" else "Locked", title.earned and not on, function()
+				State.request("setTitle", title.id)
+			end)
+	end
+
+	Ui.heading(list, nextOrder(), "Settings")
+	local announce = data.social == nil or data.social.announce ~= false
+	Ui.row(list, nextOrder(), `Rare-find announcements: {if announce then "On" else "Off"}`,
+		"A short message when someone finds a boss or relic artifact.",
+		if announce then "Turn off" else "Turn on", true, function()
+			State.request("setAnnounce", not announce)
+		end)
+end
+
+---------------------------------------------------------------- trade
+
+local SOURCE_NAMES = { drop = "enemy drop", boss = "boss drop", hidden = "hidden relic" }
+
+local function renderTrade(list: ScrollingFrame, snap: any)
+	local trade = snap.trade
+	if not trade then
+		return
+	end
+	local order = 0
+	local function nextOrder(): number
+		order += 1
+		return order
+	end
+	local view = trade.trade
+
+	if view then
+		local name = view.partner.name
+		Ui.heading(list, nextOrder(), `Trading with {name}`)
+
+		Ui.heading(list, nextOrder(), "You give")
+		for _, item in view.mine do
+			Ui.row(list, nextOrder(), item.name, SOURCE_NAMES[item.source], "Remove", true, function()
+				State.request("tradeRemove", item.id)
+			end)
+		end
+		if #view.mine == 0 then
+			Ui.row(list, nextOrder(), "Nothing yet", "Pick a spare copy below.")
+		end
+		local offered = {}
+		for _, item in view.mine do
+			offered[item.id] = true
+		end
+		for _, spare in trade.spares do
+			if spare.tradable > 0 and not offered[spare.id] then
+				Ui.row(list, nextOrder(), spare.name, `{spare.tradable} spare to trade`, "Offer", #view.mine < Config.Trading.maxItems, function()
+					State.request("tradeOffer", spare.id)
+				end)
+			end
+		end
+
+		Ui.heading(list, nextOrder(), `You get from {name}`)
+		for _, item in view.theirs do
+			Ui.row(list, nextOrder(), item.name, SOURCE_NAMES[item.source])
+		end
+		if #view.theirs == 0 then
+			Ui.row(list, nextOrder(), "Nothing yet", `{name} hasn't added anything. That's fine if it's a gift, but check.`)
+		end
+
+		if view.lopsided then
+			Ui.row(list, nextOrder(), "Careful: you give much more than you get", "Only go ahead if you really want to. You can't undo a trade.")
+		end
+		Ui.row(list, nextOrder(), `You: {if view.myReady then "Ready" else "Not ready"}  ·  {name}: {if view.theirReady then "Ready" else "Not ready"}`,
+			"Changing anything makes you both Ready again.")
+
+		local bothReady = view.myReady and view.theirReady
+		local remaining = if bothReady and view.confirmAt then view.confirmAt - State.serverNow() else 0
+		if not bothReady then
+			Ui.row(list, nextOrder(), if view.myReady then "Waiting for both of you to be Ready" else "Check the trade, then press Ready",
+				nil, if view.myReady then "Not ready" else "Ready", view.myReady or #view.mine + #view.theirs > 0, function()
+					State.request("tradeReady", not view.myReady)
+				end)
+		elseif remaining > 0 then
+			Ui.row(list, nextOrder(), `Take a moment to check the trade ({remaining})`, "Confirm opens when the timer ends.", "Wait", false)
+		elseif view.myConfirmed then
+			Ui.row(list, nextOrder(), `Waiting for {name} to confirm`, nil, "Confirmed", false)
+		else
+			Ui.row(list, nextOrder(), "Both Ready. Confirm to swap.", if view.theirConfirmed then `{name} has confirmed.` else nil,
+				if view.lopsided then "Confirm anyway" else "Confirm", true, function()
+					State.request("tradeConfirm")
+				end)
+		end
+		if bothReady and not view.myConfirmed then
+			Ui.row(list, nextOrder(), "Not sure?", nil, "Not ready", true, function()
+				State.request("tradeReady", false)
+			end)
+		end
+		Ui.row(list, nextOrder(), "Cancel trade", nil, "Cancel", true, function()
+			State.request("tradeCancel")
+		end)
+		Ui.row(list, nextOrder(), "Stay safe", "Only trade with people you know. Never trade because someone asked for Robux or something outside the game.")
+		return
+	end
+
+	Ui.heading(list, nextOrder(), `Trade spare artifacts  ·  {trade.left} trades left today`)
+	if trade.blocked then
+		Ui.row(list, nextOrder(), "Trading is off for now", trade.blocked)
+	end
+	if #trade.incoming > 0 then
+		Ui.heading(list, nextOrder(), "Requests")
+		for _, request in trade.incoming do
+			local frame = Ui.row(list, nextOrder(), `{request.name} wants to trade`, nil, "Accept", trade.blocked == nil, function()
+				State.request("tradeAccept", request.userId)
+			end)
+			Ui.button(frame, "No", UDim2.new(0, 60, 1, -12), UDim2.new(1, -194, 0, 6), true, function()
+				State.request("tradeDecline", request.userId)
+			end)
+		end
+	end
+
+	Ui.heading(list, nextOrder(), "Your spare copies")
+	if #trade.spares == 0 then
+		Ui.row(list, nextOrder(), "No spares yet", "Find every artifact from a source on an island, and the same drops give spare copies.")
+	end
+	for _, spare in trade.spares do
+		Ui.row(list, nextOrder(), spare.name, `{spare.tradable} to trade` .. (if spare.bound > 0 then `  ·  {spare.bound} bound (found with 2x Luck)` else ""))
+	end
+
+	Ui.heading(list, nextOrder(), "Friends and party members here")
+	if #trade.partners == 0 then
+		Ui.row(list, nextOrder(), "Nobody to trade with yet", "You can trade with Roblox friends and party members. Invite someone from Party.")
+	end
+	for _, partner in trade.partners do
+		Ui.row(list, nextOrder(), partner.name, if partner.busy then "Busy trading" else nil, "Trade",
+			trade.blocked == nil and not partner.busy, function()
+				State.request("tradeRequest", partner.userId)
+			end)
+	end
+	Ui.row(list, nextOrder(), "How trading works", "Only spare artifact copies. Both of you press Ready, wait for the timer, then both Confirm.")
+end
+
 local TABS: { { id: string, name: string, render: Render } } = {
 	{ id = "forge", name = "Forge", render = renderForge },
 	{ id = "travel", name = "Travel", render = renderTravel },
@@ -551,6 +767,8 @@ local TABS: { { id: string, name: string, render: Render } } = {
 	{ id = "quests", name = "Quests", render = renderQuests },
 	{ id = "events", name = "Events", render = renderEvents },
 	{ id = "party", name = "Party", render = renderParty },
+	{ id = "hub", name = "Hub", render = renderHub },
+	{ id = "trade", name = "Trade", render = renderTrade },
 	{ id = "wardrobe", name = "Wardrobe", render = renderWardrobe },
 	{ id = "shop", name = "Shop", render = renderShop },
 	{ id = "ranks", name = "Ranks", render = renderRanks },
@@ -597,7 +815,28 @@ function Menus.refresh()
 	list.CanvasPosition = scroll
 end
 
-local function open(index: number?)
+local function indexOf(id: string): number?
+	for index, tab in TABS do
+		if tab.id == id then
+			return index
+		end
+	end
+	return nil
+end
+
+local open: (index: number?) -> ()
+
+local function showInspect(userId: number)
+	inspectedId = userId
+	local index = indexOf("hub")
+	if openTab ~= index then
+		open(index)
+	else
+		Menus.refresh()
+	end
+end
+
+function open(index: number?)
 	openTab = if openTab == index then nil else index
 	window.Visible = openTab ~= nil
 	if openTab and TABS[openTab].id == "shop" then
@@ -613,9 +852,14 @@ function Menus.start()
 	gui.Parent = player:WaitForChild("PlayerGui")
 
 	-- Tab buttons down the left edge, under the stats panel.
-	local bar = Instance.new("Frame")
+	-- Scrolls, so every tab stays reachable on a short screen.
+	local bar = Instance.new("ScrollingFrame")
 	bar.Name = "Tabs"
 	bar.BackgroundTransparency = 1
+	bar.BorderSizePixel = 0
+	bar.ScrollBarThickness = 0
+	bar.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	bar.CanvasSize = UDim2.new()
 	bar.Size = UDim2.new(0, 110, 1, -220)
 	bar.Position = UDim2.fromOffset(12, 180)
 	bar.Parent = gui
@@ -670,11 +914,17 @@ function Menus.start()
 	layout.Parent = list
 
 	State.Changed:Connect(Menus.refresh)
+	-- Pressing Inspect on a golem in the hub opens its card.
+	Remotes.Notify.OnClientEvent:Connect(function(kind: string, userId: number?)
+		if kind == "inspect" and type(userId) == "number" then
+			showInspect(userId)
+		end
+	end)
 	-- Timers (session gifts, boosts) tick even without new state.
 	task.spawn(function()
 		while true do
 			task.wait(1)
-			if openTab and (TABS[openTab].id == "quests" or TABS[openTab].id == "shop" or TABS[openTab].id == "artifacts" or TABS[openTab].id == "awaken" or TABS[openTab].id == "events") then
+			if openTab and (TABS[openTab].id == "quests" or TABS[openTab].id == "shop" or TABS[openTab].id == "artifacts" or TABS[openTab].id == "trade" or TABS[openTab].id == "awaken" or TABS[openTab].id == "events") then
 				Menus.refresh()
 			end
 		end
