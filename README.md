@@ -204,7 +204,7 @@ CI also runs a lint job on every push and PR (versions are pinned in `.github/wo
 
 - **StyLua** (`stylua --check src tests`, settings in `stylua.toml`). Files written before CI had StyLua are listed in `.styluaignore`. Format one with `stylua <file>` and delete its line only when no issue labelled `in progress` touches it.
 - **selene** (`selene --allow-warnings src`, Roblox standard library from `golem.yml`; `tests/` are fragments that `scripts/check.py` joins, so they aren't linted on their own). Errors fail the build; warnings are shown.
-- **luau-lsp type check** with the Roblox API definitions: `rojo sourcemap default.project.json -o sourcemap.json`, then `python3 scripts/typecheck.py --definitions <globalTypes.d.luau>`. Existing strict-mode errors are counted per file in `scripts/type-baseline.json`; the check fails if any file gets more. After fixing some, run it with `--update` to lower the baseline.
+- **luau-lsp type check** with the Roblox API definitions: `rojo sourcemap default.project.json -o sourcemap.json`, then `python3 scripts/typecheck.py --definitions <globalTypes.d.luau>`. `src` has no strict-mode type errors (#70), so `scripts/type-baseline.json` is empty and any new error fails the check. On a PR, each new error shows as an annotation with its file, line and message. The baseline file stays so a future exception can be recorded, with the reason in the PR.
 
 No secrets are needed. Tests that run inside Roblox (Open Cloud Luau execution) aren't set up yet.
 
