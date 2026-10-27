@@ -41,6 +41,7 @@ Let go of the controls and the golem plays itself: it fights enemies nearby, and
 | Co-op parties, shared kill rewards, friend bonus | `PartyService` |
 | Global leaderboards | `LeaderboardService` |
 | Daily login streak, daily and weekly quests, session gifts, offline mining, group reward | `RewardService` |
+| Redeemable codes (Codes box in the Shop) | `CodeService`, `Config.Codes` |
 | Game passes, developer products, receipts | `PassService` |
 | HUD, next-goal tracker with progress bar, menus | `src/client` |
 | Boss health bar, artifact reveal card, level-up banner | `src/client/Moments.luau` |
@@ -59,6 +60,20 @@ Every balance number and all content (zones, enemies, bosses, artifacts, skills,
 3. Paste each id into the matching `id = 0` field. Anything left at `0` shows as "Coming soon" in the Shop.
 
 For the group join reward, set `Config.Group.id` to your Roblox group's id.
+
+## Adding a code
+
+Add a line to `Config.Codes` in `src/shared/Config.luau` and publish:
+
+```lua
+SUMMER500 = { reward = { minerals = { copper = 500 } }, expires = 1788220800 },
+```
+
+- The name must be UPPERCASE letters and numbers. Players can type it in any case.
+- `reward` takes `minerals` and/or `xp`, the same shape as quest rewards.
+- `expires` is a UTC unix time (leave it out for a code that never expires). Expired codes tell players to watch for new ones.
+- Each player can use a code once. Wrong guesses are rate-limited.
+- Keep codes free: never make one depend on following, liking or buying anything.
 
 ## Code layout
 

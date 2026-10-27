@@ -61,6 +61,7 @@ local function defaultData(): any
 		boosts = { xp = 0, luck = 0 },
 		receipts = {},
 		groupRewardClaimed = false,
+		codesRedeemed = {}, -- ["GOLEM100"] = os.time() when redeemed
 		lastLogout = 0,
 		totals = { enemies = 0, nodes = 0, bosses = 0 },
 	}
