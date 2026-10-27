@@ -1,0 +1,31 @@
+# Files written before StyLua ran in CI. Don't reformat a file here while a
+# ROADMAP.md row that touches it is In progress; when it's free, run
+# `stylua <file>` and delete its line here in the same PR (roadmap row R5.7).
+src/client/Animator.luau
+src/client/Fx.luau
+src/client/Hud.luau
+src/client/Menus.luau
+src/client/Moments.luau
+src/client/Tutorial.luau
+src/client/Ui.luau
+src/client/Wardrobe.luau
+src/server/Models/Build.luau
+src/server/Models/EnemyModels.luau
+src/server/Models/Islands.luau
+src/server/Services/ArtifactService.luau
+src/server/Services/CombatService.luau
+src/server/Services/DataService.luau
+src/server/Services/EnemyService.luau
+src/server/Services/GolemService.luau
+src/server/Services/MiningService.luau
+src/server/Services/PartyService.luau
+src/server/Services/RewardService.luau
+src/server/Services/SocialService.luau
+src/server/Services/TradeService.luau
+src/shared/Config.luau
+src/shared/CosmeticLooks.luau
+src/shared/SessionLease.luau
+src/shared/Stats.luau
+tests/data-service.luau
+tests/progression.luau
+tests/regression.luau
