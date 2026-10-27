@@ -11,6 +11,7 @@ local Remotes = require(Shared:WaitForChild("Remotes"))
 
 local ActionService = require(script.Parent.ActionService)
 local DataService = require(script.Parent.DataService)
+local Events = require(script.Parent.Events)
 
 type Party = { leader: Player, members: { Player } }
 
@@ -176,6 +177,7 @@ function PartyService.start()
 		for _, member in party.members do
 			Remotes.Notify:FireClient(member, "message", `{player.DisplayName} joined the party!`)
 		end
+		Events.fire("partyJoined", player, #party.members)
 		return true, nil
 	end)
 

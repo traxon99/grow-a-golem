@@ -14,6 +14,8 @@ local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Stats = require(Shared:WaitForChild("Stats"))
 
+local Events = require(script.Parent.Events)
+
 type Profile = {
 	data: any,
 	canSave: boolean,
@@ -235,14 +237,20 @@ function DataService.update(player: Player, fn: (any) -> ()): boolean
 end
 
 -- Raw grants with no multipliers. Use EconomyService for gameplay rewards.
-function DataService.addMinerals(player: Player, minerals: { [string]: number })
-	DataService.update(player, function(data)
+-- `source` says where they came from ("mining", "quest"...) for analytics.
+function DataService.addMinerals(player: Player, minerals: { [string]: number }, source: string?)
+	local given = {}
+	local ok = DataService.update(player, function(data)
 		for id, amount in minerals do
 			if Config.Minerals[id] and amount > 0 then
-				data.minerals[id] = (data.minerals[id] or 0) + math.floor(amount)
+				given[id] = math.floor(amount)
+				data.minerals[id] = (data.minerals[id] or 0) + given[id]
 			end
 		end
 	end)
+	if ok then
+		Events.fire("mineralsGained", player, given, source or "other")
+	end
 end
 
 function DataService.addXp(player: Player, amount: number)
@@ -255,7 +263,8 @@ function DataService.addXp(player: Player, amount: number)
 end
 
 -- Removes a cost if the player can afford all of it. Returns success.
-function DataService.spend(player: Player, cost: { [string]: number }): boolean
+-- `sink` says what it was spent on ("forge"...) for analytics.
+function DataService.spend(player: Player, cost: { [string]: number }, sink: string?): boolean
 	local data = DataService.get(player)
 	if not data or not Stats.canAfford(data, cost) then
 		return false
@@ -265,6 +274,7 @@ function DataService.spend(player: Player, cost: { [string]: number }): boolean
 			d.minerals[id] -= amount
 		end
 	end)
+	Events.fire("mineralsSpent", player, cost, sink or "other")
 	return true
 end
 

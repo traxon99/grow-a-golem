@@ -37,7 +37,7 @@ local function craft(player: Player, slot: any, tier: any): (boolean, string?)
 		return false, "You already have an equal or better part there"
 	end
 	local cost = Stats.partCost(slot, tier)
-	if not DataService.spend(player, cost) then
+	if not DataService.spend(player, cost, "forge") then
 		return false, "Not enough minerals"
 	end
 	DataService.update(player, function(d)
@@ -84,6 +84,7 @@ local function travel(player: Player, zoneId: any): (boolean, string?)
 	end
 	GolemService.sendToZone(golem, zoneId)
 	DataService.markChanged(player)
+	Events.fire("zoneEntered", player, zoneId)
 	return true, `Welcome to {Config.Zones[zoneId].name}!`
 end
 
@@ -109,7 +110,7 @@ local function respec(player: Player): (boolean, string?)
 	if not data or next(data.skills) == nil then
 		return false, "No skills to reset"
 	end
-	if not DataService.spend(player, Config.SkillRespecCost) then
+	if not DataService.spend(player, Config.SkillRespecCost, "respec") then
 		return false, "Not enough minerals"
 	end
 	DataService.update(player, function(d)
@@ -131,6 +132,7 @@ local function awaken(player: Player): (boolean, string?)
 		return false, `Reach level {Config.Awakening.minLevel} to Awaken`
 	end
 	local shards = Stats.awakeningShards(level)
+	local wiped = table.clone(data.minerals)
 	DataService.update(player, function(d)
 		d.awakening.count += 1
 		d.awakening.shards += shards
@@ -143,6 +145,8 @@ local function awaken(player: Player): (boolean, string?)
 		end
 	end)
 	GolemService.sendToZone(golem, 1)
+	Events.fire("mineralsSpent", player, wiped, "awaken")
+	Events.fire("awakened", player, data.awakening.count)
 	return true, `Your golem Awakens! +{shards} Awakening Shards`
 end
 

@@ -11,6 +11,7 @@ local Config = require(Shared:WaitForChild("Config"))
 local ActionService = require(script.Parent.ActionService)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
+local Events = require(script.Parent.Events)
 
 local CodeService = {}
 
@@ -71,7 +72,8 @@ local function redeem(player: Player, input: any): (boolean, string?)
 	DataService.update(player, function(d)
 		d.codesRedeemed[code] = os.time()
 	end)
-	EconomyService.grantFlat(player, entry.reward)
+	EconomyService.grantFlat(player, entry.reward, "code")
+	Events.fire("codeRedeemed", player, code)
 	task.spawn(DataService.saveNow, player)
 	return true, `Code redeemed! You got {CodeService.rewardText(entry.reward)}.`
 end

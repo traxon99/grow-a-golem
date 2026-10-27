@@ -542,6 +542,12 @@ Config.Tutorial = {
 	doneText = "You're ready! Follow the Next goal at the top to grow your golem.",
 }
 
+---------------------------------------------------------------- analytics
+
+-- Gameplay events go to the Creator Dashboard (see AnalyticsService and the
+-- README). Set debug to true to print analytics errors in the Output window.
+Config.Analytics = { debug = false }
+
 ---------------------------------------------------------------- data
 
 Config.Data = {

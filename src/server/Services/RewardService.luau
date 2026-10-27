@@ -128,7 +128,7 @@ local function claimQuest(player: Player, id: any): (boolean, string?)
 	DataService.update(player, function(d)
 		d.quests.claimed[id] = true
 	end)
-	EconomyService.grantFlat(player, quest.reward)
+	EconomyService.grantFlat(player, quest.reward, "quest")
 	return true, "Quest reward claimed!"
 end
 
@@ -158,7 +158,7 @@ local function claimDaily(player: Player): (boolean, string?)
 		d.daily.streak = streak
 		d.daily.lastClaimDay = today()
 	end)
-	EconomyService.grantFlat(player, reward)
+	EconomyService.grantFlat(player, reward, "daily")
 	return true, `Day {streak} reward claimed!`
 end
 
@@ -179,7 +179,7 @@ local function claimSession(player: Player, index: any): (boolean, string?)
 		return false, `Unlocks after {gift.minutes} minutes of play`
 	end
 	claims[index] = true
-	EconomyService.grantFlat(player, gift)
+	EconomyService.grantFlat(player, gift, "session")
 	DataService.markChanged(player)
 	return true, "Gift opened!"
 end
@@ -211,7 +211,7 @@ local function grantOffline(player: Player)
 	for mineral, perMinute in zone.offlineMinerals do
 		minerals[mineral] = math.floor(perMinute * minutes * stats.mineralMult)
 	end
-	DataService.addMinerals(player, minerals)
+	DataService.addMinerals(player, minerals, "offline")
 	Remotes.Notify:FireClient(player, "offline", math.floor(minutes), minerals, away > seconds)
 end
 
@@ -234,7 +234,7 @@ local function checkGroup(player: Player): (boolean, string?)
 	DataService.update(player, function(d)
 		d.groupRewardClaimed = true
 	end)
-	EconomyService.grantFlat(player, Config.Group.reward)
+	EconomyService.grantFlat(player, Config.Group.reward, "group")
 	return true, "Thanks for joining the group!"
 end
 
