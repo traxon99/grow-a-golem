@@ -2,21 +2,21 @@
 
 Read `README.md` for setup, the code layout and where each system lives.
 
-## Roadmap: check it and claim before you start
+## Issues: check and claim before you start
 
-More than one person, and more than one Claude session, works on this repo at once. [`ROADMAP.md`](ROADMAP.md) is the shared list of what's open, in progress and done.
+More than one person, and more than one Claude session, works on this repo at once. Work is tracked in GitHub issues grouped into phase milestones, and [`CONTRIBUTING.md`](CONTRIBUTING.md) is the workflow definition: how to find, claim, finish, release and add work. Read it before any work and follow the version on `main`, since it may have changed since you last saw it.
 
-- Before any work, pull `main` and read `ROADMAP.md`. Never work on a row marked `In progress`, and don't edit the files in its **Touches** column. If what you were asked to do overlaps one, tell the person who asked and stop until they decide.
-- Claim your row first: set its status to `In progress: Claude for @<login>, <branch>, <date>` and push that one-line change straight to `main`, as the roadmap's "Before you start" section shows. If the push is rejected and the rebase conflicts on your row, someone else got there first.
-- If the work has no row, add one (next free ID, right phase) and claim it.
-- In the PR that does the work, set the row to `Done: #<PR>`. If you stop early, set it back to `Open`.
+- Never work on an issue labelled `in progress` by someone else, and don't edit the files in its **Touches** field. If what you were asked to do overlaps one, tell the person who asked and stop until they decide.
+- Claim your issue first, as `CONTRIBUTING.md` says. A Claude session assigns the login of the person it works for and comments `Claiming: Claude for @<login>, branch <branch>, <date>`. If an earlier claim shows up when you re-read the issue, someone else got there first.
+- If the work has no issue, create one as `CONTRIBUTING.md`'s "Adding work" says, and claim it.
+- The PR that does the work says `Fixes #<issue>`. If you stop early, release the issue.
 - Questions, exploration and reviews that change no files need no claim.
 
 ## Report progress to your user
 
 Other people and sessions change `main` while you work. Keep your user told, using `scripts/progress.py`:
 
-- **When you start**, after pulling `main`, run `python3 scripts/progress.py --login <GitHub login of the person you work for>`. It lists what changed since their last commit or roadmap edit. Tell them in a few lines: pull requests merged, roadmap rows finished, rows others have claimed or released, and anything that overlaps what they asked for. Note the `origin/main` commit you started from.
+- **When you start**, after pulling `main`, run `python3 scripts/progress.py --login <GitHub login of the person you work for>`. It lists what changed since their last commit or merge. Tell them in a few lines: pull requests merged, issues finished, issues others have claimed or released, and anything that overlaps what they asked for. Note the `origin/main` commit you started from.
 - **Before your final message**, run `python3 scripts/progress.py --since <the commit you started from>` and add a short "Meanwhile on main" note if anything landed while you worked.
 - If it reports nothing new, say nothing about it. Summarize; don't paste the whole output.
 

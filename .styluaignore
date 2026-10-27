@@ -1,3 +1,3 @@
-# Files written before StyLua ran in CI. Don't reformat a file here while a
-# ROADMAP.md row that touches it is In progress; when it's free, run
-# `stylua <file>` and delete its line here in the same PR (roadmap row R5.9).
+# Files written before StyLua ran in CI. Don't reformat a file here while an
+# issue labelled `in progress` touches it; when it's free, run
+# `stylua <file>` and delete its line here in the same PR (#69, was R5.9).
