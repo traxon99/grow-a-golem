@@ -44,6 +44,7 @@ Let go of the controls and the golem plays itself: it fights enemies nearby, and
 | Redeemable codes (Codes box in the Shop) | `CodeService`, `Config.Codes` |
 | Limited-time events, event reward tracks, HUD event banner, Events menu | `LiveEventService`, `Config.Events` |
 | Game passes, developer products, receipts | `PassService` |
+| First-time tutorial (5 steps with pointers, skippable, onboarding funnel) | `TutorialService`, client `Tutorial`, `Config.Tutorial` |
 | HUD, next-goal tracker with progress bar, menus | `src/client` |
 | Boss health bar, artifact reveal card, level-up banner | `src/client/Moments.luau` |
 | Island scenery, lighting | `WorldService`, `src/server/Models/Islands.luau` |

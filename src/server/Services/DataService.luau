@@ -65,6 +65,7 @@ local function defaultData(): any
 		eventTracks = {}, -- [eventId] = { tokens, claimed = { ["1"] = true }, run }
 		lastLogout = 0,
 		totals = { enemies = 0, nodes = 0, bosses = 0 },
+		tutorial = { step = 0, done = false }, -- step 0 = not started yet
 	}
 end
 

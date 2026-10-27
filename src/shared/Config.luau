@@ -518,7 +518,28 @@ Config.SoundEffects = {
 	levelUp = { id = SPLASH, speed = 2, volume = 0.7, reverb = true },
 	grow = { id = THUD, speed = 0.45, volume = 0.9, reverb = true },
 	click = { id = THUD, speed = 2.6, volume = 0.25 },
+	tutorialStep = { id = SPLASH, speed = 2.8, volume = 0.5 },
 	wind = { id = WIND, speed = 0.45, volume = 0.07, loop = true },
+}
+
+---------------------------------------------------------------- tutorial
+
+-- The first-time tutorial. One action per step; the server advances it from
+-- real game events (see TutorialService) and the client points at the target.
+-- `pointer` is what the client points at: "node" (nearest stone node), "forge"
+-- (the Forge tab), "spell" (a spell button), or nil. `reward` is granted
+-- flat when the step completes. `touchText` / `gamepadText` replace `text` on
+-- those devices.
+Config.Tutorial = {
+	steerSeconds = 2, -- seconds of steering that finish the first step
+	steps = {
+		{ id = "steer", text = "Your golem fights on its own. Steer it with WASD or the stick!", touchText = "Your golem fights on its own. Steer it with the stick!" },
+		{ id = "mine", text = "Walk to the glowing rock. Your golem mines it!", pointer = "node" },
+		{ id = "forge", text = "Open Forge and build your first part!", pointer = "forge", topUpStone = true },
+		{ id = "quake", text = "Press Q to smash enemies with Quake!", touchText = "Tap Quake to smash enemies!", gamepadText = "Press X to smash enemies with Quake!", pointer = "spell", spell = "quake", reward = { xp = 20 } },
+		{ id = "level", text = "Defeat enemies to reach level 2!" },
+	},
+	doneText = "You're ready! Follow the Next goal at the top to grow your golem.",
 }
 
 ---------------------------------------------------------------- data
