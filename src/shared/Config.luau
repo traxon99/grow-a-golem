@@ -640,6 +640,19 @@ Config.Visuals = {
 		meadow = Color3.fromRGB(255, 252, 240),
 		ember = Color3.fromRGB(255, 232, 214),
 		crystal = Color3.fromRGB(232, 242, 255),
+		storm = Color3.fromRGB(222, 230, 255),
+		ruins = Color3.fromRGB(226, 255, 246),
+		forge = Color3.fromRGB(255, 226, 196),
+	},
+	-- Sky haze per zone theme, blended in when you arrive (needs controlLighting).
+	-- meadow matches the default haze set by WorldService.
+	zoneAtmosphere = {
+		meadow = { color = Color3.fromRGB(200, 222, 255), decay = Color3.fromRGB(120, 140, 190), density = 0.28 },
+		ember = { color = Color3.fromRGB(255, 214, 190), decay = Color3.fromRGB(150, 100, 90), density = 0.3 },
+		crystal = { color = Color3.fromRGB(214, 232, 255), decay = Color3.fromRGB(130, 150, 210), density = 0.28 },
+		storm = { color = Color3.fromRGB(170, 184, 214), decay = Color3.fromRGB(70, 80, 120), density = 0.38 },
+		ruins = { color = Color3.fromRGB(190, 236, 228), decay = Color3.fromRGB(80, 150, 150), density = 0.34 },
+		forge = { color = Color3.fromRGB(255, 200, 150), decay = Color3.fromRGB(140, 80, 60), density = 0.34 },
 	},
 }
 
@@ -755,7 +768,7 @@ Config.Nodes.aether = { maxHealth = 1800, yield = 3, size = Vector3.new(5, 6, 5)
 table.insert(Config.ZoneOrder, 4)
 Config.Zones[4] = {
  name = "Storm Peak", center = Vector3.new(1500, 60, 0), size = Vector3.new(320, 6, 320),
- color = Color3.fromRGB(100, 190, 255), material = Enum.Material.Slate, theme = "crystal",
+ color = Color3.fromRGB(100, 190, 255), material = Enum.Material.Slate, theme = "storm",
  gate = { boss = 3, size = 4 }, maxEnemies = 12, extraEnemiesPerPlayer = 4,
  spawnInterval = 3, minSpawnDistance = 40, enemies = { "stormWisp", "stormWispTank" },
  nodeCount = 16, nodeRespawn = 30,
@@ -788,7 +801,7 @@ Config.Artifacts.stormglassHeart = { name = "Storm Peak Heart", zone = 4, source
 table.insert(Config.ZoneOrder, 5)
 Config.Zones[5] = {
  name = "Sunken Ruins", center = Vector3.new(2000, 60, 0), size = Vector3.new(320, 6, 320),
- color = Color3.fromRGB(55, 175, 160), material = Enum.Material.Slate, theme = "meadow",
+ color = Color3.fromRGB(55, 175, 160), material = Enum.Material.Slate, theme = "ruins",
  gate = { boss = 4, size = 5 }, maxEnemies = 12, extraEnemiesPerPlayer = 4,
  spawnInterval = 3, minSpawnDistance = 40, enemies = { "ruinCrawler", "ruinCrawlerTank" },
  nodeCount = 16, nodeRespawn = 30,
@@ -821,7 +834,7 @@ Config.Artifacts.abyssiteHeart = { name = "Sunken Ruins Heart", zone = 5, source
 table.insert(Config.ZoneOrder, 6)
 Config.Zones[6] = {
  name = "Sky Forge", center = Vector3.new(2500, 60, 0), size = Vector3.new(320, 6, 320),
- color = Color3.fromRGB(255, 190, 70), material = Enum.Material.Slate, theme = "ember",
+ color = Color3.fromRGB(255, 190, 70), material = Enum.Material.Slate, theme = "forge",
  gate = { boss = 5, size = 6 }, maxEnemies = 12, extraEnemiesPerPlayer = 4,
  spawnInterval = 3, minSpawnDistance = 40, enemies = { "forgeSpark", "forgeSparkTank" },
  nodeCount = 16, nodeRespawn = 30,
