@@ -10,6 +10,8 @@
 
 local RunService = game:GetService("RunService")
 
+local Sfx = require(script.Parent:WaitForChild("Sfx"))
+
 local Animator = {}
 
 type Joint = {
@@ -99,7 +101,12 @@ local function animate(rig: Rig, dt: number, now: number, serverNow: number)
 	end
 	local target = math.clamp(speed / 6, 0, 1)
 	rig.walk += (target - rig.walk) * math.min(dt * 8, 1)
+	local before = math.floor(rig.phase / math.pi)
 	rig.phase = (rig.phase + moved / rig.stride * math.pi * 2) % (math.pi * 2)
+	-- A foot lands twice per cycle, when the swing passes through the middle.
+	if rig.walk > 0.4 and math.floor(rig.phase / math.pi) ~= before then
+		Sfx.footstep(rig.model, rig.root)
+	end
 
 	local attack = (rig.model:GetAttribute("Attack") :: number?) or 0
 	if attack ~= rig.lastAttack then

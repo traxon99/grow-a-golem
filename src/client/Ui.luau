@@ -5,6 +5,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local Sfx = require(script.Parent:WaitForChild("Sfx"))
 
 local Ui = {}
 
@@ -62,7 +63,10 @@ function Ui.button(parent: Instance, text: string, size: UDim2, position: UDim2,
 	padding.PaddingBottom = UDim.new(0, 4)
 	padding.Parent = b
 	if enabled then
-		b.Activated:Connect(onClick)
+		b.Activated:Connect(function()
+			Sfx.play("click")
+			onClick()
+		end)
 	end
 	return b
 end

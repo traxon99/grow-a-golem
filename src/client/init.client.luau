@@ -6,6 +6,7 @@ local Controls = require(script:WaitForChild("Controls"))
 local Hud = require(script:WaitForChild("Hud"))
 local Menus = require(script:WaitForChild("Menus"))
 local Moments = require(script:WaitForChild("Moments"))
+local Sfx = require(script:WaitForChild("Sfx"))
 local State = require(script:WaitForChild("State"))
 
 Hud.start() -- sets up the toast handler State uses
@@ -14,3 +15,4 @@ Moments.start()
 State.start()
 Controls.start()
 Animator.start()
+Sfx.start()

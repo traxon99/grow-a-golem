@@ -19,8 +19,10 @@ local WorldService = require(script.Parent.WorldService)
 
 local CombatService = {}
 
--- Tells clients to play a punch (see the client Animator).
-local function swing(model: Model)
+-- Tells clients to play a punch (see the client Animator and Sfx).
+-- `kind` is "hit" for enemies or "mine" for mineral nodes.
+local function swing(model: Model, kind: string)
+	model:SetAttribute("AttackKind", kind)
 	model:SetAttribute("Attack", ((model:GetAttribute("Attack") :: number?) or 0) + 1)
 end
 
@@ -103,11 +105,11 @@ local function updateGolem(player: Player, golem: GolemService.Golem, dt: number
 	-- Act: enemies first, mining when the area is clear.
 	if enemy and enemyDistance <= stats.attackRange and now >= golem.nextAttack then
 		golem.nextAttack = now + stats.attackCooldown
-		swing(golem.model)
+		swing(golem.model, "hit")
 		EnemyService.damage(enemy, stats.attackDamage, player)
 	elseif node and nodeDistance <= stats.miningRange and now >= golem.nextMine then
 		golem.nextMine = now + stats.miningCooldown
-		swing(golem.model)
+		swing(golem.model, "mine")
 		MiningService.damage(node, stats.miningDamage, player)
 	end
 
