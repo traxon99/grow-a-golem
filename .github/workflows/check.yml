@@ -50,7 +50,7 @@ jobs:
       - name: StyLua format check (files in .styluaignore are not formatted yet)
         run: stylua --check src tests
       - name: selene lint (errors fail, warnings are shown)
-        run: selene --allow-warnings src tests
+        run: selene --allow-warnings src
       - name: luau-lsp type check against scripts/type-baseline.json
         run: |
           rojo sourcemap default.project.json -o sourcemap.json

@@ -1,0 +1,10 @@
+---
+# The Roblox standard library, but assert() may skip its message, as Luau allows.
+base: roblox
+name: golem
+globals:
+  assert:
+    args:
+      - type: any
+      - type: string
+        required: false

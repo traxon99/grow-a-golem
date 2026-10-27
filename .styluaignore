@@ -1,6 +1,6 @@
 # Files written before StyLua ran in CI. Don't reformat a file here while a
 # ROADMAP.md row that touches it is In progress; when it's free, run
-# `stylua <file>` and delete its line here in the same PR (roadmap row R5.7).
+# `stylua <file>` and delete its line here in the same PR (roadmap row R5.9).
 src/client/Animator.luau
 src/client/Fx.luau
 src/client/Hud.luau
