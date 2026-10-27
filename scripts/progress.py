@@ -15,6 +15,7 @@ Needs only git (and gh, if present, to list open pull requests).
 import argparse
 import json
 import re
+import signal
 import subprocess
 import sys
 
@@ -170,4 +171,5 @@ def main():
 
 
 if __name__ == "__main__":
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # exit quietly when piped into head
     main()
