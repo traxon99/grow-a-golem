@@ -3,6 +3,7 @@
 
 local Animator = require(script:WaitForChild("Animator"))
 local Controls = require(script:WaitForChild("Controls"))
+local Fx = require(script:WaitForChild("Fx"))
 local Hud = require(script:WaitForChild("Hud"))
 local Menus = require(script:WaitForChild("Menus"))
 local Moments = require(script:WaitForChild("Moments"))
@@ -16,3 +17,4 @@ State.start()
 Controls.start()
 Animator.start()
 Sfx.start()
+Fx.start()
