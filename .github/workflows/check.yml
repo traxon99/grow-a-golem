@@ -31,7 +31,7 @@ jobs:
       ROJO: 7.6.1
       STYLUA: 2.6.0
       SELENE: 0.32.0
-      LUAU_LSP: 1.70.0
+      LUAU_LSP_VERSION: 1.70.0
     steps:
       - uses: actions/checkout@v4
       - name: Install Rojo, StyLua, selene and luau-lsp
@@ -42,9 +42,9 @@ jobs:
           get "https://github.com/rojo-rbx/rojo/releases/download/v$ROJO/rojo-$ROJO-linux-x86_64.zip"
           get "https://github.com/JohnnyMorganz/StyLua/releases/download/v$STYLUA/stylua-linux-x86_64.zip"
           get "https://github.com/Kampfkarren/selene/releases/download/$SELENE/selene-$SELENE-linux.zip"
-          get "https://github.com/JohnnyMorganz/luau-lsp/releases/download/$LUAU_LSP/luau-lsp-linux-x86_64.zip"
+          get "https://github.com/JohnnyMorganz/luau-lsp/releases/download/$LUAU_LSP_VERSION/luau-lsp-linux-x86_64.zip"
           # Roblox API types from the same luau-lsp release, so they always parse.
-          curl -fsSL "https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/$LUAU_LSP/scripts/globalTypes.d.luau" -o "$RUNNER_TEMP/globalTypes.d.luau"
+          curl -fsSL "https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/$LUAU_LSP_VERSION/scripts/globalTypes.d.luau" -o "$RUNNER_TEMP/globalTypes.d.luau"
           chmod +x "$bin"/*
           echo "$bin" >> "$GITHUB_PATH"
       - name: StyLua format check (files in .styluaignore are not formatted yet)
