@@ -44,6 +44,7 @@ Let go of the controls and the golem plays itself: it fights enemies nearby, and
 | Redeemable codes (Codes box in the Shop) | `CodeService`, `Config.Codes` |
 | Limited-time events, event reward tracks, HUD event banner, Events menu | `LiveEventService`, `Config.Events` |
 | Game passes, developer products, receipts | `PassService` |
+| Cosmetics: 4 golem skins, 3 wizard outfits, 3 pets, 2 trails, Wardrobe with 3D preview (looks only, never stats) | `CosmeticService`, `Config.Cosmetics`, `src/shared/CosmeticLooks.luau`, client `Wardrobe` |
 | Roblox Analytics: onboarding, zone and shop funnels, economy, progression | `AnalyticsService` |
 | First-time tutorial (5 steps with pointers, skippable, onboarding funnel) | `TutorialService`, client `Tutorial`, `Config.Tutorial` |
 | HUD, next-goal tracker with progress bar, menus | `src/client` |
@@ -63,6 +64,10 @@ Every balance number and all content (zones, enemies, bosses, artifacts, skills,
 3. Paste each id into the matching `id = 0` field. Anything left at `0` shows as "Coming soon" in the Shop.
 
 For the group join reward, set `Config.Group.id` to your Roblox group's id.
+
+**Paid cosmetics** (Frost skin, Starlight Wizard outfit, Ember Sprite and Crystal Owl pets, Rune Trail) are each their own game pass. Create one per item, set its price to the `price` in `Config.Cosmetics`, and paste the id into its `passId`. Until then the Wardrobe shows "Coming soon" (players can still preview them). Earned cosmetics need nothing.
+
+Kid-safe rules for cosmetics, please keep them: every paid cosmetic is a direct purchase of one item the player has previewed. No eggs, crates, spins or "limited stock" timers. If a free random cosmetic drop is ever added, show its real odds and give it a pity limit like `Config.ArtifactPity`.
 
 ## Adding a code
 
@@ -130,6 +135,7 @@ src/
     Config.luau        all balance numbers and content
     Stats.luau         level curve, size, golem stats, costs, unlock checks
     Remotes.luau       remotes (the client only sends intents)
+    CosmeticLooks.luau skin colors, pet and outfit shapes (shared so the preview matches)
   server/            ServerScriptService.Server
     init.server.luau   requires and starts every service
     Services/          one module per system (see the table above)
@@ -139,7 +145,8 @@ src/
     Controls.luau      steering and spell input
     Hud.luau           minerals, level, health, spell bar, next goal, messages
     Moments.luau       boss health bar, artifact reveal, level-up banner
-    Menus.luau         Forge, Travel, Artifacts, Skills, Awaken, Quests, Events, Party, Shop, Ranks
+    Menus.luau         Forge, Travel, Artifacts, Skills, Awaken, Quests, Events, Party, Wardrobe, Shop, Ranks
+    Wardrobe.luau      cosmetics list and the spinning 3D preview
     Ui.luau            UI building helpers
     Animator.luau      procedural walk, punch and slam animation
     Sfx.luau           sound effects

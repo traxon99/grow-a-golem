@@ -283,6 +283,51 @@ function Stats.eventById(id: string): any
 	return nil
 end
 
+---------------------------------------------------------------- cosmetics
+-- Cosmetics are looks only: nothing in this file's stat math reads them.
+
+-- How far a player is toward earning a cosmetic: (current, needed).
+function Stats.cosmeticProgress(data: any, id: string): (number, number)
+	local cosmetic = Config.Cosmetics[id]
+	local unlock = cosmetic and cosmetic.unlock
+	if not unlock then
+		return 0, 1
+	end
+	if unlock.kind == "boss" then
+		return (if Stats.bossDefeated(data, unlock.zone) then 1 else 0), 1
+	elseif unlock.kind == "awaken" then
+		return math.min(data.awakening.count, unlock.count), unlock.count
+	elseif unlock.kind == "zoneSet" then
+		local found, total = Stats.zoneArtifactCount(data, unlock.zone)
+		return found, total
+	elseif unlock.kind == "level" then
+		return math.min(Stats.levelForXp(data.golem.xp), unlock.level), unlock.level
+	elseif unlock.kind == "streak" then
+		return math.min(data.daily.streak, unlock.days), unlock.days
+	elseif unlock.kind == "tutorial" then
+		return (if data.tutorial.done then 1 else 0), 1
+	end
+	return 0, 1
+end
+
+function Stats.cosmeticEarned(data: any, id: string): boolean
+	local current, needed = Stats.cosmeticProgress(data, id)
+	return current >= needed
+end
+
+function Stats.ownsCosmetic(data: any, id: string): boolean
+	return Config.Cosmetics[id] ~= nil and data.cosmetics.owned[id] == true
+end
+
+-- The cosmetic worn in a slot, or nil (also nil if it isn't owned any more).
+function Stats.equippedCosmetic(data: any, slot: string): string?
+	local id = data.cosmetics.equipped[slot]
+	if type(id) == "string" and Stats.ownsCosmetic(data, id) and Config.Cosmetics[id].slot == slot then
+		return id
+	end
+	return nil
+end
+
 -- Sums every % bonus a player has, plus extra slots and offline hours.
 function Stats.bonuses(data: any, ctx: Context): ({ [string]: number }, number, number)
 	local total: { [string]: number } = {}

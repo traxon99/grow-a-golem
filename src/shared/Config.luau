@@ -468,6 +468,90 @@ Config.Products = {
 	boostLuck = { id = 0, name = "2x Luck (30 min)", price = 39, boost = "luck", minutes = 30 },
 }
 
+---------------------------------------------------------------- cosmetics
+
+-- Cosmetics only change how things look. Stats never reads them, so they're
+-- fair in co-op. Each one is either earned (`unlock`) or bought directly
+-- (`passId` + `price`): you preview the exact item, then buy that item. No
+-- eggs, crates, spins or random rolls, ever.
+--
+-- To sell one: create a game pass for it in the Creator Dashboard, set its
+-- price to `price`, and paste the id into `passId`. 0 shows "Coming soon".
+-- Unlock kinds: boss (zone), awaken (count), zoneSet (zone), level, streak
+-- (daily login days in a row), tutorial. Shapes for pets and outfits, and
+-- how skins blend with forged tiers, live in src/shared/CosmeticLooks.luau.
+Config.CosmeticSlots = {
+	{ id = "skin", name = "Golem skins" },
+	{ id = "outfit", name = "Wizard outfits" },
+	{ id = "pet", name = "Pets" },
+	{ id = "trail", name = "Trails" },
+}
+Config.CosmeticOrder = {
+	"mossy", "lava", "frost", "gilded",
+	"apprentice", "emberMage", "starlight",
+	"pebblePup", "emberSprite", "crystalOwl",
+	"dustTrail", "runeTrail",
+}
+Config.Cosmetics = {
+	-- Skins tint every part toward `color` by `tint` (0 to 1), so the forged
+	-- tier still shows through, and swap the material and glowing runes.
+	mossy = {
+		slot = "skin",
+		name = "Mossy",
+		description = "Moss grows over every part.",
+		unlock = { kind = "boss", zone = 1 },
+		skin = { color = Color3.fromRGB(86, 140, 70), material = Enum.Material.Grass, tint = 0.6, accent = Color3.fromRGB(190, 255, 120) },
+	},
+	lava = {
+		slot = "skin",
+		name = "Lava",
+		description = "Cooled rock with molten glowing runes.",
+		unlock = { kind = "boss", zone = 2 },
+		skin = { color = Color3.fromRGB(58, 42, 38), material = Enum.Material.Basalt, tint = 0.75, accent = Color3.fromRGB(255, 120, 30) },
+	},
+	frost = {
+		slot = "skin",
+		name = "Frost",
+		description = "Ice-blue armor with a cold glow.",
+		passId = 0,
+		price = 99,
+		skin = { color = Color3.fromRGB(170, 215, 255), material = Enum.Material.Ice, tint = 0.7, accent = Color3.fromRGB(210, 250, 255) },
+	},
+	gilded = {
+		slot = "skin",
+		name = "Gilded",
+		description = "Shining gold, for golems that have Awakened.",
+		unlock = { kind = "awaken", count = 1 },
+		skin = { color = Color3.fromRGB(232, 182, 60), material = Enum.Material.Foil, tint = 0.8, accent = Color3.fromRGB(255, 246, 200) },
+	},
+
+	apprentice = { slot = "outfit", name = "Apprentice", description = "A pointy blue hat, a cape and an oak staff.", unlock = { kind = "tutorial" } },
+	emberMage = { slot = "outfit", name = "Ember Mage", description = "Fire-red robes and a staff with a burning coal.", unlock = { kind = "zoneSet", zone = 2 } },
+	starlight = { slot = "outfit", name = "Starlight Wizard", description = "A starry hat and cape with a glowing crystal staff.", passId = 0, price = 79 },
+
+	-- Pets float beside the golem and hop when it defeats an enemy.
+	pebblePup = { slot = "pet", name = "Pebble Pup", description = "A loyal little rock dog.", unlock = { kind = "level", level = 10 } },
+	emberSprite = { slot = "pet", name = "Ember Sprite", description = "A tiny flame with flapping wings.", passId = 0, price = 99 },
+	crystalOwl = { slot = "pet", name = "Crystal Owl", description = "A wise owl made of glowing crystal.", passId = 0, price = 149 },
+
+	-- Trails stream behind the golem's feet.
+	dustTrail = {
+		slot = "trail",
+		name = "Dust Trail",
+		description = "A cloud of quarry dust behind every step.",
+		unlock = { kind = "streak", days = 7 },
+		trail = { colors = { Color3.fromRGB(200, 186, 160), Color3.fromRGB(150, 140, 120) }, lifetime = 0.9, glow = 0 },
+	},
+	runeTrail = {
+		slot = "trail",
+		name = "Rune Trail",
+		description = "Glowing blue rune light behind every step.",
+		passId = 0,
+		price = 59,
+		trail = { colors = { Color3.fromRGB(90, 200, 255), Color3.fromRGB(150, 110, 255) }, lifetime = 0.7, glow = 1 },
+	},
+}
+
 ---------------------------------------------------------------- visuals
 
 Config.Visuals = {

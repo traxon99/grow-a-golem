@@ -17,7 +17,7 @@
 --   Progression        "Golem level" and "Awakening"
 --   Economy            each mineral, tagged by source and sink (see SOURCES)
 --   Custom events      SpellsCast, ArtifactFound, PartyJoined, CodeRedeemed,
---                      EventRewardClaimed
+--                      EventRewardClaimed, ItemPreviewed, CosmeticUnlocked
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -156,6 +156,8 @@ local function validSku(kind: any, key: any): string?
 		return "pass_" .. key
 	elseif kind == "product" and Config.Products[key] then
 		return "product_" .. key
+	elseif kind == "cosmetic" and Config.Cosmetics[key] then
+		return "cosmetic_" .. key
 	end
 	return nil
 end

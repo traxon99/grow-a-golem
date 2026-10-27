@@ -14,6 +14,7 @@ local Stats = require(Shared:WaitForChild("Stats"))
 
 local State = require(script.Parent:WaitForChild("State"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
+local Wardrobe = require(script.Parent:WaitForChild("Wardrobe"))
 
 local Menus = {}
 
@@ -352,6 +353,8 @@ local function renderShop(list: ScrollingFrame, snap: any)
 	end)
 	Ui.row(list, nextOrder(), "Where to find codes", "New codes come out with updates and on our group wall.")
 
+	Ui.row(list, nextOrder(), "Looking for skins and pets?", "Golem skins, wizard outfits, pets and trails are in the Wardrobe, with a preview.")
+
 	Ui.heading(list, nextOrder(), "Game passes (forever)")
 	for _, key in Config.GamePassOrder do
 		local pass = Config.GamePasses[key]
@@ -382,6 +385,14 @@ local function renderShop(list: ScrollingFrame, snap: any)
 			end)
 	end
 	Ui.row(list, nextOrder(), "Fair play", "Everything that makes you stronger can also be earned by playing.")
+end
+
+local function renderWardrobe(list: ScrollingFrame, snap: any)
+	local order = 0
+	Wardrobe.render(list, snap, function(): number
+		order += 1
+		return order
+	end, Menus.refresh)
 end
 
 local EARN_NAMES = { enemyDefeated = "enemy", nodeMined = "node", bossDefeated = "boss" }
@@ -482,6 +493,7 @@ local TABS: { { id: string, name: string, render: Render } } = {
 	{ id = "quests", name = "Quests", render = renderQuests },
 	{ id = "events", name = "Events", render = renderEvents },
 	{ id = "party", name = "Party", render = renderParty },
+	{ id = "wardrobe", name = "Wardrobe", render = renderWardrobe },
 	{ id = "shop", name = "Shop", render = renderShop },
 	{ id = "ranks", name = "Ranks", render = renderRanks },
 }
@@ -511,6 +523,7 @@ function Menus.refresh()
 		return
 	end
 	codeBox = nil
+	Wardrobe.detach()
 	local scroll = list.CanvasPosition
 	for _, child in list:GetChildren() do
 		if not child:IsA("UIListLayout") then
