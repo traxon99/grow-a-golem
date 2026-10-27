@@ -12,6 +12,14 @@ More than one person, and more than one Claude session, works on this repo at on
 - In the PR that does the work, set the row to `Done: #<PR>`. If you stop early, set it back to `Open`.
 - Questions, exploration and reviews that change no files need no claim.
 
+## Report progress to your user
+
+Other people and sessions change `main` while you work. Keep your user told, using `scripts/progress.py`:
+
+- **When you start**, after pulling `main`, run `python3 scripts/progress.py --login <GitHub login of the person you work for>`. It lists what changed since their last commit or roadmap edit. Tell them in a few lines: pull requests merged, roadmap rows finished, rows others have claimed or released, and anything that overlaps what they asked for. Note the `origin/main` commit you started from.
+- **Before your final message**, run `python3 scripts/progress.py --since <the commit you started from>` and add a short "Meanwhile on main" note if anything landed while you worked.
+- If it reports nothing new, say nothing about it. Summarize; don't paste the whole output.
+
 ## Design reference library
 
 Before you design or change any player-facing system (UI, loops, progression, monetization, retention, onboarding, social, live ops, art, audio, performance, safety), read the matching doc in [`docs/reference/`](docs/reference/README.md). Start at its README.
