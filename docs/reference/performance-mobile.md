@@ -32,10 +32,11 @@ Last updated: 2026-10-27. See also [ui-ux.md](ui-ux.md) for touch layout and saf
 ## Grow A Golem today
 
 - Server-authoritative; client sends intents only.
-- All models built from parts in code (not MeshParts); procedural Motor6D animation; low-poly; built-in materials (e.g. DiamondPlate on iron tier). Part count per golem and per enemy not measured.
+- Optional original part-based templates in `ReplicatedStorage.Assets` supplement procedural fallbacks (not MeshParts); procedural Motor6D animation; low-poly; built-in materials (e.g. DiamondPlate on iron tier). Part count per golem and per enemy not measured.
 - Hit flashes, damage numbers and debris: pooling and caps not confirmed.
 - `StreamingEnabled` not found in `default.project.json` (check the place file in Studio).
 - Lighting set from `WorldService`; Technology not set in code.
+- The eight-tier/six-boss/prop library replicates from ReplicatedStorage as required by #16. Its phone memory/instance cost still needs measurement; prune unused art or move server-only templates if this budget proves too high.
 - Not yet run on a phone (#9); no frame, draw call or memory numbers recorded.
 
 ## Gaps worth closing

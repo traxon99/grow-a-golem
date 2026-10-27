@@ -266,7 +266,11 @@ end
 -- Adds the visible body to an enemy model whose invisible root is already
 -- placed. `designId` is the enemy id from Config.Enemies, or "boss<zone>".
 function EnemyModels.dress(model: Model, root: BasePart, designId: string, def: any)
-	local design = DESIGNS[designId]
+	if Build.attachAsset(model, root, { "Enemies", designId }, def.size.Y, true) then
+		model:SetAttribute("Stride", def.size.Y * 0.5)
+		return
+	end
+	local design = DESIGNS[def.designId or designId]
 	if not design then
 		fallback(Build.rig(model, root, 1), root, def)
 		model:SetAttribute("Stride", 2)

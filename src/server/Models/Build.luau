@@ -85,6 +85,82 @@ function Build.weld(part0: BasePart, part1: BasePart)
 	weld.Parent = part1
 end
 
+-- Optional original art. Templates are decoration-only; gameplay roots,
+-- humanoids, seats and animation joints remain owned by the game.
+-- A template's pivot is its attachment point; author it at scale 1.
+function Build.attachAsset(parent: Instance, root: BasePart, path: { string }, scale: number, animate: boolean?): Model?
+	local source: Instance? = game:GetService("ReplicatedStorage"):FindFirstChild("Assets")
+	for _, name in path do
+		source = if source then source:FindFirstChild(name) else nil
+	end
+	if not source or not source:IsA("Model") or not source.Archivable then
+		return nil
+	end
+	local model = source:Clone() :: Model
+	local parts: { BasePart } = {}
+	for _, item in model:GetDescendants() do
+		if item:IsA("BasePart") then
+			table.insert(parts, item)
+		elseif item:IsA("LuaSourceContainer") or item:IsA("Humanoid") or item:IsA("JointInstance") or item:IsA("Constraint") then
+			item:Destroy()
+		end
+	end
+	if #parts == 0 then
+		model:Destroy()
+		return nil
+	end
+	model:ScaleTo(scale)
+	model:PivotTo(root.CFrame)
+	local body: BasePart? = nil
+	local head: BasePart? = nil
+	if animate then
+		for _, part in parts do
+			if part.Name == "Body" or part.Name == "Torso" or part.Name == "Carapace" then
+				body = part
+			elseif part.Name == "Head" or part.Name == "Jaw" then
+				head = part
+			end
+		end
+	end
+	for _, part in parts do
+		-- Seats are forbidden in decorative art (the real rider seat is separate).
+		if part:IsA("Seat") or part:IsA("VehicleSeat") then
+			model:Destroy()
+			return nil
+		end
+		part.CanCollide = false
+		part.CanTouch = false
+		part.CanQuery = false
+		local kind: string? = nil
+		if body then
+			if part == body then
+				kind = "body"
+			elseif part == head then
+				kind = if part.Name == "Jaw" then "jaw" else "head"
+			elseif part.Name == "Fist" or part.Name == "Wing" then
+				kind = "arm"
+			elseif part.Name == "Leg" or part.Name == "Foot" or part.Name == "CrawlerLeg" then
+				kind = "leg"
+			end
+		end
+		if kind then
+			local parentPart = if part == body then root else (body :: BasePart)
+			local pivot = part.CFrame * CFrame.new(0, if kind == "arm" or kind == "leg" then part.Size.Y * 0.5 else 0, 0)
+			local motor = Build.joint(parentPart, part, parentPart.CFrame:ToObjectSpace(pivot), "ArtJoint")
+			motor:SetAttribute("Kind", kind)
+			motor:SetAttribute("Side", if root.CFrame:PointToObjectSpace(part.Position).X < 0 then -1 else 1)
+		else
+			local parentPart = if body then body else root
+			if head and (part.Name == "Eye" or part.Name == "Antler") then
+				parentPart = head
+			end
+			Build.weld(parentPart, part)
+		end
+	end
+	model.Parent = parent
+	return model
+end
+
 export type Rig = {
 	part: (name: string, size: Vector3, offset: CFrame, color: Color3, material: Enum.Material?, transparency: number?) -> Part,
 	joint: (part0: BasePart, part1: BasePart, pivot: Vector3, name: string, attributes: { [string]: any }) -> Motor6D,
@@ -97,7 +173,7 @@ export type Rig = {
 --   Kind = "body" | "head" | "leg" | "arm" | "jaw" | "spin" | "float"
 --   Side = 1 or -1 (legs and arms on opposite sides swing in opposite phase)
 --   Amp, Speed = optional strength and speed overrides
-function Build.rig(model: Model, root: BasePart, scale: number): Rig
+function Build.rig(model: Model, root: BasePart, scale: number, partAssets: { [string]: { string } }?): Rig
 	local function place(offset: CFrame): CFrame
 		return root.CFrame * (CFrame.new(offset.Position * scale) * offset.Rotation)
 	end
@@ -113,6 +189,10 @@ function Build.rig(model: Model, root: BasePart, scale: number): Rig
 			})
 			part.Anchored = false
 			part.Massless = true
+			local path = partAssets and partAssets[name]
+			if path and Build.attachAsset(part, part, path, scale) then
+				part.Transparency = 1
+			end
 			return part
 		end,
 		joint = function(part0, part1, pivot, name, attributes)

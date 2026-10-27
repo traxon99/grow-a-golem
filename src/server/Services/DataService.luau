@@ -1,24 +1,29 @@
 --!strict
 -- Loads, holds, and saves each player's progress, and sends the client a
 -- snapshot of it whenever it changes (at most every Config.Data.pushInterval).
--- Uses DataStoreService directly; swapping to ProfileStore for session
--- locking is a later improvement.
+-- Atomic per-record session leases prevent a previous server overwriting a
+-- newer session. Failed loads never write default progress in live servers.
 
 local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Stats = require(Shared:WaitForChild("Stats"))
+local SessionLease = require(Shared:WaitForChild("SessionLease"))
 
 local Events = require(script.Parent.Events)
 
 type Profile = {
 	data: any,
 	canSave: boolean,
+	token: string,
+	saving: boolean,
+	released: boolean,
 	loadedAt: number, -- os.time() when this session started
 	previousLogout: number, -- lastLogout from the save, before this session
 }
@@ -58,6 +63,7 @@ local function defaultData(): any
 		artifacts = { found = {}, equipped = {}, pity = {}, spares = {}, boundSpares = {} }, -- pity["drop1"] = rolls since last find; spares[id] = extra copies, boundSpares[id] = how many of those can't be traded
 		skills = {},
 		awakening = { count = 0, shards = 0, upgrades = {} },
+		ascension = { count = 0, points = 0, spentAwakenings = 0, upgrades = {} },
 		daily = { streak = 0, lastClaimDay = 0 },
 		quests = { day = 0, week = 0, ids = {}, weeklyId = "", progress = {}, claimed = {} },
 		boosts = { xp = 0, luck = 0 },
@@ -133,11 +139,12 @@ local function sendSnapshot(player: Player)
 		return
 	end
 	local snapshot: { [string]: any } = {
-		data = profile.data,
+		data = SessionLease.copy(profile.data),
 		serverTime = os.time(),
 		sessionStart = profile.loadedAt,
 		canSave = profile.canSave,
 	}
+	snapshot.data._session = nil
 	for key, provider in providers do
 		local ok, value = pcall(provider, player)
 		if ok then
@@ -150,32 +157,72 @@ local function sendSnapshot(player: Player)
 	updateLeaderstats(player, profile.data)
 end
 
-local function save(player: Player): boolean
+local function save(player: Player, release: boolean?): boolean
 	local profile = profiles[player]
 	if not profile or not profile.canSave or not store then
 		return false
 	end
-	local data = profile.data
+	-- Serialize saves, including release, so an older snapshot cannot finish last.
+	while profile.saving do
+		task.wait()
+	end
+	if profile.released or not profile.canSave then
+		return false
+	end
+	profile.saving = true
+	local data = SessionLease.copy(profile.data)
 	local dataStore = store
+	local lostLease = false
 	local ok = withRetries(`save {player.UserId}`, function()
-		dataStore:UpdateAsync(storeKey(player), function()
+		local result = dataStore:UpdateAsync(storeKey(player), function(current)
+			if not SessionLease.owns(current, profile.token) then
+				lostLease = true
+				return nil
+			end
+			data._session = if release then nil else {
+				token = profile.token, expiresAt = os.time() + Config.Data.sessionLeaseSeconds,
+			}
 			return data
 		end)
+		if result == nil then
+			lostLease = true
+		end
 	end)
+	profile.saving = false
+	if lostLease then
+		profile.canSave = false
+		player:Kick("Your golem was opened in another server. Please rejoin.")
+		return false
+	end
+	if ok and release then
+		profile.released = true
+	end
 	return ok
 end
 
 local function load(player: Player)
 	local ok, saved = false, nil
+	local token = HttpService:GenerateGUID(false)
 	if store then
 		local dataStore = store
 		ok, saved = withRetries(`load {player.UserId}`, function()
-			return dataStore:GetAsync(storeKey(player))
+			return dataStore:UpdateAsync(storeKey(player), function(current)
+				if not SessionLease.canAcquire(current, token, os.time()) then
+					return nil
+				end
+				local data = if type(current) == "table" then current else defaultData()
+				data._session = { token = token, expiresAt = os.time() + Config.Data.sessionLeaseSeconds }
+				return data
+			end)
 		end)
 	end
 
 	local canSave = true
 	local data: any
+	if ok and not SessionLease.owns(saved, token) then
+		player:Kick("Your golem is still saving in another server. Please rejoin shortly.")
+		return
+	end
 	if ok then
 		data = if type(saved) == "table" then saved else defaultData()
 		reconcile(data, defaultData())
@@ -190,11 +237,28 @@ local function load(player: Player)
 	end
 
 	if not player.Parent then
-		return -- left while loading
+		-- Release a lease acquired after the player disconnected, without
+		-- writing defaults or changing the original logout timestamp.
+		if ok and store then
+			local dataStore = store
+			withRetries(`release abandoned load {player.UserId}`, function()
+				dataStore:UpdateAsync(storeKey(player), function(current)
+					if not SessionLease.owns(current, token) then
+						return nil
+					end
+					current._session = nil
+					return current
+				end)
+			end)
+		end
+		return
 	end
 	profiles[player] = {
 		data = data,
 		canSave = canSave,
+		token = token,
+		saving = false,
+		released = false,
 		loadedAt = os.time(),
 		previousLogout = data.lastLogout,
 	}
@@ -297,7 +361,7 @@ function DataService.start()
 		if profile then
 			profile.data.lastLogout = os.time()
 		end
-		save(player)
+		save(player, true)
 		profiles[player] = nil
 		dirty[player] = nil
 	end)
@@ -308,7 +372,7 @@ function DataService.start()
 			profile.data.lastLogout = os.time()
 			pending += 1
 			task.spawn(function()
-				save(player)
+				save(player, true)
 				pending -= 1
 			end)
 		end

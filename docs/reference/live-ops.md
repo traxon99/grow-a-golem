@@ -31,6 +31,7 @@ Last updated: 2026-10-27. Read [safety-compliance.md](safety-compliance.md) firs
 - Event banner in the HUD.
 - Redeemable codes, rate-limited.
 - No update log / announcement board found; no fixed update cadence or event calendar written down; no analytics to measure event impact (#11).
+- Draft launch copy, an unreleased update log, two icon alternatives, three thumbnail illustrations and a proposed capped ad experiment are in `docs/launch/` and `assets/keyart/`. No ads, group creation, asset upload or game-page publishing has been performed.
 - Not yet playtested (#9).
 
 ## Gaps worth closing

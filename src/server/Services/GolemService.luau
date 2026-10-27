@@ -128,13 +128,30 @@ local function buildModel(player: Player, data: any, stats: Stats.GolemStats, gr
 	local V = Vector3.new
 	local neon = Enum.Material.Neon
 	local RUNE_COLOR = CosmeticLooks.accent(skinId)
-	local rig = Build.rig(model, root, s)
+	local partAssets = {}
+	for name, slot in { LeftLeg = "legs", RightLeg = "legs", Torso = "torso", Head = "core", LeftArm = "armL", RightArm = "armR" } do
+		local tier = data.golem.parts[slot]
+		if tier then
+			partAssets[name] = { "Golem", tier, name }
+		end
+	end
+	local rig = Build.rig(model, root, s, partAssets)
 	-- The Wardrobe preview recolors a copy of this model for other skins, so
 	-- each body part says which slot it belongs to and its shade, and the
 	-- glowing runes say they're runes.
 	local function tag(part: Part, slot: string, shade: number?): Part
 		part:SetAttribute("LookSlot", slot)
 		part:SetAttribute("LookShade", shade)
+		for _, child in part:GetDescendants() do
+			if child:IsA("BasePart") then
+				child:SetAttribute("LookSlot", slot)
+				child:SetAttribute("LookShade", shade)
+				if skinId then
+					child.Color = part.Color
+					child.Material = part.Material
+				end
+			end
+		end
 		return part
 	end
 	local function accent(part: Part): Part

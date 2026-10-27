@@ -14,7 +14,7 @@ Game code lives in this repo and syncs into Roblox Studio with [Rojo](https://ro
 
 1. In this folder, run `rojo serve` (or use "Rojo: Start server" in VS Code).
 2. In Studio, open the Rojo plugin and click **Connect**.
-3. Press **Play**. Three test islands appear in the sky, your golem spawns on the first one, and you're seated on its shoulder.
+3. Press **Play**. Six test islands appear in the sky, your golem spawns on the first one, and you're seated on its shoulder.
 
 ## Controls
 
@@ -33,11 +33,11 @@ Let go of the controls and the golem plays itself: it fights enemies nearby, and
 | System | Where it lives |
 | --- | --- |
 | Riding, steering, auto-battle, mining | `GolemService`, `CombatService`, `MiningService` |
-| Forging parts (5 slots × 4 tiers), growth in size, full-set bonus | `ProgressionService`, `Stats` |
-| 3 islands with gates, travel menu, zone bosses with a dodgeable slam | `WorldService`, `EnemyService` |
-| 18 artifacts (drops, boss drops, hidden relics), index, zone set bonuses, shown odds and bad-luck protection | `ArtifactService` |
-| Skill tree (3 branches), respec | `ProgressionService` |
-| Awakening (rebirth) and shard upgrades | `ProgressionService` |
+| Forging parts (5 slots × 8 tiers), growth in size, full-set bonus | `ProgressionService`, `Stats` |
+| 6 islands, weighted enemy variants, elites, gates and dodgeable zone bosses | `WorldService`, `EnemyService` |
+| 36 artifacts (drops, boss drops, hidden relics), index, zone set bonuses, shown odds and bad-luck protection | `ArtifactService` |
+| Skill tree (3 branches × 8 nodes), respec | `ProgressionService` |
+| Awakening, Ascension and permanent upgrades | `ProgressionService` |
 | Co-op parties, shared kill rewards, friend bonus | `PartyService` |
 | Golem Hub island, Inspect cards, nametag titles, rare-find shout | `SocialService`, `Config.Hub`, `Config.Titles`, client Hub tab |
 | Safe artifact trading (spare copies, Ready / countdown / Confirm, policy gate, trade log) | `TradeService`, `Config.Trading`, client Trade tab |
@@ -121,7 +121,7 @@ Everything is logged through Roblox's own `AnalyticsService`, so no data leaves 
 | Onboarding funnel | The 5 tutorial steps, tutorial done, first boss fought, first boss beaten |
 | Funnels → Zones | Per island: unlocked, entered, boss fought, boss beaten |
 | Funnels → Shop | Shop opened → purchase prompted → purchase completed (per item) |
-| Progression | Golem level reached and Awakenings |
+| Progression | Golem level reached, Awakenings and Ascensions |
 | Economy | Each mineral by source (mining, enemy, boss, relic, quest, daily, session, offline, event, code, group, tutorial, purchase) and sink (forge, respec, awaken) |
 | Custom events | SpellsCast, ArtifactFound, PartyJoined, CodeRedeemed, EventRewardClaimed |
 
@@ -174,3 +174,18 @@ The server decides every result (damage, drops, costs, cooldowns, unlocks). The 
 ## Building your own islands
 
 Make an anchored part named `Zone1` (and `Zone2`, `Zone3`, and `Hub` for the Golem Hub) in Workspace. Its top surface becomes that island's playable area, and the game uses it instead of the placeholder. Your own islands don't get the generated scenery, so decorate them however you like. Keep decorations non-colliding (or low), because golems and enemies walk in straight lines and can get stuck on tall solid parts.
+
+## Verification and launch preparation
+
+Run `python3 scripts/check.py` with `luau` and `luau-compile` on PATH, then
+`rojo build default.project.json -o /tmp/grow-a-golem.rbxlx`. CI runs these checks.
+They validate syntax and selected logic, not Studio physics, UI or measured pacing.
+
+- [Studio/published-place test matrix and timing sheet](docs/playtest.md) (#9)
+- [Six-zone content, Ascension and co-op tower design](docs/expansion-design.md) (#15)
+- [Original model/audio/key-art sources and upload instructions](assets/README.md) (#16)
+- [Game-page draft](docs/launch/game-page.md) and [launch experiment](docs/launch/plan.md)
+
+The DataStore still uses the existing v1 record keys, with atomic session leases.
+**Drain old servers before release**: older binaries do not respect those leases.
+All Roblox playtests, asset uploads, group setup and live publishing are pending.

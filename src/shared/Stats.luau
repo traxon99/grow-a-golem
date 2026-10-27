@@ -92,6 +92,12 @@ function Stats.awakeningShards(level: number): number
 	return math.max(level - Config.Awakening.shardBaseLevel, 0) * Config.Awakening.shardsPerLevelAbove
 end
 
+-- Ascension consumes a fixed number of Awakenings and the current run.
+function Stats.canAscend(data: any): boolean
+	return data.awakening.count - (data.ascension and data.ascension.spentAwakenings or 0) >= Config.Ascension.requiredAwakenings
+		and Stats.bossDefeated(data, Config.Ascension.requiredBoss)
+end
+
 ---------------------------------------------------------------- skills
 
 function Stats.skillPointsSpent(data: any): number
@@ -401,6 +407,12 @@ function Stats.bonuses(data: any, ctx: Context): ({ [string]: number }, number, 
 			addBonus(total, upgrade.bonus or {}, rank)
 			extraSlots += (upgrade.artifactSlots or 0) * rank
 			extraHours += (upgrade.offlineHours or 0) * rank
+		end
+	end
+	for id, rank in (data.ascension and data.ascension.upgrades or {}) do
+		local upgrade = Config.AscendUpgrades[id]
+		if upgrade and rank > 0 then
+			addBonus(total, upgrade.bonus, rank)
 		end
 	end
 	total.minerals = (total.minerals or 0) + data.awakening.count * Config.Awakening.mineralBonusPerAwakening

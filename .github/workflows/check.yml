@@ -1,0 +1,25 @@
+name: Luau and Rojo checks
+on: [push, pull_request]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build pinned Luau tools
+        run: |
+          git clone https://github.com/luau-lang/luau.git "$RUNNER_TEMP/luau"
+          git -C "$RUNNER_TEMP/luau" checkout 32c28089305f488f901aaf1dbf3fd1cb65fa3d11
+          make -C "$RUNNER_TEMP/luau" config=release luau luau-compile -j2
+          echo "$RUNNER_TEMP/luau/build/release" >> "$GITHUB_PATH"
+      - name: Compile and run regression checks
+        run: python3 scripts/check.py
+      - name: Verify original assets are reproducible
+        run: |
+          python3 scripts/create_assets.py
+          git diff --exit-code -- assets/models assets/audio
+      - name: Build with Rojo 7.6.1
+        run: |
+          curl -fsSL https://github.com/rojo-rbx/rojo/releases/download/v7.6.1/rojo-7.6.1-linux-x86_64.zip -o "$RUNNER_TEMP/rojo.zip"
+          unzip "$RUNNER_TEMP/rojo.zip" -d "$RUNNER_TEMP/rojo"
+          chmod +x "$RUNNER_TEMP/rojo/rojo"
+          "$RUNNER_TEMP/rojo/rojo" build default.project.json -o "$RUNNER_TEMP/grow-a-golem.rbxlx"

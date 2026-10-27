@@ -32,7 +32,7 @@ Config.Golem = {
 	miningRange = 10,
 	seekRange = 150, -- when idle, golem walks to nodes this far away
 	respawnTime = 5,
-	maxLevel = 60,
+	maxLevel = 100,
 	baseArtifactSlots = 3,
 }
 
@@ -40,7 +40,7 @@ Config.Golem = {
 Config.LevelCurve = { base = 25, exponent = 1.6 }
 
 -- Golem size steps up at these levels. Size gates zones and scales the model.
-Config.SizeLevels = { 1, 5, 10, 18, 28 }
+Config.SizeLevels = { 1, 5, 10, 18, 28, 40, 55, 75, 100 }
 Config.SizeScaleStep = 0.25 -- each size step makes the model 25% bigger
 
 -- Part tiers, weakest first. `power` scales every stat a part gives.
@@ -715,6 +715,7 @@ Config.Analytics = { debug = false }
 Config.Data = {
 	storeName = "PlayerData_v1",
 	autosaveInterval = 60,
+	sessionLeaseSeconds = 180,
 	pushInterval = 0.25, -- at most this often, state is sent to the client
 }
 
@@ -726,6 +727,226 @@ Config.Leaderboards = {
 		{ id = "awakenings", displayName = "Most Awakenings", store = "LB_Awakenings_v1" },
 		{ id = "artifacts", displayName = "Artifacts found", store = "LB_Artifacts_v1" },
 	},
+}
+
+---------------------------------------------------------------- expansion (#15)
+-- Provisional balance: see docs/playtest.md before treating pacing as measured.
+Config.Elites = { everySpawns = 20, health = 2, damage = 1.4, rewards = 3, scale = 1.25 }
+table.insert(Config.MineralOrder, "stormglass")
+Config.Minerals.stormglass = { displayName = "Stormglass", color = Color3.fromRGB(100, 190, 255) }
+table.insert(Config.TierOrder, "stormglass")
+Config.Tiers.stormglass = { displayName = "Stormglass", power = 8, color = Color3.fromRGB(100, 190, 255), material = Enum.Material.Metal, cost = { stormglass = 80, crystal = 120 } }
+Config.Nodes.stormglass = { maxHealth = 720, yield = 3, size = Vector3.new(5, 6, 5), material = Enum.Material.Neon }
+table.insert(Config.MineralOrder, "abyssite")
+Config.Minerals.abyssite = { displayName = "Abyssite", color = Color3.fromRGB(55, 175, 160) }
+table.insert(Config.TierOrder, "abyssite")
+Config.Tiers.abyssite = { displayName = "Abyssite", power = 11, color = Color3.fromRGB(55, 175, 160), material = Enum.Material.Metal, cost = { abyssite = 110, stormglass = 165 } }
+Config.Nodes.abyssite = { maxHealth = 990, yield = 3, size = Vector3.new(5, 6, 5), material = Enum.Material.Neon }
+table.insert(Config.MineralOrder, "sunsteel")
+Config.Minerals.sunsteel = { displayName = "Sunsteel", color = Color3.fromRGB(255, 190, 70) }
+table.insert(Config.TierOrder, "sunsteel")
+Config.Tiers.sunsteel = { displayName = "Sunsteel", power = 15, color = Color3.fromRGB(255, 190, 70), material = Enum.Material.Metal, cost = { sunsteel = 150, abyssite = 225 } }
+Config.Nodes.sunsteel = { maxHealth = 1350, yield = 3, size = Vector3.new(5, 6, 5), material = Enum.Material.Neon }
+table.insert(Config.MineralOrder, "aether")
+Config.Minerals.aether = { displayName = "Aether", color = Color3.fromRGB(230, 170, 255) }
+table.insert(Config.TierOrder, "aether")
+Config.Tiers.aether = { displayName = "Aether", power = 20, color = Color3.fromRGB(230, 170, 255), material = Enum.Material.Metal, cost = { aether = 200, sunsteel = 300 } }
+Config.Nodes.aether = { maxHealth = 1800, yield = 3, size = Vector3.new(5, 6, 5), material = Enum.Material.Neon }
+table.insert(Config.ZoneOrder, 4)
+Config.Zones[4] = {
+ name = "Storm Peak", center = Vector3.new(1500, 60, 0), size = Vector3.new(320, 6, 320),
+ color = Color3.fromRGB(100, 190, 255), material = Enum.Material.Slate, theme = "crystal",
+ gate = { boss = 3, size = 4 }, maxEnemies = 12, extraEnemiesPerPlayer = 4,
+ spawnInterval = 3, minSpawnDistance = 40, enemies = { "stormWisp", "stormWispTank" },
+ nodeCount = 16, nodeRespawn = 30,
+ nodes = { { mineral = "crystal", weight = 1 }, { mineral = "stormglass", weight = 3 } },
+ offlineMinerals = { crystal = 2, stormglass = 3 },
+}
+Config.Enemies.stormWisp = {
+ displayName = "Storm Peak Swarmer", designId = "shardSprite", maxHealth = 500, damage = 36,
+ attackCooldown = 0.8, attackRange = 9, aggroRange = 50, walkSpeed = 16,
+ size = Vector3.new(3, 5, 3), color = Color3.fromRGB(100, 190, 255), xp = 50, drops = { stormglass = 2 }, spawnWeight = 3,
+}
+Config.Bosses[4] = {
+ displayName = "Thunder Roc", designId = "boss1", maxHealth = 22500, damage = 80,
+ attackCooldown = 1.4, attackRange = 14, aggroRange = 65, walkSpeed = 10,
+ size = Vector3.new(12, 14, 12), color = Color3.fromRGB(100, 190, 255), xp = 1750, drops = { stormglass = 100 },
+ slam = { every = 5, warning = 1.5, radius = 18, damage = 340 }, respawn = 90,
+}
+table.insert(Config.ArtifactOrder, "stormglassCharm")
+Config.Artifacts.stormglassCharm = { name = "Storm Peak Charm", zone = 4, source = "drop", bonus = { health = 12 } }
+table.insert(Config.ArtifactOrder, "stormglassLens")
+Config.Artifacts.stormglassLens = { name = "Storm Peak Lens", zone = 4, source = "drop", bonus = { mining = 12 } }
+table.insert(Config.ArtifactOrder, "stormglassRune")
+Config.Artifacts.stormglassRune = { name = "Storm Peak Rune", zone = 4, source = "drop", bonus = { spellPower = 12 } }
+table.insert(Config.ArtifactOrder, "stormglassBell")
+Config.Artifacts.stormglassBell = { name = "Storm Peak Bell", zone = 4, source = "drop", bonus = { minerals = 12 } }
+table.insert(Config.ArtifactOrder, "stormglassCrown")
+Config.Artifacts.stormglassCrown = { name = "Storm Peak Crown", zone = 4, source = "boss", bonus = { damage = 12 } }
+table.insert(Config.ArtifactOrder, "stormglassHeart")
+Config.Artifacts.stormglassHeart = { name = "Storm Peak Heart", zone = 4, source = "hidden", bonus = { regen = 12 } }
+table.insert(Config.ZoneOrder, 5)
+Config.Zones[5] = {
+ name = "Sunken Ruins", center = Vector3.new(2000, 60, 0), size = Vector3.new(320, 6, 320),
+ color = Color3.fromRGB(55, 175, 160), material = Enum.Material.Slate, theme = "meadow",
+ gate = { boss = 4, size = 5 }, maxEnemies = 12, extraEnemiesPerPlayer = 4,
+ spawnInterval = 3, minSpawnDistance = 40, enemies = { "ruinCrawler", "ruinCrawlerTank" },
+ nodeCount = 16, nodeRespawn = 30,
+ nodes = { { mineral = "stormglass", weight = 1 }, { mineral = "abyssite", weight = 3 } },
+ offlineMinerals = { stormglass = 2, abyssite = 3 },
+}
+Config.Enemies.ruinCrawler = {
+ displayName = "Sunken Ruins Swarmer", designId = "shardSprite", maxHealth = 950, damage = 45,
+ attackCooldown = 0.8, attackRange = 9, aggroRange = 50, walkSpeed = 16,
+ size = Vector3.new(3, 5, 3), color = Color3.fromRGB(55, 175, 160), xp = 90, drops = { abyssite = 2 }, spawnWeight = 3,
+}
+Config.Bosses[5] = {
+ displayName = "Tide Sentinel", designId = "boss2", maxHealth = 42750, damage = 100,
+ attackCooldown = 1.4, attackRange = 14, aggroRange = 65, walkSpeed = 10,
+ size = Vector3.new(12, 14, 12), color = Color3.fromRGB(55, 175, 160), xp = 3150, drops = { abyssite = 100 },
+ slam = { every = 5, warning = 1.5, radius = 18, damage = 425 }, respawn = 90,
+}
+table.insert(Config.ArtifactOrder, "abyssiteCharm")
+Config.Artifacts.abyssiteCharm = { name = "Sunken Ruins Charm", zone = 5, source = "drop", bonus = { health = 15 } }
+table.insert(Config.ArtifactOrder, "abyssiteLens")
+Config.Artifacts.abyssiteLens = { name = "Sunken Ruins Lens", zone = 5, source = "drop", bonus = { mining = 15 } }
+table.insert(Config.ArtifactOrder, "abyssiteRune")
+Config.Artifacts.abyssiteRune = { name = "Sunken Ruins Rune", zone = 5, source = "drop", bonus = { spellPower = 15 } }
+table.insert(Config.ArtifactOrder, "abyssiteBell")
+Config.Artifacts.abyssiteBell = { name = "Sunken Ruins Bell", zone = 5, source = "drop", bonus = { minerals = 15 } }
+table.insert(Config.ArtifactOrder, "abyssiteCrown")
+Config.Artifacts.abyssiteCrown = { name = "Sunken Ruins Crown", zone = 5, source = "boss", bonus = { damage = 15 } }
+table.insert(Config.ArtifactOrder, "abyssiteHeart")
+Config.Artifacts.abyssiteHeart = { name = "Sunken Ruins Heart", zone = 5, source = "hidden", bonus = { regen = 15 } }
+table.insert(Config.ZoneOrder, 6)
+Config.Zones[6] = {
+ name = "Sky Forge", center = Vector3.new(2500, 60, 0), size = Vector3.new(320, 6, 320),
+ color = Color3.fromRGB(255, 190, 70), material = Enum.Material.Slate, theme = "ember",
+ gate = { boss = 5, size = 6 }, maxEnemies = 12, extraEnemiesPerPlayer = 4,
+ spawnInterval = 3, minSpawnDistance = 40, enemies = { "forgeSpark", "forgeSparkTank" },
+ nodeCount = 16, nodeRespawn = 30,
+ nodes = { { mineral = "abyssite", weight = 1 }, { mineral = "sunsteel", weight = 3 }, { mineral = "aether", weight = 1 } },
+ offlineMinerals = { abyssite = 2, sunsteel = 3, aether = 1 },
+}
+Config.Enemies.forgeSpark = {
+ displayName = "Sky Forge Swarmer", designId = "shardSprite", maxHealth = 1700, damage = 54,
+ attackCooldown = 0.8, attackRange = 9, aggroRange = 50, walkSpeed = 16,
+ size = Vector3.new(3, 5, 3), color = Color3.fromRGB(255, 190, 70), xp = 150, drops = { sunsteel = 2 }, spawnWeight = 3,
+}
+Config.Bosses[6] = {
+ displayName = "Solar Colossus", designId = "boss3", maxHealth = 76500, damage = 120,
+ attackCooldown = 1.4, attackRange = 14, aggroRange = 65, walkSpeed = 10,
+ size = Vector3.new(12, 14, 12), color = Color3.fromRGB(255, 190, 70), xp = 5250, drops = { sunsteel = 100 },
+ slam = { every = 5, warning = 1.5, radius = 18, damage = 510 }, respawn = 90,
+}
+table.insert(Config.ArtifactOrder, "sunsteelCharm")
+Config.Artifacts.sunsteelCharm = { name = "Sky Forge Charm", zone = 6, source = "drop", bonus = { health = 18 } }
+table.insert(Config.ArtifactOrder, "sunsteelLens")
+Config.Artifacts.sunsteelLens = { name = "Sky Forge Lens", zone = 6, source = "drop", bonus = { mining = 18 } }
+table.insert(Config.ArtifactOrder, "sunsteelRune")
+Config.Artifacts.sunsteelRune = { name = "Sky Forge Rune", zone = 6, source = "drop", bonus = { spellPower = 18 } }
+table.insert(Config.ArtifactOrder, "sunsteelBell")
+Config.Artifacts.sunsteelBell = { name = "Sky Forge Bell", zone = 6, source = "drop", bonus = { minerals = 18 } }
+table.insert(Config.ArtifactOrder, "sunsteelCrown")
+Config.Artifacts.sunsteelCrown = { name = "Sky Forge Crown", zone = 6, source = "boss", bonus = { damage = 18 } }
+table.insert(Config.ArtifactOrder, "sunsteelHeart")
+Config.Artifacts.sunsteelHeart = { name = "Sky Forge Heart", zone = 6, source = "hidden", bonus = { regen = 18 } }
+Config.Enemies.pebbleCritterTank = table.clone(Config.Enemies.pebbleCritter)
+Config.Enemies.pebbleCritterTank.displayName = Config.Enemies.pebbleCritter.displayName .. " Guardian"
+Config.Enemies.pebbleCritterTank.designId = Config.Enemies.pebbleCritter.designId or "pebbleCritter"
+Config.Enemies.pebbleCritterTank.maxHealth *= 2
+Config.Enemies.pebbleCritterTank.walkSpeed *= 0.6
+Config.Enemies.pebbleCritterTank.xp *= 2
+Config.Enemies.pebbleCritterTank.drops = table.clone(Config.Enemies.pebbleCritter.drops)
+for mineral, amount in Config.Enemies.pebbleCritterTank.drops do
+ Config.Enemies.pebbleCritterTank.drops[mineral] = amount * 2
+end
+Config.Enemies.pebbleCritterTank.spawnWeight = 1
+Config.Enemies.cinderImpTank = table.clone(Config.Enemies.cinderImp)
+Config.Enemies.cinderImpTank.displayName = Config.Enemies.cinderImp.displayName .. " Guardian"
+Config.Enemies.cinderImpTank.designId = Config.Enemies.cinderImp.designId or "cinderImp"
+Config.Enemies.cinderImpTank.maxHealth *= 2
+Config.Enemies.cinderImpTank.walkSpeed *= 0.6
+Config.Enemies.cinderImpTank.xp *= 2
+Config.Enemies.cinderImpTank.drops = table.clone(Config.Enemies.cinderImp.drops)
+for mineral, amount in Config.Enemies.cinderImpTank.drops do
+ Config.Enemies.cinderImpTank.drops[mineral] = amount * 2
+end
+Config.Enemies.cinderImpTank.spawnWeight = 1
+Config.Enemies.shardSpriteTank = table.clone(Config.Enemies.shardSprite)
+Config.Enemies.shardSpriteTank.displayName = Config.Enemies.shardSprite.displayName .. " Guardian"
+Config.Enemies.shardSpriteTank.designId = Config.Enemies.shardSprite.designId or "shardSprite"
+Config.Enemies.shardSpriteTank.maxHealth *= 2
+Config.Enemies.shardSpriteTank.walkSpeed *= 0.6
+Config.Enemies.shardSpriteTank.xp *= 2
+Config.Enemies.shardSpriteTank.drops = table.clone(Config.Enemies.shardSprite.drops)
+for mineral, amount in Config.Enemies.shardSpriteTank.drops do
+ Config.Enemies.shardSpriteTank.drops[mineral] = amount * 2
+end
+Config.Enemies.shardSpriteTank.spawnWeight = 1
+Config.Enemies.stormWispTank = table.clone(Config.Enemies.stormWisp)
+Config.Enemies.stormWispTank.displayName = Config.Enemies.stormWisp.displayName .. " Guardian"
+Config.Enemies.stormWispTank.designId = Config.Enemies.stormWisp.designId or "stormWisp"
+Config.Enemies.stormWispTank.maxHealth *= 2
+Config.Enemies.stormWispTank.walkSpeed *= 0.6
+Config.Enemies.stormWispTank.xp *= 2
+Config.Enemies.stormWispTank.drops = table.clone(Config.Enemies.stormWisp.drops)
+for mineral, amount in Config.Enemies.stormWispTank.drops do
+ Config.Enemies.stormWispTank.drops[mineral] = amount * 2
+end
+Config.Enemies.stormWispTank.spawnWeight = 1
+Config.Enemies.ruinCrawlerTank = table.clone(Config.Enemies.ruinCrawler)
+Config.Enemies.ruinCrawlerTank.displayName = Config.Enemies.ruinCrawler.displayName .. " Guardian"
+Config.Enemies.ruinCrawlerTank.designId = Config.Enemies.ruinCrawler.designId or "ruinCrawler"
+Config.Enemies.ruinCrawlerTank.maxHealth *= 2
+Config.Enemies.ruinCrawlerTank.walkSpeed *= 0.6
+Config.Enemies.ruinCrawlerTank.xp *= 2
+Config.Enemies.ruinCrawlerTank.drops = table.clone(Config.Enemies.ruinCrawler.drops)
+for mineral, amount in Config.Enemies.ruinCrawlerTank.drops do
+ Config.Enemies.ruinCrawlerTank.drops[mineral] = amount * 2
+end
+Config.Enemies.ruinCrawlerTank.spawnWeight = 1
+Config.Enemies.forgeSparkTank = table.clone(Config.Enemies.forgeSpark)
+Config.Enemies.forgeSparkTank.displayName = Config.Enemies.forgeSpark.displayName .. " Guardian"
+Config.Enemies.forgeSparkTank.designId = Config.Enemies.forgeSpark.designId or "forgeSpark"
+Config.Enemies.forgeSparkTank.maxHealth *= 2
+Config.Enemies.forgeSparkTank.walkSpeed *= 0.6
+Config.Enemies.forgeSparkTank.xp *= 2
+Config.Enemies.forgeSparkTank.drops = table.clone(Config.Enemies.forgeSpark.drops)
+for mineral, amount in Config.Enemies.forgeSparkTank.drops do
+ Config.Enemies.forgeSparkTank.drops[mineral] = amount * 2
+end
+Config.Enemies.forgeSparkTank.spawnWeight = 1
+table.insert(Config.Zones[1].enemies, "pebbleCritterTank")
+Config.Enemies.pebbleCritter.spawnWeight = 3
+table.insert(Config.Zones[2].enemies, "cinderImpTank")
+Config.Enemies.cinderImp.spawnWeight = 3
+table.insert(Config.Zones[3].enemies, "shardSpriteTank")
+Config.Enemies.shardSprite.spawnWeight = 3
+
+-- Later branch nodes reward the extended level curve without a new currency.
+for _, branch in Config.SkillBranches do
+	local prefix = string.sub(branch.nodes[1], 1, 1)
+	for index = 6, 8 do
+		table.insert(branch.nodes, prefix .. index)
+	end
+end
+Config.Skills.e6 = { name = "Mountain Guard", cost = 2, bonus = { health = 15 } }
+Config.Skills.e7 = { name = "Storm Fists", cost = 2, bonus = { damage = 15 } }
+Config.Skills.e8 = { name = "Sky Titan", cost = 3, bonus = { health = 15, damage = 15 } }
+Config.Skills.p6 = { name = "Deep Veins", cost = 2, bonus = { mining = 15 } }
+Config.Skills.p7 = { name = "Sky Surveyor", cost = 2, bonus = { minerals = 15 } }
+Config.Skills.p8 = { name = "Master Prospector", cost = 3, bonus = { mining = 15, minerals = 15 } }
+Config.Skills.r6 = { name = "Storm Runes", cost = 2, bonus = { spellPower = 20 } }
+Config.Skills.r7 = { name = "Rune Rhythm", cost = 2, bonus = { spellHaste = 10 } }
+Config.Skills.r8 = { name = "Sky Channel", cost = 3, bonus = { spellPower = 20, regen = 20 } }
+
+Config.Ascension = { requiredAwakenings = 5, requiredBoss = 6, points = 1 }
+Config.AscendUpgradeOrder = { "vigor", "insight", "harvest" }
+Config.AscendUpgrades = {
+ vigor = { name = "Titan Vigor", maxRank = 10, cost = 1, bonus = { health = 10, damage = 10 } },
+ insight = { name = "Ancient Insight", maxRank = 10, cost = 1, bonus = { xp = 10 } },
+ harvest = { name = "Sky Harvest", maxRank = 10, cost = 1, bonus = { minerals = 10, mining = 10 } },
 }
 
 return Config
