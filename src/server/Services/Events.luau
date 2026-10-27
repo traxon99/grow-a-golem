@@ -14,7 +14,7 @@
 --   awakened      (player, count)
 --   mineralsGained(player, minerals, source)
 --   mineralsSpent (player, minerals, sink)
---   purchased     (player, "pass" | "product", key)
+--   purchased     (player, "pass" | "product" | "cosmetic", key)
 --   partyJoined   (player, partySize)
 --   codeRedeemed  (player, code)
 --   eventRewardClaimed (player, eventId, tierIndex)

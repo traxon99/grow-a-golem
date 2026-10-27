@@ -68,6 +68,7 @@ local function defaultData(): any
 		lastLogout = 0,
 		totals = { enemies = 0, nodes = 0, bosses = 0 },
 		tutorial = { step = 0, done = false }, -- step 0 = not started yet
+		cosmetics = { owned = {}, equipped = {} }, -- owned[id] = true, equipped[slot] = id
 	}
 end
 

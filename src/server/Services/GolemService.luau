@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
+local CosmeticLooks = require(Shared:WaitForChild("CosmeticLooks"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Stats = require(Shared:WaitForChild("Stats"))
 
@@ -46,8 +47,8 @@ local STEER_TIMEOUT = 0.5 -- stop if the client stops sending
 local MAX_STEERS_PER_SECOND = 20
 local HIP_HEIGHT = 4
 local ROOT_SIZE = Vector3.new(6, 8, 4)
-local BARE_COLOR = Color3.fromRGB(110, 104, 96) -- a slot with no forged part
-local RUNE_COLOR = Color3.fromRGB(90, 200, 255)
+local BARE_COLOR = CosmeticLooks.BARE_COLOR
+local PET_OFFSET = Vector3.new(-8.5, 3, 1.5) -- beside the left shoulder, at scale 1
 
 function GolemService.context(player: Player): Stats.Context
 	return { passes = PassService.passes(player), now = os.time() }
@@ -83,6 +84,9 @@ local function visualKey(player: Player, data: any, stats: Stats.GolemStats): st
 	if PassService.owns(player, "vip") then
 		key ..= ":vip"
 	end
+	for _, slot in { "skin", "pet", "trail" } do
+		key ..= ":" .. (Stats.equippedCosmetic(data, slot) or "-")
+	end
 	return key
 end
 
@@ -102,59 +106,108 @@ local function buildModel(player: Player, data: any, stats: Stats.GolemStats, gr
 	root.Parent = model
 	model.PrimaryPart = root
 
-	-- Each slot's forged tier sets the color and material of its body parts.
+	-- Each slot's forged tier sets the color and material of its body parts,
+	-- tinted by the equipped skin (looks only, see CosmeticLooks).
+	local skinId = Stats.equippedCosmetic(data, "skin")
 	local function look(slot: string, shade: number?): (Color3, Enum.Material)
-		local tierId = data.golem.parts[slot]
-		local tier = tierId and Config.Tiers[tierId]
-		local color = if tier then tier.color else BARE_COLOR
-		if shade then
-			local h, sat, v = color:ToHSV()
-			color = Color3.fromHSV(h, sat, math.clamp(v * shade, 0, 1))
-		end
-		return color, if tier then tier.material else Enum.Material.Slate
+		return CosmeticLooks.partLook(data.golem.parts[slot], shade, skinId)
 	end
 	local function at(x: number, y: number, z: number): CFrame
 		return CFrame.new(x, y, z)
 	end
 	local V = Vector3.new
 	local neon = Enum.Material.Neon
+	local RUNE_COLOR = CosmeticLooks.accent(skinId)
 	local rig = Build.rig(model, root, s)
+	-- The Wardrobe preview recolors a copy of this model for other skins, so
+	-- each body part says which slot it belongs to and its shade, and the
+	-- glowing runes say they're runes.
+	local function tag(part: Part, slot: string, shade: number?): Part
+		part:SetAttribute("LookSlot", slot)
+		part:SetAttribute("LookShade", shade)
+		return part
+	end
+	local function accent(part: Part): Part
+		part:SetAttribute("LookAccent", true)
+		return part
+	end
 
 	-- Limbs are Motor6D joints so the client can animate walking and punching.
 	for _, side in { -1, 1 } do
 		local color, material = look("legs")
-		local leg = rig.part(if side < 0 then "LeftLeg" else "RightLeg", V(3, 5, 3), at(side * 2, -5.5, 0), color, material)
+		local leg = tag(rig.part(if side < 0 then "LeftLeg" else "RightLeg", V(3, 5, 3), at(side * 2, -5.5, 0), color, material), "legs")
 		rig.joint(root, leg, V(side * 2, -3.2, 0), "Hip", { Kind = "leg", Side = side })
 		local footColor = look("legs", 0.8)
-		rig.weld(leg, rig.part("Foot", V(3.4, 1.2, 3.8), at(side * 2, -7.4, -0.3), footColor, material))
+		rig.weld(leg, tag(rig.part("Foot", V(3.4, 1.2, 3.8), at(side * 2, -7.4, -0.3), footColor, material), "legs", 0.8))
 	end
 
 	local torsoColor, torsoMaterial = look("torso")
-	local torso = rig.part("Torso", V(7, 7, 4.5), at(0, 1, 0), torsoColor, torsoMaterial)
+	local torso = tag(rig.part("Torso", V(7, 7, 4.5), at(0, 1, 0), torsoColor, torsoMaterial), "torso")
 	rig.joint(root, torso, V(0, -2.5, 0), "Body", { Kind = "body" })
 	local chestColor = look("torso", 0.85)
-	rig.weld(torso, rig.part("Chest", V(5, 3.6, 0.6), at(0, 2.2, -2.45), chestColor, torsoMaterial))
+	rig.weld(torso, tag(rig.part("Chest", V(5, 3.6, 0.6), at(0, 2.2, -2.45), chestColor, torsoMaterial), "torso", 0.85))
 	rig.weld(torso, rig.part("Belt", V(7.4, 1, 4.9), at(0, -2, 0), Color3.fromRGB(72, 64, 58), Enum.Material.Slate))
-	rig.weld(torso, rig.part("Rune", V(1.6, 1.6, 0.2), at(0, 2.2, -2.8), RUNE_COLOR, neon))
+	rig.weld(torso, accent(rig.part("Rune", V(1.6, 1.6, 0.2), at(0, 2.2, -2.8), RUNE_COLOR, neon)))
 
 	local headColor, headMaterial = look("core")
-	local head = rig.part("Head", V(4, 3, 3.5), at(0, 6, 0), headColor, headMaterial)
+	local head = tag(rig.part("Head", V(4, 3, 3.5), at(0, 6, 0), headColor, headMaterial), "core")
 	rig.joint(torso, head, V(0, 4.5, 0), "Neck", { Kind = "head" })
 	local browColor = look("core", 0.8)
-	rig.weld(head, rig.part("Brow", V(4.4, 0.8, 1), at(0, 7, -1.5), browColor, headMaterial))
-	rig.weld(head, rig.part("EyeL", V(0.8, 0.5, 0.2), at(-0.9, 6.3, -1.8), RUNE_COLOR, neon))
-	rig.weld(head, rig.part("EyeR", V(0.8, 0.5, 0.2), at(0.9, 6.3, -1.8), RUNE_COLOR, neon))
+	rig.weld(head, tag(rig.part("Brow", V(4.4, 0.8, 1), at(0, 7, -1.5), browColor, headMaterial), "core", 0.8))
+	rig.weld(head, accent(rig.part("EyeL", V(0.8, 0.5, 0.2), at(-0.9, 6.3, -1.8), RUNE_COLOR, neon)))
+	rig.weld(head, accent(rig.part("EyeR", V(0.8, 0.5, 0.2), at(0.9, 6.3, -1.8), RUNE_COLOR, neon)))
 
 	for _, side in { -1, 1 } do
 		local slot = if side < 0 then "armL" else "armR"
 		local color, material = look(slot)
-		local arm = rig.part(if side < 0 then "LeftArm" else "RightArm", V(2.5, 7, 2.5), at(side * 5, 0.5, 0), color, material)
+		local arm = tag(rig.part(if side < 0 then "LeftArm" else "RightArm", V(2.5, 7, 2.5), at(side * 5, 0.5, 0), color, material), slot)
 		rig.joint(torso, arm, V(side * 5, 3.5, 0), "Shoulder", { Kind = "arm", Side = side })
 		local capColor = look(slot, 0.85)
-		rig.weld(arm, rig.part("ShoulderCap", V(3.2, 2, 3.2), at(side * 5, 3.6, 0), capColor, material))
-		rig.weld(arm, rig.part("Fist", V(3.2, 3, 3.2), at(side * 5, -3.8, -0.2), color, material))
+		rig.weld(arm, tag(rig.part("ShoulderCap", V(3.2, 2, 3.2), at(side * 5, 3.6, 0), capColor, material), slot, 0.85))
+		rig.weld(arm, tag(rig.part("Fist", V(3.2, 3, 3.2), at(side * 5, -3.8, -0.2), color, material), slot))
 	end
 	model:SetAttribute("Stride", 7 * s)
+
+	-- Pet: floats beside the golem on a "pet" joint the client animates
+	-- (bobbing, and a hop when the golem defeats something).
+	local petId = Stats.equippedCosmetic(data, "pet")
+	if petId then
+		local petScale = 1 + (s - 1) * 0.5 -- grows a little with the golem
+		local pivot = CFrame.new(PET_OFFSET * s)
+		local body, rest = CosmeticLooks.buildPet(petId, model, root.CFrame * pivot, petScale)
+		if body then
+			body.Name = "Pet"
+			for _, part in rest do
+				Build.weld(body, part)
+			end
+			local motor = Build.joint(root, body, pivot, "PetFloat")
+			motor:SetAttribute("Kind", "pet")
+		end
+	end
+
+	-- Trail: a ribbon between two points at the feet.
+	local trailId = Stats.equippedCosmetic(data, "trail")
+	local trailLook = trailId and Config.Cosmetics[trailId].trail
+	if trailLook then
+		local footY = -(HIP_HEIGHT + ROOT_SIZE.Y / 2) * s + 0.4
+		local left = Instance.new("Attachment")
+		left.Name = "TrailLeft"
+		left.Position = Vector3.new(-3 * s, footY, 1 * s)
+		left.Parent = root
+		local right = Instance.new("Attachment")
+		right.Name = "TrailRight"
+		right.Position = Vector3.new(3 * s, footY, 1 * s)
+		right.Parent = root
+		local trail = Instance.new("Trail")
+		trail.Attachment0 = left
+		trail.Attachment1 = right
+		trail.Color = ColorSequence.new(trailLook.colors[1], trailLook.colors[2])
+		trail.Transparency = NumberSequence.new(0.25, 1)
+		trail.Lifetime = trailLook.lifetime
+		trail.LightEmission = trailLook.glow
+		trail.MinLength = 0.2
+		trail.Parent = root
+	end
 
 	-- The rider sits on the right shoulder.
 	local seat = Instance.new("Seat")

@@ -7,6 +7,7 @@
 --   Attack (counter)  punch with alternating arms, or lunge and bite
 --   SlamAt (time)     raise both arms, then slam down when the time comes
 --   Downed (bool)     slump while the golem reforms
+--   Cheer (counter)   the golem's pet hops and spins
 
 local RunService = game:GetService("RunService")
 
@@ -33,11 +34,14 @@ type Rig = {
 	attackAt: number,
 	attackSide: number,
 	lastAttack: number,
+	cheerAt: number,
+	lastCheer: number,
 	idleOffset: number,
 }
 
 local MAX_DISTANCE = 260 -- don't animate models farther than this from the camera
 local ATTACK_TIME = 0.35
+local CHEER_TIME = 0.6
 
 local rigs: { [Model]: Rig } = {}
 
@@ -79,6 +83,8 @@ local function makeRig(model: Model): Rig?
 		attackAt = 0,
 		attackSide = 1,
 		lastAttack = (model:GetAttribute("Attack") :: number?) or 0,
+		cheerAt = 0,
+		lastCheer = (model:GetAttribute("Cheer") :: number?) or 0,
 		idleOffset = math.random() * 10,
 	}
 end
@@ -128,6 +134,13 @@ local function animate(rig: Rig, dt: number, now: number, serverNow: number)
 		end
 	end
 	local downed = rig.model:GetAttribute("Downed") == true
+	local cheerCount = (rig.model:GetAttribute("Cheer") :: number?) or 0
+	if cheerCount ~= rig.lastCheer then
+		rig.lastCheer = cheerCount
+		rig.cheerAt = now
+	end
+	local cheerT = (now - rig.cheerAt) / CHEER_TIME
+	local hop = pulse(cheerT)
 
 	local swing = math.sin(rig.phase) * rig.walk
 	local bob = math.abs(math.cos(rig.phase)) * rig.walk
@@ -171,6 +184,11 @@ local function animate(rig: Rig, dt: number, now: number, serverNow: number)
 			transform = CFrame.Angles(-(punch + raise) * 0.5 - 0.05 * (1 + breathe), 0, 0)
 		elseif kind == "spin" then
 			transform = CFrame.Angles(0, (now * joint.speed) % (math.pi * 2), 0)
+		elseif kind == "pet" then
+			-- Bobs beside the golem; on a win it hops and spins once.
+			local y = math.sin(now * 2.2 + rig.idleOffset) * 0.35 * joint.amp + hop * 2
+			local spin = if cheerT >= 0 and cheerT <= 1 then cheerT * math.pi * 2 else 0
+			transform = CFrame.new(0, y, 0) * CFrame.Angles(math.sin(now * 1.3) * 0.08, spin, 0)
 		elseif kind == "float" then
 			local y = math.sin(now * joint.speed + rig.idleOffset) * joint.amp
 			transform = CFrame.new(0, y, -punch * 0.4) * CFrame.Angles(0, now * 0.6 % (math.pi * 2), 0)
