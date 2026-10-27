@@ -71,7 +71,7 @@ Gate: no errors in Output during a full solo run and a 3-player run, and progres
 | R1.3 | Steering and spells on PC, gamepad and the phone emulator | Studio | its rows in `docs/playtest.md` | Open |
 | R1.4 | 3-player test (Test → Clients and Servers): party invite and leave, shared kills, friend bonus, trading | Studio | its rows in `docs/playtest.md` | Open |
 | R1.5 | Publish a private test place; run the seven save tests in `docs/playtest.md` with test accounts | Owner, Studio | its rows in `docs/playtest.md` | Open |
-| R1.6 | README "Building your own islands" names only `Zone1` to `Zone3`; the code reads `Zone1` to `Zone6` | Code | `README.md` | In progress: Claude for @shmurkles, claude/r1-6-zone-names, 2026-10-27 |
+| R1.6 | README "Building your own islands" names only `Zone1` to `Zone3`; the code reads `Zone1` to `Zone6` | Code | `README.md` | Done: #31 |
 
 ## Phase 2: Tune pacing ([#9](https://github.com/traxon99/grow-a-golem/issues/9), [#15](https://github.com/traxon99/grow-a-golem/issues/15))
 
