@@ -57,6 +57,9 @@ function PartyService.friendNow(a: Player, b: Player): boolean
 	if cache and cache[b.UserId] ~= nil then
 		return cache[b.UserId]
 	end
+	if not a.Parent then
+		return false
+	end
 	task.spawn(function()
 		isFriend(a, b)
 		DataService.markChanged(a)

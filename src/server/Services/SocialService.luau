@@ -161,7 +161,7 @@ function SocialService.start()
 
 	-- Cards and the Hub tab show every player's progress, so refresh everyone
 	-- whenever someone joins or leaves.
-	Players.PlayerAdded:Connect(function()
+	DataService.ProfileLoaded:Connect(function()
 		for _, other in Players:GetPlayers() do
 			DataService.markChanged(other)
 		end

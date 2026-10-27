@@ -370,6 +370,7 @@ Config.Hub = {
 	theme = "meadow",
 	spread = 45, -- golems arrive this many studs from the middle at most
 	maxInspect = 24, -- inspect cards sent per player
+	inspectRange = 14, -- studs (at golem size 1) to see the Inspect prompt
 	refreshSeconds = 5, -- how often cards refresh for players standing in the hub
 }
 
@@ -409,6 +410,8 @@ Config.Trading = {
 	idleTimeout = 300, -- an open trade closes after this long
 	dailyLimit = 10, -- completed trades per player per UTC day
 	minAccountAgeDays = 7, -- fresh accounts can't trade (alt and scam protection)
+	saveAttempts = 3, -- tries to save both players right after a trade
+	sweepSeconds = 5, -- how often idle trades are checked
 	logKept = 30, -- trade records kept per player, keyed by UserId
 	-- Value points per artifact source, only used for the "this is lopsided"
 	-- warning. The warning shows when you give more than this many times what

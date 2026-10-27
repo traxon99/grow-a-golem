@@ -225,7 +225,7 @@ local function buildModel(player: Player, data: any, stats: Stats.GolemStats, gr
 	inspect.Name = "InspectPrompt"
 	inspect.ActionText = "Inspect"
 	inspect.ObjectText = player.DisplayName
-	inspect.MaxActivationDistance = 14 * s
+	inspect.MaxActivationDistance = Config.Hub.inspectRange * s
 	inspect.RequiresLineOfSight = false
 	inspect.Enabled = false
 	inspect.Parent = root

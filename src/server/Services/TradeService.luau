@@ -218,12 +218,16 @@ local function commit(trade: Trade)
 	AnalyticsService.custom(a, "TradeCompleted", 1)
 	AnalyticsService.custom(b, "TradeCompleted", 1)
 
-	-- Write both saves right away so a crash can't leave one side undone.
+	-- Write both saves right away (retrying) so a crash can't leave one side undone.
 	for _, player in { a, b } do
 		task.spawn(function()
-			if not DataService.saveNow(player) then
-				warn(`[TradeService] couldn't save {player.UserId} right after a trade`)
+			for attempt = 1, Config.Trading.saveAttempts do
+				if DataService.saveNow(player) or not player.Parent then
+					return
+				end
+				task.wait(attempt * 2)
 			end
+			warn(`[TradeService] couldn't save {player.UserId} after a trade`)
 		end)
 	end
 end
@@ -342,6 +346,9 @@ local function setReady(player: Player, on: any): (boolean, string?)
 		return false, "Not ready"
 	end
 	if on then
+		if trade.ready[player] then
+			return true, nil -- already Ready: don't restart the countdown
+		end
 		if #offerList(trade, trade.a) == 0 and #offerList(trade, trade.b) == 0 then
 			return false, "Add an artifact to trade first"
 		end
@@ -470,7 +477,7 @@ function TradeService.start()
 	-- Open trades don't sit around forever.
 	task.spawn(function()
 		while true do
-			task.wait(5)
+			task.wait(Config.Trading.sweepSeconds)
 			local seen: { [Trade]: boolean } = {}
 			for _, trade in tradeOf do
 				if not seen[trade] then
