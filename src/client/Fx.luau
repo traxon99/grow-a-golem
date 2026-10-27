@@ -217,7 +217,7 @@ function Fx.start()
 	task.spawn(function()
 		local enemies = each("Enemies", watchEnemy)
 		-- Defeated enemies are removed by the server; burst where they stood.
-		enemies.ChildRemoved:Connect(function(child)
+		enemies.ChildRemoved:Connect(function(child: Instance)
 			if child:IsA("Model") and child.PrimaryPart then
 				local model = child :: Model
 				local root = model.PrimaryPart :: BasePart

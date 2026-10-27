@@ -135,9 +135,9 @@ local function buildModel(
 	local neon = Enum.Material.Neon
 	local RUNE_COLOR = CosmeticLooks.accent(skinId)
 	local partAssets: { [string]: { string } } = {}
-	for name, slot in
+	local partSlots: { [string]: string } =
 		{ LeftLeg = "legs", RightLeg = "legs", Torso = "torso", Head = "core", LeftArm = "armL", RightArm = "armR" }
-	do
+	for name, slot in partSlots do
 		local tier = data.golem.parts[slot]
 		if tier then
 			partAssets[name] = { "Golem", tier, name }

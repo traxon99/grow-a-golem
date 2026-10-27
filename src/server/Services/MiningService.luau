@@ -88,7 +88,7 @@ local function placeNode(zoneId: number)
 		chunk.Material = if GLOWING[mineral] then Enum.Material.Neon else def.material
 		chunk.CFrame = part.CFrame * offset
 		chunk.Parent = part
-		table.insert(chunks, { part = chunk, offset = offset, size = size })
+		table.insert(chunks, { part = chunk :: BasePart, offset = offset, size = size })
 	end
 	if GLOWING[mineral] then
 		local light = Instance.new("PointLight")

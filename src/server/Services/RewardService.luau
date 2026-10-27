@@ -60,7 +60,7 @@ local function ensureQuests(data: any)
 		local random = Random.new(day)
 		quests.ids = {}
 		for _ = 1, math.min(Config.DailyQuestCount, #pool) do
-			local quest = table.remove(pool, random:NextInteger(1, #pool))
+			local quest: any = table.remove(pool, random:NextInteger(1, #pool))
 			table.insert(quests.ids, quest.id)
 		end
 		quests.day = day
