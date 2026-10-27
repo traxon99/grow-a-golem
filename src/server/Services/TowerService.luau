@@ -400,7 +400,10 @@ end
 function TowerService.tick()
 	local now = os.clock()
 	for _, run in runs do
-		local ok, err = pcall(tickRun, run, now)
+		local ok, err = pcall(function(): any
+			tickRun(run, now)
+			return nil
+		end)
 		if not ok then
 			warn(`[TowerService] tower run in zone {run.arena} failed: {err}`)
 			endRun(run, "The tower run had a problem and ended. Waves you cleared were paid.")
