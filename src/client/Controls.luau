@@ -7,6 +7,7 @@ local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local Remotes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remotes"))
 
@@ -46,9 +47,52 @@ local function onCharacter(character: Model)
 	humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
 end
 
+-- Used only if Roblox's PlayerModule isn't available: reads WASD/arrow keys
+-- and the gamepad left stick directly, in GetMoveVector's format.
+local function fallbackMoveVector(): Vector3
+	local x, z = 0, 0
+	if UserInputService:IsKeyDown(Enum.KeyCode.W) or UserInputService:IsKeyDown(Enum.KeyCode.Up) then
+		z -= 1
+	end
+	if UserInputService:IsKeyDown(Enum.KeyCode.S) or UserInputService:IsKeyDown(Enum.KeyCode.Down) then
+		z += 1
+	end
+	if UserInputService:IsKeyDown(Enum.KeyCode.A) or UserInputService:IsKeyDown(Enum.KeyCode.Left) then
+		x -= 1
+	end
+	if UserInputService:IsKeyDown(Enum.KeyCode.D) or UserInputService:IsKeyDown(Enum.KeyCode.Right) then
+		x += 1
+	end
+	if x ~= 0 or z ~= 0 then
+		return Vector3.new(x, 0, z)
+	end
+	for _, input in UserInputService:GetGamepadState(Enum.UserInputType.Gamepad1) do
+		if input.KeyCode == Enum.KeyCode.Thumbstick1 and input.Position.Magnitude > 0.2 then
+			return Vector3.new(input.Position.X, 0, -input.Position.Y)
+		end
+	end
+	return Vector3.zero
+end
+
+local function getMoveVectorSource(): () -> Vector3
+	local playerScripts = player:WaitForChild("PlayerScripts")
+	local moduleScript = playerScripts:WaitForChild("PlayerModule", 10)
+	if moduleScript and moduleScript:IsA("ModuleScript") then
+		local ok, controls = pcall(function()
+			return (require(moduleScript) :: any):GetControls()
+		end)
+		if ok and controls then
+			return function()
+				return controls:GetMoveVector()
+			end
+		end
+	end
+	warn("[Controls] PlayerModule not found; using keyboard/gamepad fallback (no mobile joystick).")
+	return fallbackMoveVector
+end
+
 function Controls.start()
-	local playerModule = require(player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule") :: ModuleScript) :: any
-	local controls = playerModule:GetControls()
+	local getMoveVector = getMoveVectorSource()
 
 	local elapsed = 0
 	local lastSent = Vector3.zero
@@ -59,7 +103,7 @@ function Controls.start()
 		end
 		elapsed = 0
 
-		local direction = cameraRelative(controls:GetMoveVector())
+		local direction = cameraRelative(getMoveVector())
 		-- Keep sending while steering (the server times out after 0.5 s),
 		-- and send one zero when the player lets go.
 		if direction.Magnitude > 0 or lastSent.Magnitude > 0 then

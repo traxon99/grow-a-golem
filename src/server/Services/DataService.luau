@@ -25,7 +25,17 @@ type Profile = {
 
 local DataService = {}
 
-local store = DataStoreService:GetDataStore(Config.Data.storeName)
+-- GetDataStore throws in a place that hasn't been published yet. Catch it so
+-- the rest of the game still runs (without saving) instead of failing to load.
+local storeOk, storeOrError = pcall(function()
+	return DataStoreService:GetDataStore(Config.Data.storeName)
+end)
+local store: DataStore? = if storeOk then storeOrError else nil
+if not store then
+	warn(`[DataService] DataStores unavailable, progress will NOT save: {storeOrError}`)
+	warn("[DataService] To save in Studio: File > Publish to Roblox, then Game Settings > Security > Enable Studio Access to API Services.")
+end
+
 local profiles: { [Player]: Profile } = {}
 
 local loadedEvent = Instance.new("BindableEvent")
@@ -100,21 +110,26 @@ end
 
 local function save(player: Player)
 	local profile = profiles[player]
-	if not profile or not profile.canSave then
+	if not profile or not profile.canSave or not store then
 		return
 	end
 	local data = profile.data
+	local dataStore = store
 	withRetries(`save {player.UserId}`, function()
-		store:UpdateAsync(storeKey(player), function()
+		dataStore:UpdateAsync(storeKey(player), function()
 			return data
 		end)
 	end)
 end
 
 local function load(player: Player)
-	local ok, saved = withRetries(`load {player.UserId}`, function()
-		return store:GetAsync(storeKey(player))
-	end)
+	local ok, saved = false, nil
+	if store then
+		local dataStore = store
+		ok, saved = withRetries(`load {player.UserId}`, function()
+			return dataStore:GetAsync(storeKey(player))
+		end)
+	end
 
 	local canSave = true
 	local data: PlayerData
