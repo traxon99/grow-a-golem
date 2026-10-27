@@ -85,4 +85,46 @@ function Build.weld(part0: BasePart, part1: BasePart)
 	weld.Parent = part1
 end
 
+export type Rig = {
+	part: (name: string, size: Vector3, offset: CFrame, color: Color3, material: Enum.Material?, transparency: number?) -> Part,
+	joint: (part0: BasePart, part1: BasePart, pivot: Vector3, name: string, attributes: { [string]: any }) -> Motor6D,
+	weld: (part0: BasePart, part1: BasePart) -> (),
+}
+
+-- Builds a jointed model around `root` from a design drawn at scale 1.
+-- Offsets and pivots are in the root's space and get multiplied by `scale`.
+-- Joint attributes tell the client animator what to do with each joint:
+--   Kind = "body" | "head" | "leg" | "arm" | "jaw" | "spin" | "float"
+--   Side = 1 or -1 (legs and arms on opposite sides swing in opposite phase)
+--   Amp, Speed = optional strength and speed overrides
+function Build.rig(model: Model, root: BasePart, scale: number): Rig
+	local function place(offset: CFrame): CFrame
+		return root.CFrame * (CFrame.new(offset.Position * scale) * offset.Rotation)
+	end
+	return {
+		part = function(name, size, offset, color, material, transparency)
+			local part = Build.part(model, {
+				name = name,
+				size = size * scale,
+				cframe = place(offset),
+				color = color,
+				material = material,
+				transparency = transparency,
+			})
+			part.Anchored = false
+			part.Massless = true
+			return part
+		end,
+		joint = function(part0, part1, pivot, name, attributes)
+			local pivotWorld = root.CFrame * CFrame.new(pivot * scale)
+			local motor = Build.joint(part0, part1, part0.CFrame:ToObjectSpace(pivotWorld), name)
+			for key, value in attributes do
+				motor:SetAttribute(key, value)
+			end
+			return motor
+		end,
+		weld = Build.weld,
+	}
+end
+
 return Build

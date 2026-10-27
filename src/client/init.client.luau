@@ -1,6 +1,7 @@
 --!strict
 -- Client entry point.
 
+local Animator = require(script:WaitForChild("Animator"))
 local Controls = require(script:WaitForChild("Controls"))
 local Hud = require(script:WaitForChild("Hud"))
 local Menus = require(script:WaitForChild("Menus"))
@@ -12,3 +13,4 @@ Menus.start()
 Moments.start()
 State.start()
 Controls.start()
+Animator.start()

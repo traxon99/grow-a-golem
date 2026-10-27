@@ -19,6 +19,11 @@ local WorldService = require(script.Parent.WorldService)
 
 local CombatService = {}
 
+-- Tells clients to play a punch (see the client Animator).
+local function swing(model: Model)
+	model:SetAttribute("Attack", ((model:GetAttribute("Attack") :: number?) or 0) + 1)
+end
+
 local function ringEffect(position: Vector3, radius: number, color: Color3)
 	local ring = Instance.new("Part")
 	ring.Name = "SpellRing"
@@ -98,9 +103,11 @@ local function updateGolem(player: Player, golem: GolemService.Golem, dt: number
 	-- Act: enemies first, mining when the area is clear.
 	if enemy and enemyDistance <= stats.attackRange and now >= golem.nextAttack then
 		golem.nextAttack = now + stats.attackCooldown
+		swing(golem.model)
 		EnemyService.damage(enemy, stats.attackDamage, player)
 	elseif node and nodeDistance <= stats.miningRange and now >= golem.nextMine then
 		golem.nextMine = now + stats.miningCooldown
+		swing(golem.model)
 		MiningService.damage(node, stats.miningDamage, player)
 	end
 
