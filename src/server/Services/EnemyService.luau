@@ -18,6 +18,7 @@ local Events = require(script.Parent.Events)
 local GolemService = require(script.Parent.GolemService)
 local PartyService = require(script.Parent.PartyService)
 local WorldService = require(script.Parent.WorldService)
+local EnemyModels = require(script.Parent.Parent.Models.EnemyModels)
 
 export type Enemy = {
 	id: string,
@@ -44,34 +45,19 @@ local countByZone: { [number]: number } = {}
 local bossByZone: { [number]: Enemy } = {}
 local bossReadyAt: { [number]: number } = {}
 
-local function buildModel(def: any, at: Vector3, isBoss: boolean): (Model, Humanoid, BasePart)
+local function buildModel(designId: string, def: any, at: Vector3): (Model, Humanoid, BasePart)
 	local model = Instance.new("Model")
 	model.Name = def.displayName
 
+	-- The root is an invisible box the size in Config; the body is built around it.
 	local root = Instance.new("Part")
 	root.Name = "HumanoidRootPart"
 	root.Size = def.size
-	root.Color = def.color
-	root.Material = if isBoss then Enum.Material.Basalt else Enum.Material.Slate
+	root.Transparency = 1
 	root.CFrame = CFrame.new(at + Vector3.new(0, def.size.Y / 2 + 0.5, 0))
 	root.Parent = model
 	model.PrimaryPart = root
-
-	for _, x in { -0.5, 0.5 } do
-		local eye = Instance.new("Part")
-		eye.Name = "Eye"
-		eye.Size = Vector3.new(0.4, 0.4, 0.2) * (if isBoss then 3 else 1)
-		eye.Color = if isBoss then Color3.fromRGB(255, 70, 50) else Color3.fromRGB(255, 220, 120)
-		eye.Material = Enum.Material.Neon
-		eye.CanCollide = false
-		eye.Massless = true
-		eye.CFrame = root.CFrame * CFrame.new(x * def.size.X * 0.3, def.size.Y * 0.15, -def.size.Z / 2 - 0.05)
-		local weld = Instance.new("WeldConstraint")
-		weld.Part0 = root
-		weld.Part1 = eye
-		weld.Parent = eye
-		eye.Parent = model
-	end
+	EnemyModels.dress(model, root, designId, def)
 
 	local humanoid = Instance.new("Humanoid")
 	humanoid.RigType = Enum.HumanoidRigType.R15
@@ -94,7 +80,7 @@ local function buildModel(def: any, at: Vector3, isBoss: boolean): (Model, Human
 end
 
 local function makeEnemy(id: string, def: any, zoneId: number, at: Vector3, isBoss: boolean): Enemy
-	local model, humanoid, root = buildModel(def, at, isBoss)
+	local model, humanoid, root = buildModel(id, def, at)
 	local enemy: Enemy = {
 		id = id,
 		def = def,
@@ -297,6 +283,8 @@ local function updateSlam(enemy: Enemy, now: number)
 	end
 	enemy.nextSlam = now + slam.every
 	enemy.slamAt = now + slam.warning
+	-- Clients raise the boss's arms during the warning (see the client Animator).
+	enemy.model:SetAttribute("SlamAt", workspace:GetServerTimeNow() + slam.warning)
 	local ground = target.root.Position - Vector3.new(0, target.groundOffset, 0)
 	enemy.slamPosition = ground
 
@@ -329,6 +317,7 @@ function EnemyService.update()
 				enemy.humanoid:Move(Vector3.zero)
 				if now >= enemy.nextAttack then
 					enemy.nextAttack = now + enemy.def.attackCooldown
+					enemy.model:SetAttribute("Attack", ((enemy.model:GetAttribute("Attack") :: number?) or 0) + 1)
 					GolemService.damage(target, enemy.def.damage)
 				end
 			else

@@ -14,6 +14,7 @@ local Stats = require(Shared:WaitForChild("Stats"))
 local DataService = require(script.Parent.DataService)
 local PassService = require(script.Parent.PassService)
 local WorldService = require(script.Parent.WorldService)
+local Build = require(script.Parent.Parent.Models.Build)
 
 export type Golem = {
 	player: Player,
@@ -47,18 +48,6 @@ local HIP_HEIGHT = 4
 local ROOT_SIZE = Vector3.new(6, 8, 4)
 local BARE_COLOR = Color3.fromRGB(110, 104, 96) -- a slot with no forged part
 local RUNE_COLOR = Color3.fromRGB(90, 200, 255)
-
--- Slot -> body pieces, as (size, offset) at scale 1.
-local PIECES: { [string]: { { name: string, size: Vector3, offset: Vector3 } } } = {
-	core = { { name = "Head", size = Vector3.new(4, 3, 3.5), offset = Vector3.new(0, 6, 0) } },
-	torso = { { name = "Torso", size = Vector3.new(7, 7, 4.5), offset = Vector3.new(0, 1, 0) } },
-	armL = { { name = "LeftArm", size = Vector3.new(2.5, 7, 2.5), offset = Vector3.new(-5, 0.5, 0) } },
-	armR = { { name = "RightArm", size = Vector3.new(2.5, 7, 2.5), offset = Vector3.new(5, 0.5, 0) } },
-	legs = {
-		{ name = "LeftLeg", size = Vector3.new(3, 5, 3), offset = Vector3.new(-2, -5.5, 0) },
-		{ name = "RightLeg", size = Vector3.new(3, 5, 3), offset = Vector3.new(2, -5.5, 0) },
-	},
-}
 
 function GolemService.context(player: Player): Stats.Context
 	return { passes = PassService.passes(player), now = os.time() }
@@ -113,21 +102,59 @@ local function buildModel(player: Player, data: any, stats: Stats.GolemStats, gr
 	root.Parent = model
 	model.PrimaryPart = root
 
-	for _, slot in Config.SlotOrder do
+	-- Each slot's forged tier sets the color and material of its body parts.
+	local function look(slot: string, shade: number?): (Color3, Enum.Material)
 		local tierId = data.golem.parts[slot]
 		local tier = tierId and Config.Tiers[tierId]
 		local color = if tier then tier.color else BARE_COLOR
-		local material = if tier then tier.material else Enum.Material.Slate
-		for _, piece in PIECES[slot] do
-			attach(root, makePart(piece.name, piece.size * s, color, material), CFrame.new(piece.offset * s), model)
+		if shade then
+			local h, sat, v = color:ToHSV()
+			color = Color3.fromHSV(h, sat, math.clamp(v * shade, 0, 1))
 		end
+		return color, if tier then tier.material else Enum.Material.Slate
+	end
+	local function at(x: number, y: number, z: number): CFrame
+		return CFrame.new(x, y, z)
+	end
+	local V = Vector3.new
+	local neon = Enum.Material.Neon
+	local rig = Build.rig(model, root, s)
+
+	-- Limbs are Motor6D joints so the client can animate walking and punching.
+	for _, side in { -1, 1 } do
+		local color, material = look("legs")
+		local leg = rig.part(if side < 0 then "LeftLeg" else "RightLeg", V(3, 5, 3), at(side * 2, -5.5, 0), color, material)
+		rig.joint(root, leg, V(side * 2, -3.2, 0), "Hip", { Kind = "leg", Side = side })
+		local footColor = look("legs", 0.8)
+		rig.weld(leg, rig.part("Foot", V(3.4, 1.2, 3.8), at(side * 2, -7.4, -0.3), footColor, material))
 	end
 
-	-- Glowing eyes and chest rune give the golem a readable "front".
-	local neon = Enum.Material.Neon
-	attach(root, makePart("EyeL", Vector3.new(0.8, 0.5, 0.2) * s, RUNE_COLOR, neon), CFrame.new(Vector3.new(-0.9, 6.3, -1.8) * s), model)
-	attach(root, makePart("EyeR", Vector3.new(0.8, 0.5, 0.2) * s, RUNE_COLOR, neon), CFrame.new(Vector3.new(0.9, 6.3, -1.8) * s), model)
-	attach(root, makePart("Rune", Vector3.new(1.6, 1.6, 0.2) * s, RUNE_COLOR, neon), CFrame.new(Vector3.new(0, 2, -2.3) * s), model)
+	local torsoColor, torsoMaterial = look("torso")
+	local torso = rig.part("Torso", V(7, 7, 4.5), at(0, 1, 0), torsoColor, torsoMaterial)
+	rig.joint(root, torso, V(0, -2.5, 0), "Body", { Kind = "body" })
+	local chestColor = look("torso", 0.85)
+	rig.weld(torso, rig.part("Chest", V(5, 3.6, 0.6), at(0, 2.2, -2.45), chestColor, torsoMaterial))
+	rig.weld(torso, rig.part("Belt", V(7.4, 1, 4.9), at(0, -2, 0), Color3.fromRGB(72, 64, 58), Enum.Material.Slate))
+	rig.weld(torso, rig.part("Rune", V(1.6, 1.6, 0.2), at(0, 2.2, -2.8), RUNE_COLOR, neon))
+
+	local headColor, headMaterial = look("core")
+	local head = rig.part("Head", V(4, 3, 3.5), at(0, 6, 0), headColor, headMaterial)
+	rig.joint(torso, head, V(0, 4.5, 0), "Neck", { Kind = "head" })
+	local browColor = look("core", 0.8)
+	rig.weld(head, rig.part("Brow", V(4.4, 0.8, 1), at(0, 7, -1.5), browColor, headMaterial))
+	rig.weld(head, rig.part("EyeL", V(0.8, 0.5, 0.2), at(-0.9, 6.3, -1.8), RUNE_COLOR, neon))
+	rig.weld(head, rig.part("EyeR", V(0.8, 0.5, 0.2), at(0.9, 6.3, -1.8), RUNE_COLOR, neon))
+
+	for _, side in { -1, 1 } do
+		local slot = if side < 0 then "armL" else "armR"
+		local color, material = look(slot)
+		local arm = rig.part(if side < 0 then "LeftArm" else "RightArm", V(2.5, 7, 2.5), at(side * 5, 0.5, 0), color, material)
+		rig.joint(torso, arm, V(side * 5, 3.5, 0), "Shoulder", { Kind = "arm", Side = side })
+		local capColor = look(slot, 0.85)
+		rig.weld(arm, rig.part("ShoulderCap", V(3.2, 2, 3.2), at(side * 5, 3.6, 0), capColor, material))
+		rig.weld(arm, rig.part("Fist", V(3.2, 3, 3.2), at(side * 5, -3.8, -0.2), color, material))
+	end
+	model:SetAttribute("Stride", 7 * s)
 
 	-- The rider sits on the right shoulder.
 	local seat = Instance.new("Seat")
@@ -136,7 +163,7 @@ local function buildModel(player: Player, data: any, stats: Stats.GolemStats, gr
 	seat.Transparency = 1
 	seat.CanCollide = false
 	seat.Massless = true
-	attach(root, seat, CFrame.new(Vector3.new(5, 4, 0) * s + Vector3.new(0, 0.5, 0)), model)
+	attach(root, seat, CFrame.new(Vector3.new(5, 4.8, 0) * s + Vector3.new(0, 0.5, 0)), model)
 
 	local humanoid = Instance.new("Humanoid")
 	humanoid.RigType = Enum.HumanoidRigType.R15
@@ -163,6 +190,7 @@ local function publishHealth(golem: Golem)
 	golem.player:SetAttribute("GolemMaxHealth", golem.stats.maxHealth)
 	golem.player:SetAttribute("GolemDowned", golem.downedUntil > 0)
 	golem.player:SetAttribute("GolemZone", golem.zoneId)
+	golem.model:SetAttribute("Downed", golem.downedUntil > 0)
 	-- Keep the Humanoid above 0 so Roblox never runs its own death logic.
 	golem.humanoid.MaxHealth = golem.stats.maxHealth
 	golem.humanoid.Health = math.max(golem.hp, 1)

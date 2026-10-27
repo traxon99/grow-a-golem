@@ -1,6 +1,7 @@
 --!strict
 -- Client entry point.
 
+local Animator = require(script:WaitForChild("Animator"))
 local Controls = require(script:WaitForChild("Controls"))
 local Hud = require(script:WaitForChild("Hud"))
 local Menus = require(script:WaitForChild("Menus"))
@@ -10,3 +11,4 @@ Hud.start() -- sets up the toast handler State uses
 Menus.start()
 State.start()
 Controls.start()
+Animator.start()
