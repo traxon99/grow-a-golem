@@ -39,12 +39,12 @@ published and verified. Do not list source WAVs as in-game audio until uploaded.
 
 | Image | Source / next capture | Alt text |
 | --- | --- | --- |
-| Icon A | assets/keyart/icon-a.png; review at 48px | A stone golem with glowing eyes and a wizard riding its shoulder. |
-| Icon B | assets/keyart/icon-b.png; colour alternative | A violet golem with glowing eyes and a wizard riding its shoulder. |
+| Icon A | assets/keyart/icon-a.png; face-first close-up on blue sky, checked at 48px | A stone golem's face with glowing eyes, a wizard on its shoulder. |
+| Icon B | assets/keyart/icon-b.png; crystal tier on a warm sky, for an icon experiment | A violet crystal golem's face with glowing eyes, a wizard on its shoulder. |
 | Ride | assets/keyart/thumbnail-ride.png illustration; replace with a real Mossy Quarry shoulder-view capture | A wizard rides a golem across a floating island. |
-| Boss | assets/keyart/thumbnail-boss.png illustration; capture a real boss and visible slam warning | A golem faces a boss beside a glowing ground warning. |
+| Boss | assets/keyart/thumbnail-boss.png illustration of Old Rockjaw; capture a real boss and visible slam warning | A copper golem stands in an orange warning ring as a boulder boss raises its fist. |
 | Party | assets/keyart/thumbnail-party.png illustration; capture three consenting test clients with different golems | Three golems explore a floating island together. |
-| Giant (optional) | Capture the same golem at starter and late growth, with the actual HUD | A grown golem towers above a floating quarry. |
+| Giant (optional) | assets/keyart/thumbnail-giant.png illustration; capture the same golem at starter and late growth, with the actual HUD | A small stone golem beside the huge crystal golem it grows into. |
 
 Export actual captures at 1920×1080. Hide tester names and avoid private chat.
 Use the real game, no fake purchases, reward popups or "free Robux" claims.
