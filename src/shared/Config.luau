@@ -601,6 +601,13 @@ Config.Codes = {
 -- playing during the event. Unfinished progress carries over to the next
 -- run, and once a track is finished it starts fresh at the next run.
 -- A typed local, so entries of different shapes are accepted (see the top).
+-- Typed locals too: the rewards and steps below differ in shape.
+local weekendTiers: { any } = {
+	{ tokens = 40, reward = { minerals = { stone = 300 } } },
+	{ tokens = 120, reward = { minerals = { copper = 150 }, xp = 400 } },
+	{ tokens = 250, reward = { minerals = { iron = 120 } } },
+	{ tokens = 450, reward = { minerals = { iron = 150, crystal = 50 }, xp = 1500 } },
+}
 local events: { [any]: any } = {
 	{
 		id = "doubleMinerals",
@@ -611,12 +618,7 @@ local events: { [any]: any } = {
 		track = {
 			currency = "Weekend Tokens",
 			earn = { enemyDefeated = 1, nodeMined = 1, bossDefeated = 15 },
-			tiers = {
-				{ tokens = 40, reward = { minerals = { stone = 300 } } },
-				{ tokens = 120, reward = { minerals = { copper = 150 }, xp = 400 } },
-				{ tokens = 250, reward = { minerals = { iron = 120 } } },
-				{ tokens = 450, reward = { minerals = { iron = 150, crystal = 50 }, xp = 1500 } },
-			},
+			tiers = weekendTiers,
 		},
 	},
 }
@@ -901,27 +903,28 @@ Config.SoundEffects = {
 -- flat when the step completes. `touchText` / `gamepadText` replace `text` on
 -- those devices.
 -- A typed local, so entries of different shapes are accepted (see the top).
+local tutorialSteps: { any } = {
+	{
+		id = "steer",
+		text = "Your golem fights on its own. Steer it with WASD or the stick!",
+		touchText = "Your golem fights on its own. Steer it with the stick!",
+	},
+	{ id = "mine", text = "Walk to the glowing rock. Your golem mines it!", pointer = "node" },
+	{ id = "forge", text = "Open Forge and build your first part!", pointer = "forge", topUpStone = true },
+	{
+		id = "quake",
+		text = "Press Q to smash enemies with Quake!",
+		touchText = "Tap Quake to smash enemies!",
+		gamepadText = "Press X to smash enemies with Quake!",
+		pointer = "spell",
+		spell = "quake",
+		reward = { xp = 20 },
+	},
+	{ id = "level", text = "Defeat enemies to reach level 2!" },
+}
 local tutorial: { [any]: any } = {
 	steerSeconds = 2, -- seconds of steering that finish the first step
-	steps = {
-		{
-			id = "steer",
-			text = "Your golem fights on its own. Steer it with WASD or the stick!",
-			touchText = "Your golem fights on its own. Steer it with the stick!",
-		},
-		{ id = "mine", text = "Walk to the glowing rock. Your golem mines it!", pointer = "node" },
-		{ id = "forge", text = "Open Forge and build your first part!", pointer = "forge", topUpStone = true },
-		{
-			id = "quake",
-			text = "Press Q to smash enemies with Quake!",
-			touchText = "Tap Quake to smash enemies!",
-			gamepadText = "Press X to smash enemies with Quake!",
-			pointer = "spell",
-			spell = "quake",
-			reward = { xp = 20 },
-		},
-		{ id = "level", text = "Defeat enemies to reach level 2!" },
-	},
+	steps = tutorialSteps,
 	doneText = "You're ready! Follow the Next goal at the top to grow your golem.",
 }
 Config.Tutorial = tutorial
