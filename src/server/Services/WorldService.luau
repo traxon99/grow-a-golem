@@ -2,7 +2,8 @@
 -- Builds placeholder islands for any zone the place doesn't have yet, and
 -- answers "where is a random spot in zone N" for spawners.
 -- Once you build real islands in Studio, name each ground part "Zone1",
--- "Zone2"... and this service will use yours instead of making flat ones.
+-- "Zone2"... (and "Hub" for the hub) and this service will use yours instead
+-- of making flat ones.
 
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -127,8 +128,14 @@ function WorldService.start()
 		cloudSea()
 	end
 
+	-- The hub is built like an island but has its own config and no gate.
+	local islands: { { id: number, zone: any } } = { { id = Config.HubZone, zone = Config.Hub } }
 	for id, zone in Config.Zones do
-		local name = "Zone" .. id
+		table.insert(islands, { id = id, zone = zone })
+	end
+	for _, island in islands do
+		local id, zone = island.id, island.zone
+		local name = if id == Config.HubZone then "Hub" else "Zone" .. id
 		local ground = workspace:FindFirstChild(name)
 		if not (ground and ground:IsA("BasePart")) then
 			local part = Instance.new("Part")
@@ -144,13 +151,14 @@ function WorldService.start()
 			ground = part
 			grounds[id] = part
 			if Config.Visuals.decorateIslands then
+				local keepClear = { { position = WorldService.getSpawnPoint(id), radius = 30 } }
+				if Config.Bosses[id] then
+					table.insert(keepClear, { position = WorldService.getBossPoint(id), radius = 40 })
+				end
 				local ok, err = pcall(Islands.decorate, part, {
 					theme = zone.theme or "meadow",
-					seed = id * 7919,
-					keepClear = {
-						{ position = WorldService.getSpawnPoint(id), radius = 30 },
-						{ position = WorldService.getBossPoint(id), radius = 40 },
-					},
+					seed = if id == Config.HubZone then 4242 else id * 7919,
+					keepClear = keepClear,
 				})
 				if not ok then
 					warn(`[WorldService] island scenery failed for zone {id}: {err}`)

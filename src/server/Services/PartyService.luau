@@ -44,6 +44,30 @@ local function isFriend(a: Player, b: Player): boolean
 	return cache[b.UserId]
 end
 
+-- Whether two players are Roblox friends (looked up once, then remembered).
+function PartyService.areFriends(a: Player, b: Player): boolean
+	return isFriend(a, b)
+end
+
+-- Like areFriends but never waits: unknown pairs read as "not friends" until
+-- the lookup finishes in the background, then the player's state refreshes.
+-- For snapshots, which must not stall.
+function PartyService.friendNow(a: Player, b: Player): boolean
+	local cache = friendCache[a]
+	if cache and cache[b.UserId] ~= nil then
+		return cache[b.UserId]
+	end
+	task.spawn(function()
+		isFriend(a, b)
+		DataService.markChanged(a)
+	end)
+	return false
+end
+
+function PartyService.sameParty(a: Player, b: Player): boolean
+	return partyOf[a] ~= nil and partyOf[a] == partyOf[b]
+end
+
 function PartyService.members(player: Player): { Player }
 	local party = partyOf[player]
 	return if party then party.members else { player }

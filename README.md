@@ -39,6 +39,8 @@ Let go of the controls and the golem plays itself: it fights enemies nearby, and
 | Skill tree (3 branches), respec | `ProgressionService` |
 | Awakening (rebirth) and shard upgrades | `ProgressionService` |
 | Co-op parties, shared kill rewards, friend bonus | `PartyService` |
+| Golem Hub island, Inspect cards, nametag titles, rare-find shout | `SocialService`, `Config.Hub`, `Config.Titles`, client Hub tab |
+| Safe artifact trading (spare copies, Ready / countdown / Confirm, policy gate, trade log) | `TradeService`, `Config.Trading`, client Trade tab |
 | Global leaderboards | `LeaderboardService` |
 | Daily login streak, daily and weekly quests, session gifts, offline mining, group reward | `RewardService` |
 | Redeemable codes (Codes box in the Shop) | `CodeService`, `Config.Codes` |
@@ -151,7 +153,7 @@ src/
     Controls.luau      steering and spell input
     Hud.luau           minerals, level, health, spell bar, next goal, messages
     Moments.luau       boss health bar, artifact reveal, level-up banner
-    Menus.luau         Forge, Travel, Artifacts, Skills, Awaken, Quests, Events, Party, Wardrobe, Shop, Ranks
+    Menus.luau         Forge, Travel, Artifacts, Skills, Awaken, Quests, Events, Party, Hub, Trade, Wardrobe, Shop, Ranks
     Wardrobe.luau      cosmetics list and the spinning 3D preview
     Ui.luau            UI building helpers
     Animator.luau      procedural walk, punch and slam animation
@@ -171,4 +173,4 @@ The server decides every result (damage, drops, costs, cooldowns, unlocks). The 
 
 ## Building your own islands
 
-Make an anchored part named `Zone1` (and `Zone2`, `Zone3`) in Workspace. Its top surface becomes that island's playable area, and the game uses it instead of the placeholder. Your own islands don't get the generated scenery, so decorate them however you like. Keep decorations non-colliding (or low), because golems and enemies walk in straight lines and can get stuck on tall solid parts.
+Make an anchored part named `Zone1` (and `Zone2`, `Zone3`, and `Hub` for the Golem Hub) in Workspace. Its top surface becomes that island's playable area, and the game uses it instead of the placeholder. Your own islands don't get the generated scenery, so decorate them however you like. Keep decorations non-colliding (or low), because golems and enemies walk in straight lines and can get stuck on tall solid parts.

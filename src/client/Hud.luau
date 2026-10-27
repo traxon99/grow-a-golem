@@ -34,6 +34,9 @@ local function nextGoal(snap: any): (string, number?)
 	local data = snap.data
 	local level = Stats.levelForXp(data.golem.xp)
 	local zoneId = if snap.golem then snap.golem.zoneId else 1
+	if zoneId == Config.HubZone then
+		return "Open Travel to head back to an island", nil
+	end
 
 	if next(data.golem.parts) == nil then
 		local cost = Stats.partCost("armL", "stone")

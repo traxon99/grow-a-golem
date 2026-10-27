@@ -51,6 +51,24 @@ function ArtifactService.grant(player: Player, artifactId: string)
 	Remotes.Notify:FireClient(player, "artifact", artifact.name, artifactId)
 end
 
+-- Gives one copy of an artifact straight into a save: the first copy goes in
+-- the index (and an open slot if there is one), any later copy becomes a spare.
+-- Used for trades, so it must not yield. Returns true when it was a new find.
+function ArtifactService.addCopy(data: any, artifactId: string, slots: number, bound: boolean): boolean
+	if not data.artifacts.found[artifactId] then
+		data.artifacts.found[artifactId] = true
+		if #data.artifacts.equipped < slots then
+			table.insert(data.artifacts.equipped, artifactId)
+		end
+		return true
+	end
+	data.artifacts.spares[artifactId] = (data.artifacts.spares[artifactId] or 0) + 1
+	if bound then
+		data.artifacts.boundSpares[artifactId] = (data.artifacts.boundSpares[artifactId] or 0) + 1
+	end
+	return false
+end
+
 -- Rolls for an artifact drop. `source` is "drop" or "boss".
 function ArtifactService.roll(player: Player, zoneId: number, source: string)
 	local data = DataService.get(player)
@@ -61,8 +79,13 @@ function ArtifactService.roll(player: Player, zoneId: number, source: string)
 	-- exact roll and the roll always matches the odds the menus show.
 	local luckMult = Stats.compute(data, GolemService.context(player)).luckMult
 	local chance, rollsLeft = Stats.artifactOdds(data, zoneId, source, luckMult)
+	local spare = false
 	if chance <= 0 then
-		return -- nothing left to find here
+		-- Everything here is found: the same roll now gives spare copies to trade.
+		chance, rollsLeft, spare = Stats.spareOdds(data, zoneId, source, luckMult)
+		if not spare then
+			return
+		end
 	end
 	local key = Stats.pityKey(zoneId, source)
 	-- An honest roll: the shown chance, plus a guaranteed find on the last
@@ -76,6 +99,26 @@ function ArtifactService.roll(player: Player, zoneId: number, source: string)
 	DataService.update(player, function(d)
 		d.artifacts.pity[key] = 0
 	end)
+	if spare then
+		local options = {}
+		for _, id in Config.ArtifactOrder do
+			local artifact = Config.Artifacts[id]
+			if artifact.zone == zoneId and artifact.source == source then
+				table.insert(options, id)
+			end
+		end
+		local id = options[math.random(1, #options)]
+		-- A spare found while 2x Luck (bought with Robux) is on is bound to
+		-- the player: it can never be traded.
+		local boosted = (data.boosts.luck or 0) > os.time()
+		DataService.update(player, function(d)
+			ArtifactService.addCopy(d, id, 0, boosted)
+		end)
+		Remotes.Notify:FireClient(player, "message",
+			if boosted then `Spare {Config.Artifacts[id].name} found! Spares from 2x Luck can't be traded.`
+			else `Spare {Config.Artifacts[id].name} found! Trade it from the Trade tab.`)
+		return
+	end
 	local options = unfound(data, zoneId, source)
 	ArtifactService.grant(player, options[math.random(1, #options)])
 end

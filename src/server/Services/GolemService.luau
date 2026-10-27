@@ -54,6 +54,16 @@ function GolemService.context(player: Player): Stats.Context
 	return { passes = PassService.passes(player), now = os.time() }
 end
 
+-- The nametag over the golem: "Name's Golem", with a [VIP] tag and the worn title.
+local function displayName(player: Player, data: any): string
+	local name = player.DisplayName .. "'s Golem"
+	local title = Stats.equippedTitle(data)
+	if title then
+		name ..= " · " .. title
+	end
+	return if PassService.owns(player, "vip") then "[VIP] " .. name else name
+end
+
 local function makePart(name: string, size: Vector3, color: Color3, material: Enum.Material): Part
 	local part = Instance.new("Part")
 	part.Name = name
@@ -209,6 +219,17 @@ local function buildModel(player: Player, data: any, stats: Stats.GolemStats, gr
 		trail.Parent = root
 	end
 
+	-- In the hub, anyone can walk up to a golem and inspect it. The prompt is
+	-- only on while the golem is in the hub (see publishHealth).
+	local inspect = Instance.new("ProximityPrompt")
+	inspect.Name = "InspectPrompt"
+	inspect.ActionText = "Inspect"
+	inspect.ObjectText = player.DisplayName
+	inspect.MaxActivationDistance = 14 * s
+	inspect.RequiresLineOfSight = false
+	inspect.Enabled = false
+	inspect.Parent = root
+
 	-- The rider sits on the right shoulder.
 	local seat = Instance.new("Seat")
 	seat.Name = "ShoulderSeat"
@@ -226,8 +247,7 @@ local function buildModel(player: Player, data: any, stats: Stats.GolemStats, gr
 	humanoid.Health = stats.maxHealth
 	humanoid.BreakJointsOnDeath = false
 	humanoid.RequiresNeck = false
-	local name = player.DisplayName .. "'s Golem"
-	humanoid.DisplayName = if PassService.owns(player, "vip") then "[VIP] " .. name else name
+	humanoid.DisplayName = displayName(player, data)
 	humanoid.Parent = model
 	humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
 
@@ -244,6 +264,10 @@ local function publishHealth(golem: Golem)
 	golem.player:SetAttribute("GolemDowned", golem.downedUntil > 0)
 	golem.player:SetAttribute("GolemZone", golem.zoneId)
 	golem.model:SetAttribute("Downed", golem.downedUntil > 0)
+	local inspect = golem.root:FindFirstChild("InspectPrompt")
+	if inspect and inspect:IsA("ProximityPrompt") then
+		inspect.Enabled = golem.zoneId == Config.HubZone
+	end
 	-- Keep the Humanoid above 0 so Roblox never runs its own death logic.
 	golem.humanoid.MaxHealth = golem.stats.maxHealth
 	golem.humanoid.Health = math.max(golem.hp, 1)
@@ -307,6 +331,7 @@ function GolemService.refresh(player: Player)
 	end
 	golem.hp = math.min(golem.hp, golem.stats.maxHealth)
 	golem.humanoid.WalkSpeed = golem.stats.walkSpeed
+	golem.humanoid.DisplayName = displayName(player, data)
 
 	local key = visualKey(player, data, golem.stats)
 	if key ~= golem.visualKey then
@@ -412,7 +437,8 @@ end
 function GolemService.sendToZone(golem: Golem, zoneId: number)
 	golem.zoneId = zoneId
 	golem.humanoid:Move(Vector3.zero)
-	local spawn = WorldService.getSpawnPoint(zoneId) + Vector3.new(math.random(-10, 10), 0, math.random(-10, 10))
+	local spread = if zoneId == Config.HubZone then Config.Hub.spread else 10
+	local spawn = WorldService.getSpawnPoint(zoneId) + Vector3.new(math.random(-spread, spread), 0, math.random(-spread, spread))
 	golem.model:PivotTo(CFrame.new(spawn + Vector3.new(0, golem.groundOffset, 0)))
 	publishHealth(golem)
 end
