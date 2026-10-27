@@ -44,6 +44,7 @@ local enemies: { [Model]: Enemy } = {}
 local countByZone: { [number]: number } = {}
 local bossByZone: { [number]: Enemy } = {}
 local bossReadyAt: { [number]: number } = {}
+local spawnsByZone: { [number]: number } = {}
 
 local function buildModel(designId: string, def: any, at: Vector3): (Model, Humanoid, BasePart)
 	local model = Instance.new("Model")
@@ -123,12 +124,48 @@ end
 
 local function spawnEnemy(zoneId: number)
 	local zone = Config.Zones[zoneId]
-	local enemyId = zone.enemies[math.random(1, #zone.enemies)]
+	local totalWeight = 0
+	for _, id in zone.enemies do
+		totalWeight += Config.Enemies[id].spawnWeight or 1
+	end
+	local roll = math.random() * totalWeight
+	local enemyId = zone.enemies[#zone.enemies]
+	for _, id in zone.enemies do
+		roll -= Config.Enemies[id].spawnWeight or 1
+		if roll < 0 then
+			enemyId = id
+			break
+		end
+	end
 	local def = Config.Enemies[enemyId]
 	for _ = 1, 6 do
 		local point = WorldService.randomPoint(zoneId, 12)
 		if farFromGolems(point, zone.minSpawnDistance) then
-			makeEnemy(enemyId, def, zoneId, point, false)
+			spawnsByZone[zoneId] = (spawnsByZone[zoneId] or 0) + 1
+			local elite = spawnsByZone[zoneId] % Config.Elites.everySpawns == 0
+			local spawnDef = def
+			if elite then
+				spawnDef = table.clone(def)
+				spawnDef.displayName = "Elite " .. def.displayName
+				spawnDef.maxHealth *= Config.Elites.health
+				spawnDef.damage *= Config.Elites.damage
+				spawnDef.size *= Config.Elites.scale
+				spawnDef.xp *= Config.Elites.rewards
+				spawnDef.drops = table.clone(def.drops)
+				for mineral, amount in spawnDef.drops do
+					spawnDef.drops[mineral] = amount * Config.Elites.rewards
+				end
+			end
+			local enemy = makeEnemy(enemyId, spawnDef, zoneId, point, false)
+			if elite then
+				enemy.model:SetAttribute("Elite", true)
+				local glow = Instance.new("Highlight")
+				glow.FillColor = Color3.fromRGB(255, 210, 80)
+				glow.FillTransparency = 0.7
+				glow.OutlineTransparency = 0.2
+				glow.DepthMode = Enum.HighlightDepthMode.Occluded
+				glow.Parent = enemy.model
+			end
 			countByZone[zoneId] += 1
 			return
 		end

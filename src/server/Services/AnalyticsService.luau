@@ -56,6 +56,7 @@ local SOURCES: { [string]: string } = {
 	forge = "Shop",
 	respec = "Shop",
 	awaken = "Gameplay",
+	ascend = "Gameplay",
 }
 
 local AnalyticsService = {}
@@ -318,6 +319,11 @@ function AnalyticsService.start()
 	Events.connect("awakened", function(player, count)
 		call("awakening", function()
 			RobloxAnalytics:LogProgressionCompleteEvent(player, "Awakening", count, `Awakening {count}`)
+		end)
+	end)
+	Events.connect("ascended", function(player, count)
+		call("ascension", function()
+			RobloxAnalytics:LogProgressionCompleteEvent(player, "Ascension", count, `Ascension {count}`)
 		end)
 	end)
 	Events.connect("purchased", function(player, kind, key)

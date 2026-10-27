@@ -207,6 +207,7 @@ local function renderSkills(list: ScrollingFrame, snap: any)
 end
 
 local confirmAwakenUntil = 0
+local confirmAscendUntil = 0
 local function renderAwaken(list: ScrollingFrame, snap: any)
 	local data = snap.data
 	local level = Stats.levelForXp(data.golem.xp)
@@ -232,6 +233,33 @@ local function renderAwaken(list: ScrollingFrame, snap: any)
 			end
 		end)
 	Ui.row(list, nextOrder(), "Every Awakening", `+{Config.Awakening.mineralBonusPerAwakening}% minerals forever`)
+
+	local ascension = data.ascension or { count = 0, points = 0, upgrades = {} }
+	Ui.heading(list, nextOrder(), `Ascensions: {ascension.count} · Points: {ascension.points} · Unspent Awakenings: {data.awakening.count - (ascension.spentAwakenings or 0)}`)
+	Ui.row(list, nextOrder(), `Requires {Config.Ascension.requiredAwakenings} unspent Awakenings and {Config.Bosses[Config.Ascension.requiredBoss].displayName}`,
+		`Uses {Config.Ascension.requiredAwakenings} unspent Awakenings (keeps their bonuses). Resets level, parts, skills, minerals and bosses. Keeps artifacts, cosmetics, shards and all upgrades. Grants {Config.Ascension.points} point.`,
+		if os.clock() < confirmAscendUntil then "Confirm Ascend" else "Ascend", Stats.canAscend(data), function()
+			if os.clock() < confirmAscendUntil then
+				confirmAscendUntil = 0
+				State.request("ascend")
+			else
+				confirmAscendUntil = os.clock() + 4
+				State.toast("Read the reset details, then tap Ascend again to confirm")
+				Menus.refresh()
+			end
+		end)
+	for _, id in Config.AscendUpgradeOrder do
+		local upgrade = Config.AscendUpgrades[id]
+		local rank = ascension.upgrades[id] or 0
+		local bonuses = {}
+		for stat, amount in upgrade.bonus do
+			table.insert(bonuses, `+{amount}% {stat}`)
+		end
+		Ui.row(list, nextOrder(), `{upgrade.name} ({rank}/{upgrade.maxRank})`, table.concat(bonuses, ", ") .. " per rank",
+			`{upgrade.cost} point`, rank < upgrade.maxRank and ascension.points >= upgrade.cost, function()
+				State.request("buyAscendUpgrade", id)
+			end)
+	end
 
 	Ui.heading(list, nextOrder(), "Shard upgrades")
 	for _, id in Config.AwakenUpgradeOrder do

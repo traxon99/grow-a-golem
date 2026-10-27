@@ -411,7 +411,15 @@ function Islands.decorate(ground: BasePart, options: Options): Model
 				local z = rng:NextNumber(-size.Z / 2 + margin, size.Z / 2 - margin)
 				local at = top * CFrame.new(x, 0, z)
 				if clear(at.Position) then
-					builder(model, rng, at * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0), theme)
+					local placement = at * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
+					local anchor = Build.part(model, {
+						name = "PropAnchor", size = Vector3.new(0.1, 0.1, 0.1), cframe = placement,
+						color = theme.rock, transparency = 1,
+					})
+					if not Build.attachAsset(model, anchor, { "Props", kind }, rng:NextNumber(0.8, 1.2)) then
+						anchor:Destroy()
+						builder(model, rng, placement, theme)
+					end
 					break
 				end
 			end

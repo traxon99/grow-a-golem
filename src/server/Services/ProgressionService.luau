@@ -183,7 +183,51 @@ local function buyUpgrade(player: Player, upgradeId: any): (boolean, string?)
 	return true, `{upgrade.name} is now rank {rank + 1}`
 end
 
+local function ascend(player: Player): (boolean, string?)
+	local data = DataService.get(player)
+	local golem = GolemService.get(player)
+	if not data or not golem or not Stats.canAscend(data) then
+		return false, "Meet the Ascension requirements first"
+	end
+	local wiped = table.clone(data.minerals)
+	DataService.update(player, function(d)
+		d.ascension.count += 1
+		d.ascension.points += Config.Ascension.points
+		d.ascension.spentAwakenings = (d.ascension.spentAwakenings or 0) + Config.Ascension.requiredAwakenings
+		d.golem.xp = 0
+		d.golem.parts = {}
+		d.skills = {}
+		d.bossesDefeated = {}
+		for id in d.minerals do
+			d.minerals[id] = 0
+		end
+	end)
+	GolemService.sendToZone(golem, 1)
+	Events.fire("mineralsSpent", player, wiped, "ascend")
+	Events.fire("ascended", player, data.ascension.count)
+	return true, "Ascended! Choose a permanent upgrade in Awaken."
+end
+
+local function buyAscendUpgrade(player: Player, id: any): (boolean, string?)
+	local data = DataService.get(player)
+	local upgrade = if type(id) == "string" then Config.AscendUpgrades[id] else nil
+	if not data or not upgrade then
+		return false, "Unknown Ascension upgrade"
+	end
+	local rank = data.ascension.upgrades[id] or 0
+	if rank >= upgrade.maxRank or data.ascension.points < upgrade.cost then
+		return false, "Max rank or not enough Ascension points"
+	end
+	DataService.update(player, function(d)
+		d.ascension.points -= upgrade.cost
+		d.ascension.upgrades[id] = rank + 1
+	end)
+	return true, "Ascension upgrade learned"
+end
+
 function ProgressionService.start()
+	ActionService.register("ascend", ascend)
+	ActionService.register("buyAscendUpgrade", buyAscendUpgrade)
 	ActionService.register("craftPart", craft)
 	ActionService.register("travel", travel)
 	ActionService.register("learnSkill", learn)

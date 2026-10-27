@@ -68,7 +68,8 @@ Testable checks: grep for `PolicyService` in server code before any shop/trade f
 - Only player-entered text is redeem codes (not shown to others). No TextService filtering needed yet, but required before any naming feature.
 - Codes are rate-limited. No social links in-game found.
 - No ads. No subscriptions. Group join reward exists (group id not set).
-- Server-authoritative: client only sends intents. Good for honest RNG.
+- Server-authoritative: client only sends intents. New Ascension actions recheck requirements, currency and rank caps on the server. Expanded zones retain the same artifact odds/pity and paid-luck binding. Elites occur deterministically every 20 successful spawns and grant fixed bonus XP/minerals, not a new random reward table.
+- Save-session ownership now uses token-checked atomic DataStore updates. Mocked server tests pass, but published-place validation and draining pre-lease servers remain required; see `docs/playtest.md`.
 - Analytics (#11) and Studio playtest (#9) not done; maturity questionnaire not yet answered.
 
 ## Gaps worth closing
