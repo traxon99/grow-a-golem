@@ -34,6 +34,18 @@ local function nextGoal(snap: any): (string, number?)
 	local data = snap.data
 	local level = Stats.levelForXp(data.golem.xp)
 	local zoneId = if snap.golem then snap.golem.zoneId else 1
+	local run = snap.tower and snap.tower.run
+	if run and run.state ~= "inviting" and Stats.isTowerZone(zoneId) then
+		if run.state == "fighting" then
+			return `{Config.Tower.name}: clear wave {run.wave} of {Config.Tower.waves}`,
+				math.clamp(1 - run.remaining / math.max(run.waveTotal, 1), 0, 1)
+		end
+		return `{Config.Tower.name}: {run.cleared} of {Config.Tower.waves} waves cleared`,
+			run.cleared / Config.Tower.waves
+	end
+	if Stats.isTowerZone(zoneId) then
+		return "Open Travel to head back to an island", nil
+	end
 	if zoneId == Config.HubZone then
 		return "Open Travel to head back to an island", nil
 	end

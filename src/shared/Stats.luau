@@ -169,6 +169,73 @@ function Stats.highestZone(data: any): number
 	return highest
 end
 
+---------------------------------------------------------------- co-op tower
+
+-- True for a tower arena's zone id (see Config.TowerZoneBase).
+function Stats.isTowerZone(zoneId: number): boolean
+	return zoneId > Config.TowerZoneBase and zoneId <= Config.TowerZoneBase + Config.Tower.arenas
+end
+
+-- How many enemies a tower wave sends, for this many players.
+function Stats.towerWaveEnemies(wave: number, players: number): number
+	local tower = Config.Tower.enemies
+	local base = tower.first + tower.perWave * (wave - 1)
+	return math.floor(base * (1 + tower.perExtraPlayer * math.max(players - 1, 0)))
+end
+
+-- The island boss's health fraction on a boss wave, or nil.
+function Stats.towerBossFraction(wave: number): number?
+	return Config.Tower.bossWaves[wave]
+end
+
+-- The fixed reward every member gets for clearing `wave` on a route (an island
+-- id). It's what that wave's enemies and boss would drop on the island, times
+-- Config.Tower.rewardRate, with no multipliers. The menu shows exactly this.
+function Stats.towerWaveReward(routeZoneId: number, wave: number): { minerals: { [string]: number }, xp: number }
+	local zone: any = Config.Zones[routeZoneId]
+	local totalWeight, minerals, xp = 0, {} :: { [string]: number }, 0
+	for _, id in zone.enemies do
+		totalWeight += (Config.Enemies[id] :: any).spawnWeight or 1
+	end
+	-- One average enemy, weighted the same way the island spawns them.
+	local count = Stats.towerWaveEnemies(wave, 1)
+	for _, id in zone.enemies do
+		local enemy: any = Config.Enemies[id]
+		local share = (enemy.spawnWeight or 1) / totalWeight * count
+		xp += enemy.xp * share
+		for mineral, amount in enemy.drops do
+			minerals[mineral] = (minerals[mineral] or 0) + amount * share
+		end
+	end
+	local bossFraction = Stats.towerBossFraction(wave)
+	local boss: any = Config.Bosses[routeZoneId]
+	if bossFraction and boss then
+		xp += boss.xp * bossFraction
+		for mineral, amount in boss.drops do
+			minerals[mineral] = (minerals[mineral] or 0) + amount * bossFraction
+		end
+	end
+	local rate = Config.Tower.rewardRate
+	local result = {}
+	for mineral, amount in minerals do
+		result[mineral] = math.max(math.floor(amount * rate), 1)
+	end
+	return { minerals = result, xp = math.max(math.floor(xp * rate), 1) }
+end
+
+-- Everything a full clear of a route pays, for the menu.
+function Stats.towerRunReward(routeZoneId: number): { minerals: { [string]: number }, xp: number }
+	local minerals: { [string]: number }, xp = {}, 0
+	for wave = 1, Config.Tower.waves do
+		local reward = Stats.towerWaveReward(routeZoneId, wave)
+		xp += reward.xp
+		for mineral, amount in reward.minerals do
+			minerals[mineral] = (minerals[mineral] or 0) + amount
+		end
+	end
+	return { minerals = minerals, xp = xp }
+end
+
 ---------------------------------------------------------------- artifacts
 
 function Stats.zoneSetComplete(data: any, zoneId: number): boolean

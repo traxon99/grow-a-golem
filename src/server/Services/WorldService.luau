@@ -173,6 +173,26 @@ function WorldService.start()
 	end
 end
 
+-- Builds (once) a flat arena ground that works like any island: spawn points,
+-- random points and surface height all answer for its zone id. Used by the
+-- co-op tower; arenas have no scenery, nodes or regular spawns.
+function WorldService.addArena(zoneId: number, center: Vector3, size: Vector3, name: string)
+	if grounds[zoneId] then
+		return
+	end
+	local part = Instance.new("Part")
+	part.Name = "TowerArena" .. zoneId
+	part.Anchored = true
+	part.Size = size
+	part.Position = center - Vector3.new(0, size.Y / 2, 0)
+	part.Material = Config.Tower.arenaMaterial
+	part.Color = Config.Tower.arenaColor
+	part.TopSurface = Enum.SurfaceType.Smooth
+	part.Parent = workspace
+	makeSign(part, name)
+	grounds[zoneId] = part
+end
+
 function WorldService.getFolder(name: string): Folder
 	return folders[name]
 end

@@ -1267,4 +1267,39 @@ Config.AscendUpgrades = {
 	harvest = { name = "Sky Harvest", maxRank = 10, cost = 1, bonus = { minerals = 10, mining = 10 } },
 }
 
+---------------------------------------------------------------- co-op tower (#62)
+-- A private ten-wave challenge for a party or a solo player, started from the
+-- Travel menu (design: docs/expansion-design.md). Each run gets its own arena.
+-- Arena zone ids are TowerZoneBase + 1 to TowerZoneBase + arenas, so they never
+-- clash with Config.Zones (1 to 6) or the hub (0). Enemies in the tower drop
+-- nothing; each cleared wave pays a fixed reward, shown before entry
+-- (Stats.towerWaveReward). Provisional balance, like the rest of #15.
+Config.TowerZoneBase = 100
+Config.Tower = {
+	-- Off until the three-client Studio tests in docs/playtest.md pass.
+	enabled = false,
+	name = "Golem Tower",
+	waves = 10,
+	arenas = 4, -- runs at once per server
+	arenaOrigin = Vector3.new(0, 60, 1200), -- top surface of the first arena
+	arenaSpacing = 400, -- arenas sit side by side along X
+	arenaSize = Vector3.new(200, 6, 200),
+	arenaColor = Color3.fromRGB(110, 104, 128),
+	arenaMaterial = Enum.Material.Slate,
+	inviteSeconds = 45, -- party members have this long to accept
+	waveBreakSeconds = 4, -- pause between a cleared wave and the next
+	returnSeconds = 6, -- after a run ends, golems go back to the route's island
+	tickSeconds = 0.5,
+	-- Enemies per wave: first + perWave * (wave - 1), then * (1 + perExtraPlayer)
+	-- for each player after the first. How many may be alive at once is the
+	-- route island's normal cap (maxEnemies + extraEnemiesPerPlayer per player).
+	enemies = { first = 6, perWave = 2, perExtraPlayer = 0.5 },
+	healthPerWave = 0.1, -- +10% enemy health per wave after the first
+	-- Boss waves and how much of the island boss's health it has.
+	bossWaves = { [5] = 0.6, [10] = 1 },
+	-- Each wave pays every member this many times what its enemies (and boss)
+	-- would drop on the island, with no multipliers, so it matches the menu.
+	rewardRate = 1.25,
+}
+
 return Config
