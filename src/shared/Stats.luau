@@ -229,6 +229,60 @@ local function addBonus(total: { [string]: number }, bonus: { [string]: number }
 	end
 end
 
+---------------------------------------------------------------- events
+
+-- When an event's current or next window runs. Returns (startsAt, endsAt) of
+-- the window that contains `now`, or else the next one; nil if none is left.
+function Stats.eventWindow(event: any, now: number): (number?, number?)
+	if event.weekly then
+		local day = math.floor(now / 86400)
+		local monday = (day - (day + 3) % 7) * 86400 -- 1970-01-01 was a Thursday
+		local offset = ((event.weekly.day - 1) * 24 + event.weekly.hour) * 3600
+		local length = event.weekly.hours * 3600
+		for week = -1, 1 do
+			local startsAt = monday + week * 7 * 86400 + offset
+			if now < startsAt + length then
+				return startsAt, startsAt + length
+			end
+		end
+		return nil, nil
+	end
+	if event.startsAt and event.endsAt and now < event.endsAt then
+		return event.startsAt, event.endsAt
+	end
+	return nil, nil
+end
+
+-- Events running right now, each with the time it ends.
+function Stats.activeEvents(now: number): { { event: any, startsAt: number, endsAt: number } }
+	local active = {}
+	for _, event in Config.Events do
+		local startsAt, endsAt = Stats.eventWindow(event, now)
+		if startsAt and endsAt and now >= startsAt then
+			table.insert(active, { event = event, startsAt = startsAt, endsAt = endsAt })
+		end
+	end
+	return active
+end
+
+-- The combined event multiplier for "minerals", "xp" or "luck".
+function Stats.eventMultiplier(now: number, stat: string): number
+	local mult = 1
+	for _, entry in Stats.activeEvents(now) do
+		mult *= entry.event.modifiers and entry.event.modifiers[stat] or 1
+	end
+	return mult
+end
+
+function Stats.eventById(id: string): any
+	for _, event in Config.Events do
+		if event.id == id then
+			return event
+		end
+	end
+	return nil
+end
+
 -- Sums every % bonus a player has, plus extra slots and offline hours.
 function Stats.bonuses(data: any, ctx: Context): ({ [string]: number }, number, number)
 	local total: { [string]: number } = {}
@@ -347,9 +401,9 @@ function Stats.compute(data: any, ctx: Context): GolemStats
 		miningCooldown = base.miningCooldown,
 		miningRange = base.miningRange * scale,
 		walkSpeed = math.min(speed * pct("speed"), 40),
-		mineralMult = pct("minerals") * (if ctx.passes.doubleMinerals then 2 else 1),
-		xpMult = pct("xp") * xpBoost,
-		luckMult = pct("luck") * luckBoost,
+		mineralMult = pct("minerals") * (if ctx.passes.doubleMinerals then 2 else 1) * Stats.eventMultiplier(ctx.now, "minerals"),
+		xpMult = pct("xp") * xpBoost * Stats.eventMultiplier(ctx.now, "xp"),
+		luckMult = pct("luck") * luckBoost * Stats.eventMultiplier(ctx.now, "luck"),
 		spellPowerMult = pct("spellPower"),
 		spellCooldownMult = 1 / pct("spellHaste"),
 		artifactSlots = slots,

@@ -406,6 +406,36 @@ Config.Codes = {
 	GOLEM100 = { reward = { minerals = { stone = 100 } } },
 	ROCKSOLID = { reward = { minerals = { stone = 200, copper = 50 }, xp = 150 } },
 }
+-- Limited-time events. Each one switches on and off by itself using server
+-- time (UTC), so scheduling one needs no republish once it's in this list.
+-- Give an event either a one-off window:
+--   startsAt = <UTC unix time>, endsAt = <UTC unix time>
+-- or a weekly window that repeats forever:
+--   weekly = { day = 6, hour = 0, hours = 48 } -- day 1 = Monday ... 7 = Sunday
+-- `modifiers` multiply minerals, xp and luck (luck also shows in the odds).
+-- `track` is an optional reward track paid in a currency earned only by
+-- playing during the event. Unfinished progress carries over to the next
+-- run, and once a track is finished it starts fresh at the next run.
+Config.Events = {
+	{
+		id = "doubleMinerals",
+		name = "Double Minerals Weekend",
+		description = "2x minerals all weekend long!",
+		weekly = { day = 6, hour = 0, hours = 48 },
+		modifiers = { minerals = 2 },
+		track = {
+			currency = "Weekend Tokens",
+			earn = { enemyDefeated = 1, nodeMined = 1, bossDefeated = 15 },
+			tiers = {
+				{ tokens = 40, reward = { minerals = { stone = 300 } } },
+				{ tokens = 120, reward = { minerals = { copper = 150 }, xp = 400 } },
+				{ tokens = 250, reward = { minerals = { iron = 120 } } },
+				{ tokens = 450, reward = { minerals = { iron = 150, crystal = 50 }, xp = 1500 } },
+			},
+		},
+	},
+}
+
 Config.CodeLimits = {
 	cooldown = 2, -- seconds between attempts
 	maxFailures = 5, -- wrong codes in a row before a short lockout
