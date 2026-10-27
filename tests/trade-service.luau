@@ -7,14 +7,24 @@ do
 	local function signal()
 		local listeners = {}
 		return {
-			Connect = function(_, fn) table.insert(listeners, fn) end,
-			Fire = function(_, ...) for _, fn in listeners do fn(...) end end,
+			Connect = function(_, fn)
+				table.insert(listeners, fn)
+			end,
+			Fire = function(_, ...)
+				for _, fn in listeners do
+					fn(...)
+				end
+			end,
 		}
 	end
 	local function copy(value)
-		if type(value) ~= "table" then return value end
+		if type(value) ~= "table" then
+			return value
+		end
 		local result = {}
-		for k, v in value do result[k] = copy(v) end
+		for k, v in value do
+			result[k] = copy(v)
+		end
 		return result
 	end
 	-- Two artifacts that both players have already found, so trades move spares.
@@ -31,12 +41,13 @@ do
 		for _, data in { ... } do
 			sum += (data.artifacts.spares[id] or 0)
 			for _, held in (data.trades.pending and data.trades.pending.gave) or {} do
-				if held == id then sum += 1 end
+				if held == id then
+					sum += 1
+				end
 			end
 		end
 		return sum
 	end
-
 
 	---------------------------------------------------------------- pure rules
 	do
@@ -47,24 +58,34 @@ do
 		assert(not TradeJournal.prepare(a, pending), "Only one trade may be pending")
 		local bound = newData({ [X] = 1 })
 		bound.artifacts.boundSpares[X] = 1
-		assert(not TradeJournal.prepare(bound, pending) and bound.artifacts.spares[X] == 1, "Bound spares never go into escrow")
+		assert(
+			not TradeJournal.prepare(bound, pending) and bound.artifacts.spares[X] == 1,
+			"Bound spares never go into escrow"
+		)
 		local twice = newData({ [X] = 1 })
 		assert(not TradeJournal.prepare(twice, { id = "t2", with = 2, gave = { X, X }, got = {}, day = 10, at = 100 }))
 		assert(twice.artifacts.spares[X] == 1 and twice.trades.pending == nil, "A failed prepare changes nothing")
 
 		assert(TradeJournal.status(TradeJournal.decide(nil, "committed", 5)) == "committed")
 		local decided = TradeJournal.decide(nil, "aborted", 5)
-		assert(TradeJournal.status(TradeJournal.decide(decided, "committed", 6)) == "aborted", "An existing decision always wins")
+		assert(
+			TradeJournal.status(TradeJournal.decide(decided, "committed", 6)) == "aborted",
+			"An existing decision always wins"
+		)
 		assert(TradeJournal.status({}) == nil and TradeJournal.status("x") == nil)
 
-		local adds = function(data, id) data.artifacts.spares[id] = (data.artifacts.spares[id] or 0) + 1 end
+		local adds = function(data, id)
+			data.artifacts.spares[id] = (data.artifacts.spares[id] or 0) + 1
+		end
 		assert(TradeJournal.resolve(a, "committed", adds, 2))
 		assert(a.artifacts.spares[Y] == 1 and a.trades.pending == nil and a.trades.count == 1 and #a.trades.log == 1)
 		assert(not TradeJournal.resolve(a, "committed", adds, 2), "Resolving twice does nothing")
 		assert(a.artifacts.spares[Y] == 1)
 		local back = newData({ [X] = 1 })
 		assert(TradeJournal.prepare(back, pending) and back.artifacts.spares[X] == nil)
-		assert(TradeJournal.resolve(back, "aborted", adds, 2) and back.artifacts.spares[X] == 1 and back.trades.count == 0)
+		assert(
+			TradeJournal.resolve(back, "aborted", adds, 2) and back.artifacts.spares[X] == 1 and back.trades.count == 0
+		)
 		print("PASS: TradeJournal escrow, decisions and one-time resolution")
 	end
 
@@ -74,8 +95,12 @@ do
 	local failSave, failJournal = {}, false
 	local queue, delayed, said, fired = {}, {}, {}, {}
 	local mockTask = {
-		spawn = function(fn, ...) table.insert(queue, { fn, table.pack(...) }) end,
-		delay = function(_, fn, ...) table.insert(delayed, { fn, table.pack(...) }) end,
+		spawn = function(fn, ...)
+			table.insert(queue, { fn, table.pack(...) })
+		end,
+		delay = function(_, fn, ...)
+			table.insert(delayed, { fn, table.pack(...) })
+		end,
 		wait = function() end,
 	}
 	local function drain()
@@ -89,51 +114,133 @@ do
 	local byId = {}
 	local players = {
 		PlayerRemoving = removing,
-		GetPlayers = function() local list = {} for p in live do table.insert(list, p) end return list end,
-		GetPlayerByUserId = function(_, id) return byId[id] end,
+		GetPlayers = function()
+			local list = {}
+			for p in live do
+				table.insert(list, p)
+			end
+			return list
+		end,
+		GetPlayerByUserId = function(_, id)
+			return byId[id]
+		end,
 	}
 	local guid = 0
 	local services = {
 		Players = players,
-		ReplicatedStorage = { WaitForChild = function() return {} end },
-		HttpService = { GenerateGUID = function() guid += 1; return "g" .. guid end },
-		DataStoreService = { GetDataStore = function() return {
-			UpdateAsync = function(_, key, transform)
-				if failJournal then error("simulated journal outage") end
-				local value = transform(copy(journalRecords[key]))
-				if value ~= nil then journalRecords[key] = copy(value) end
-				return copy(value)
+		ReplicatedStorage = {
+			WaitForChild = function()
+				return {}
 			end,
-		} end },
+		},
+		HttpService = {
+			GenerateGUID = function()
+				guid += 1
+				return "g" .. guid
+			end,
+		},
+		DataStoreService = {
+			GetDataStore = function()
+				return {
+					UpdateAsync = function(_, key, transform)
+						if failJournal then
+							error("simulated journal outage")
+						end
+						local value = transform(copy(journalRecords[key]))
+						if value ~= nil then
+							journalRecords[key] = copy(value)
+						end
+						return copy(value)
+					end,
+				}
+			end,
+		},
 	}
-	local mockGame = { GetService = function(_, name) return services[name] end }
+	local mockGame = {
+		GetService = function(_, name)
+			return services[name]
+		end,
+	}
 	local dataService = {
 		ProfileLoaded = loaded,
-		get = function(player) return live[player] end,
-		getSession = function(player) return live[player] and { data = live[player], canSave = true } end,
-		update = function(player, fn) if not live[player] then return false end fn(live[player]) return true end,
+		get = function(player)
+			return live[player]
+		end,
+		getSession = function(player)
+			return live[player] and { data = live[player], canSave = true }
+		end,
+		update = function(player, fn)
+			if not live[player] then
+				return false
+			end
+			fn(live[player])
+			return true
+		end,
 		markChanged = function() end,
 		addProvider = function() end,
 		saveNow = function(player)
-			if not live[player] or failSave[player] then return false end
+			if not live[player] or failSave[player] then
+				return false
+			end
 			records[player.UserId] = copy(live[player])
 			return true
 		end,
 	}
 	local tradeService = loadTradeService({
-		Config = Config, Stats = Stats, TradeJournal = TradeJournal, DataService = dataService,
-		Remotes = { Notify = { FireClient = function(_, player, _kind, text) said[player] = text end } },
-		ActionService = { register = function(name, fn) handlers[name] = fn end },
+		Config = Config,
+		Stats = Stats,
+		TradeJournal = TradeJournal,
+		DataService = dataService,
+		Remotes = { Notify = {
+			FireClient = function(_, player, _kind, text)
+				said[player] = text
+			end,
+		} },
+		ActionService = {
+			register = function(name, fn)
+				handlers[name] = fn
+			end,
+		},
 		AnalyticsService = { custom = function() end },
-		ArtifactService = { addCopy = function(data, id)
-			if not data.artifacts.found[id] then data.artifacts.found[id] = true return true end
-			data.artifacts.spares[id] = (data.artifacts.spares[id] or 0) + 1
-			return false
-		end },
-		Events = { fire = function(name) fired[name] = (fired[name] or 0) + 1 end },
-		GolemService = { get = function() return nil end },
-		PartyService = { sameParty = function() return true end, friendNow = function() return true end, areFriends = function() return true end },
-		PolicyService = { isReady = function() return true end, paidTradingAllowed = function() return true end },
+		ArtifactService = {
+			addCopy = function(data, id)
+				if not data.artifacts.found[id] then
+					data.artifacts.found[id] = true
+					return true
+				end
+				data.artifacts.spares[id] = (data.artifacts.spares[id] or 0) + 1
+				return false
+			end,
+		},
+		Events = {
+			fire = function(name)
+				fired[name] = (fired[name] or 0) + 1
+			end,
+		},
+		GolemService = {
+			get = function()
+				return nil
+			end,
+		},
+		PartyService = {
+			sameParty = function()
+				return true
+			end,
+			friendNow = function()
+				return true
+			end,
+			areFriends = function()
+				return true
+			end,
+		},
+		PolicyService = {
+			isReady = function()
+				return true
+			end,
+			paidTradingAllowed = function()
+				return true
+			end,
+		},
 	}, mockGame, mockTask)
 	local countdown = Config.Trading.countdownSeconds
 	local cooldown = Config.Trading.requestCooldown
@@ -173,7 +280,10 @@ do
 	drain()
 	assert(live[a].artifacts.spares[Y] == 1 and live[b].artifacts.spares[X] == 1)
 	assert(live[a].trades.pending == nil and live[b].trades.pending == nil)
-	assert(records[1].artifacts.spares[Y] == 1 and records[2].artifacts.spares[X] == 1, "Both settled saves are written")
+	assert(
+		records[1].artifacts.spares[Y] == 1 and records[2].artifacts.spares[X] == 1,
+		"Both settled saves are written"
+	)
 	assert(live[a].trades.count == 1 and #live[b].trades.log == 1 and fired.traded == 1)
 	assert(TradeJournal.status(journalRecords["trade_g1"]) == "committed")
 
@@ -194,7 +304,8 @@ do
 	trade(a, b, X, Y)
 	local finishJob = table.remove(queue, 1)
 	records[5] = copy(live[a]) -- only a's escrow save lands
-	leave(a); leave(b)
+	leave(a)
+	leave(b)
 	assert(records[5].trades.pending and records[6].trades.pending == nil)
 	a, b = join(5), join(6)
 	assert(live[a].artifacts.spares[X] == 1 and live[a].trades.pending == nil)
@@ -212,7 +323,8 @@ do
 	records[7], records[8] = copy(live[a]), copy(live[b])
 	journalRecords["trade_g4"] = TradeJournal.decide(nil, "committed", 0)
 	queue = {}
-	leave(a); leave(b)
+	leave(a)
+	leave(b)
 	a = join(7)
 	assert(live[a].artifacts.spares[Y] == 1 and live[a].artifacts.spares[X] == nil and live[a].trades.pending == nil)
 	assert(records[7].trades.pending == nil, "The settled side is saved")
@@ -232,7 +344,9 @@ do
 	assert(#delayed >= 2, "Settling is retried later")
 	failJournal = false
 	queue = {}
-	for _, job in delayed do job[1](table.unpack(job[2], 1, job[2].n)) end
+	for _, job in delayed do
+		job[1](table.unpack(job[2], 1, job[2].n))
+	end
 	delayed = {}
 	drain()
 	assert(live[a].trades.pending == nil and live[b].trades.pending == nil)
@@ -241,5 +355,7 @@ do
 
 	Config.Trading.countdownSeconds = countdown
 	Config.Trading.requestCooldown = cooldown
-	print("PASS: actual TradeService escrow, commit, failed save, crashes before and after the decision, journal outage")
+	print(
+		"PASS: actual TradeService escrow, commit, failed save, crashes before and after the decision, journal outage"
+	)
 end
