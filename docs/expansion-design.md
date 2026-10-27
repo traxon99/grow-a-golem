@@ -51,7 +51,33 @@ separately, so earning five more enables the next Ascension. Existing mineral
 bonuses, titles and cosmetic eligibility survive. This keeps prestige a permanent
 gain. The run's boss gate must be completed again after each Ascension.
 
-## Co-op tower design (not implemented)
+## Co-op tower (#62): built, switched off until playtested
+
+`TowerService`, `Config.Tower`, and the Tower section of the Travel menu.
+`Config.Tower.enabled` is false until the three-client tests in
+[playtest.md](playtest.md) pass. As built:
+
+- The leader of a party, or a solo player, picks a route: one island they have
+  unlocked. Its ten waves use that island's enemies (same spawn weights), with
+  its boss on waves 5 (60% health) and 10 (full health).
+- Every member presses Accept within 45 seconds; each must be present, have a
+  standing golem and have the route unlocked. The party is fixed at entry.
+- Each run gets one of four arenas per server (zone ids 101 to 104, never the
+  islands' or the hub's). Enemies alive at once stay within the island's normal
+  cap for that many players; enemy health rises 10% per wave.
+- Tower enemies drop nothing and roll no artifacts. Each cleared wave pays every
+  member still in the run a fixed reward, once: what that wave's enemies and boss
+  would drop on the island, times 1.25, with no multipliers. The Travel menu
+  shows each route's full-clear total, and the next wave's pay during a run,
+  from the same formula (`Stats.towerWaveReward`).
+- Leaving, travelling away or disconnecting forfeits uncleared waves and keeps
+  paid ones. If every golem in the run is knocked out at once, the run ends.
+  Either way, golems return to the route's island.
+- No text entry, paid tickets, paid revives, random rewards or purchase timers.
+
+The original design notes follow.
+
+### Design notes
 
 A private party challenge accessed through Travel. The party leader selects a
 fixed ten-wave route, all members accept with buttons, and the run starts only
@@ -70,5 +96,4 @@ No text entry, paid tickets, paid revives, random chests or purchase countdowns.
 - Require three-client tests for leadership changes, disconnects, concurrent
   arenas, reset/exploit attempts, and low-end-phone performance before enabling.
 
-This is a design proposal; the issue requests a co-op design document, not a
-shipped side mode. Tune its reward rate after base-game timing data exists.
+Tune its reward rate after base-game timing data exists.
