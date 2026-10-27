@@ -1,0 +1,33 @@
+<link rel="stylesheet" href="common.css"><div class="screen" style="background:linear-gradient(#5a7fa0,#33475a)">
+<div class="panel" style="left:140px;top:60px;width:1000px;height:600px;background:#262c35"></div>
+<div class="outlined" style="position:absolute;left:170px;top:76px;font-size:34px;color:#ffd23a">SHOP</div>
+<div class="btn" style="left:1080px;top:70px;width:46px;height:46px;background:#e8423a;font-size:22px">X</div>
+<!-- tabs -->
+<div class="btn" style="left:330px;top:80px;width:150px;height:44px;background:#4aa3ff;font-size:16px">Passes</div>
+<div class="btn" style="left:490px;top:80px;width:150px;height:44px;background:#58606c;font-size:16px">Boosts</div>
+<div class="btn" style="left:650px;top:80px;width:150px;height:44px;background:#58606c;font-size:16px">Minerals</div>
+<div class="btn" style="left:810px;top:80px;width:150px;height:44px;background:#58606c;font-size:16px">Codes</div>
+<!-- pass cards -->
+<script>
+const cards=[["2x Minerals","Double all mineral income, forever.","R$ 299","#f0a63a"],["Auto-Forge","Forges the best part you can afford.","R$ 149","#4aa3ff"],["Extra Artifact Slot","+1 artifact slot.","R$ 199","#9a6bff"],["Long Rest","Offline mining cap: 12 hours.","R$ 249","#53c46a"]];
+cards.forEach((c,i)=>{document.write(`<div class="panel" style="left:${170+i*235}px;top:150px;width:215px;height:250px;background:#323a45;padding:12px">
+<div style="height:90px;border-radius:10px;background:${c[3]};border:3px solid #0d0f12"></div>
+<div class="outlined" style="font-size:19px;margin-top:10px">${c[0]}</div><div style="font:600 14px Arial;color:#ccd;margin-top:4px;height:40px">${c[1]}</div></div>
+<div class="btn" style="left:${185+i*235}px;top:345px;width:185px;height:44px;background:#3fbf5a;font-size:19px">${c[2]}</div>`)});
+</script>
+<!-- luck boost with odds -->
+<div class="panel" style="left:170px;top:420px;width:600px;height:220px;background:#323a45;padding:14px">
+<div class="outlined" style="font-size:20px;color:#7dff8a">2x Luck (30 min)</div>
+<div style="font:600 14px Arial;color:#ccd;margin:4px 0 10px">Doubles artifact chances. Your odds while it is active:</div>
+<table style="font:700 14px Arial;color:#fff;border-collapse:collapse;width:420px">
+<tr style="color:#aab"><td>Drop</td><td>Now</td><td>With boost</td></tr>
+<tr><td>Artifact per enemy</td><td>0.60%</td><td style="color:#7dff8a">1.20%</td></tr>
+<tr><td>Artifact per boss</td><td>30%</td><td style="color:#7dff8a">60%</td></tr>
+<tr><td>Guaranteed by (pity)</td><td colspan=2>300 enemies / 4 bosses</td></tr></table></div>
+<div class="btn" style="left:590px;top:580px;width:160px;height:46px;background:#3fbf5a;font-size:19px">R$ 39</div>
+<!-- notes -->
+<div class="note" style="left:800px;top:430px;width:310px">Every buy button shows the real Robux price. No "only", no countdown, no "today only".</div>
+<div class="note" style="left:800px;top:520px;width:310px">Anything that changes random odds shows exact % before purchase, and the live odds while active. Pity is shown too.</div>
+<div class="note" style="left:800px;top:610px;width:310px">Ids still 0? Show "Coming soon", never a fake button.</div>
+<div class="title">Grow A Golem: shop with honest pricing and odds (original wireframe)</div>
+</div>
