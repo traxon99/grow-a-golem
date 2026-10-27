@@ -145,8 +145,21 @@ function Ui.rewardText(reward: any): string
 	return table.concat(parts, ", ")
 end
 
+-- Event modifiers like { minerals = 2 } as "2x minerals".
+function Ui.modifierText(modifiers: { [string]: number }?): string
+	local parts = {}
+	for stat, mult in modifiers or {} do
+		table.insert(parts, `{mult}x {if stat == "xp" then "XP" else stat}`)
+	end
+	table.sort(parts)
+	return table.concat(parts, ", ")
+end
+
 function Ui.duration(seconds: number): string
 	seconds = math.max(math.floor(seconds), 0)
+	if seconds >= 86400 then
+		return string.format("%dd %02dh", seconds // 86400, (seconds % 86400) // 3600)
+	end
 	if seconds >= 3600 then
 		return string.format("%dh %02dm", seconds // 3600, (seconds % 3600) // 60)
 	end

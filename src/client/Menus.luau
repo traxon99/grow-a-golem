@@ -381,6 +381,75 @@ local function renderShop(list: ScrollingFrame, snap: any)
 	Ui.row(list, nextOrder(), "Fair play", "Everything that makes you stronger can also be earned by playing.")
 end
 
+local EARN_NAMES = { enemyDefeated = "enemy", nodeMined = "node", bossDefeated = "boss" }
+
+local function renderEvents(list: ScrollingFrame, snap: any)
+	local data = snap.data
+	local now = State.serverNow()
+	local order = 0
+	local function nextOrder(): number
+		order += 1
+		return order
+	end
+	local shown = 0
+	for _, event in Config.Events do
+		local startsAt, endsAt = Stats.eventWindow(event, now)
+		local live = startsAt ~= nil and endsAt ~= nil and now >= startsAt
+		local state = data.eventTracks[event.id]
+		if not startsAt and not state then
+			continue -- a one-off event that's over and was never played
+		end
+		shown += 1
+		Ui.heading(list, nextOrder(), event.name)
+		local effects = Ui.modifierText(event.modifiers)
+		if live and endsAt then
+			Ui.row(list, nextOrder(), `Live now! Ends in {Ui.duration(endsAt - now)}`, if effects ~= "" then effects else event.description)
+		elseif startsAt then
+			Ui.row(list, nextOrder(), `Starts in {Ui.duration(startsAt - now)}`, event.description)
+		else
+			Ui.row(list, nextOrder(), "This event is over", "You can still claim rewards you earned.")
+		end
+
+		local track = event.track
+		if track then
+			local tokens = if state then state.tokens else 0
+			local claimed = if state then state.claimed else {}
+			-- Same rule as the server: a finished track starts over in a new run.
+			if live and state and state.run ~= startsAt then
+				local finished = true
+				for index in track.tiers do
+					if not claimed[tostring(index)] then
+						finished = false
+					end
+				end
+				if finished then
+					tokens, claimed = 0, {}
+				end
+			end
+			local earn = {}
+			for eventName, amount in track.earn do
+				table.insert(earn, `{amount} per {EARN_NAMES[eventName] or eventName}`)
+			end
+			table.sort(earn)
+			Ui.row(list, nextOrder(), `{tokens} {track.currency}`,
+				`Earn {table.concat(earn, ", ")} while the event is on.`)
+			for index, tier in track.tiers do
+				local done = claimed[tostring(index)] == true
+				local ready = not done and tokens >= tier.tokens
+				Ui.row(list, nextOrder(), `{tier.tokens} {track.currency}`, Ui.rewardText(tier.reward),
+					if done then "Claimed" elseif ready then "Claim" else `{math.min(tokens, tier.tokens)} / {tier.tokens}`,
+					ready, function()
+						State.request("claimEventTier", event.id, index)
+					end)
+			end
+		end
+	end
+	if shown == 0 then
+		Ui.row(list, nextOrder(), "No events right now", "Check back after the next update!")
+	end
+	Ui.row(list, nextOrder(), "Fair play", "Event rewards are earned only by playing. Progress you don't finish carries over to the next run.")
+end
+
 local function renderRanks(list: ScrollingFrame, snap: any)
 	local boards = snap.leaderboards or {}
 	local order = 0
@@ -408,6 +477,7 @@ local TABS: { { id: string, name: string, render: Render } } = {
 	{ id = "skills", name = "Skills", render = renderSkills },
 	{ id = "awaken", name = "Awaken", render = renderAwaken },
 	{ id = "quests", name = "Quests", render = renderQuests },
+	{ id = "events", name = "Events", render = renderEvents },
 	{ id = "party", name = "Party", render = renderParty },
 	{ id = "shop", name = "Shop", render = renderShop },
 	{ id = "ranks", name = "Ranks", render = renderRanks },
@@ -515,7 +585,7 @@ function Menus.start()
 	task.spawn(function()
 		while true do
 			task.wait(1)
-			if openTab and (TABS[openTab].id == "quests" or TABS[openTab].id == "shop" or TABS[openTab].id == "awaken") then
+			if openTab and (TABS[openTab].id == "quests" or TABS[openTab].id == "shop" or TABS[openTab].id == "awaken" or TABS[openTab].id == "events") then
 				Menus.refresh()
 			end
 		end

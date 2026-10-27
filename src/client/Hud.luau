@@ -198,6 +198,35 @@ function Hud.start()
 		end
 	end)
 
+	---------------------------------------------------------------- event banner
+
+	-- Shows live events and when they end, right of the stats panel.
+	local banner = Instance.new("Frame")
+	banner.Name = "EventBanner"
+	banner.Size = UDim2.fromOffset(230, 46)
+	banner.Position = UDim2.fromOffset(232, 12)
+	banner.BackgroundColor3 = Ui.Colors.panel
+	banner.BackgroundTransparency = 0.25
+	banner.Visible = false
+	banner.Parent = gui
+	Ui.corner(banner, 10)
+	local bannerTitle = Ui.label(banner, "", UDim2.new(1, -16, 0, 20), UDim2.fromOffset(8, 4), { TextColor3 = Ui.Colors.warn })
+	local bannerInfo = Ui.label(banner, "", UDim2.new(1, -16, 0, 16), UDim2.fromOffset(8, 26), { TextColor3 = Ui.Colors.quiet, Font = Enum.Font.Gotham })
+	task.spawn(function()
+		while true do
+			local now = State.serverNow()
+			local active = Stats.activeEvents(now)
+			banner.Visible = #active > 0
+			if #active > 0 then
+				local first = active[1]
+				local effects = Ui.modifierText(first.event.modifiers)
+				bannerTitle.Text = if #active > 1 then `{first.event.name} +{#active - 1} more` else first.event.name
+				bannerInfo.Text = (if effects ~= "" then effects .. "  ·  " else "") .. `ends in {Ui.duration(first.endsAt - now)}`
+			end
+			task.wait(1)
+		end
+	end)
+
 	---------------------------------------------------------------- toasts
 
 	local toast = Ui.label(gui, "", UDim2.fromOffset(520, 30), UDim2.new(0.5, 0, 1, -70), {

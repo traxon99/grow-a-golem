@@ -62,6 +62,7 @@ local function defaultData(): any
 		receipts = {},
 		groupRewardClaimed = false,
 		codesRedeemed = {}, -- ["GOLEM100"] = os.time() when redeemed
+		eventTracks = {}, -- [eventId] = { tokens, claimed = { ["1"] = true }, run }
 		lastLogout = 0,
 		totals = { enemies = 0, nodes = 0, bosses = 0 },
 	}

@@ -42,6 +42,7 @@ Let go of the controls and the golem plays itself: it fights enemies nearby, and
 | Global leaderboards | `LeaderboardService` |
 | Daily login streak, daily and weekly quests, session gifts, offline mining, group reward | `RewardService` |
 | Redeemable codes (Codes box in the Shop) | `CodeService`, `Config.Codes` |
+| Limited-time events, event reward tracks, HUD event banner, Events menu | `LiveEventService`, `Config.Events` |
 | Game passes, developer products, receipts | `PassService` |
 | HUD, next-goal tracker with progress bar, menus | `src/client` |
 | Boss health bar, artifact reveal card, level-up banner | `src/client/Moments.luau` |
@@ -75,6 +76,27 @@ SUMMER500 = { reward = { minerals = { copper = 500 } }, expires = 1788220800 },
 - Each player can use a code once. Wrong guesses are rate-limited.
 - Keep codes free: never make one depend on following, liking or buying anything.
 
+## Scheduling an event
+
+Events live in `Config.Events`. They switch on and off by themselves on server time (UTC), so you can add one ahead of time and publish whenever.
+
+```lua
+{
+	id = "halloween2026", -- never reuse an id: it keys saved track progress
+	name = "Spooky XP Week",
+	description = "Double XP while the moon is out!",
+	startsAt = 1792886400, endsAt = 1793491200, -- UTC unix times
+	-- or repeat every week: weekly = { day = 6, hour = 0, hours = 48 }, -- day 1 = Monday
+	modifiers = { xp = 2 }, -- any of minerals, xp, luck
+	track = { ... }, -- optional, see Double Minerals Weekend
+},
+```
+
+- `modifiers` stack with boosts and passes. Luck changes the artifact odds shown in the Artifacts menu too.
+- A `track` gives an event currency earned only by playing while the event is on (`earn` lists how much per enemy, node and boss) and reward tiers to claim. There is no paid way to earn it.
+- Unfinished track progress carries over to the next run of the same event, and players can claim earned tiers after it ends, so missing an event isn't punishing.
+- Keep it kid-safe: no countdowns on purchases and no "today only" Robux offers.
+
 ## Code layout
 
 ```
@@ -92,7 +114,7 @@ src/
     Controls.luau      steering and spell input
     Hud.luau           minerals, level, health, spell bar, next goal, messages
     Moments.luau       boss health bar, artifact reveal, level-up banner
-    Menus.luau         Forge, Travel, Artifacts, Skills, Awaken, Quests, Party, Shop, Ranks
+    Menus.luau         Forge, Travel, Artifacts, Skills, Awaken, Quests, Events, Party, Shop, Ranks
     Ui.luau            UI building helpers
     Animator.luau      procedural walk, punch and slam animation
     Sfx.luau           sound effects
