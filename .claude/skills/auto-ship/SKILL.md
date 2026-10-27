@@ -22,7 +22,13 @@ Work out the feature from the request ("auto-ship trading" means trading; "auto-
   - Several plausible matches: ask if it's genuinely ambiguous, otherwise create a new issue.
 - **No match.** Create one with `issue_write` (`method: create`): a title from the request and a short body saying what was asked and who asked (the caller).
 
-Comment on the issue that auto-ship is picking it up. If `list_issue_fields` shows a project `Status` field, move the issue to In Progress instead of commenting. Re-check that each run.
+**Then check and claim the roadmap.** Pull `main` and find the matching row in `ROADMAP.md`.
+
+- The row (or any row whose **Touches** column covers files you'd change) is `In progress` for someone else: stop and tell the caller who holds it. Don't build around it.
+- The row is `Open`: claim it by setting its status to `In progress: Claude for @<caller's login>, <branch>, <date>` and pushing that one-line commit (`roadmap: claim R1.3`) straight to `main`, following the roadmap's "Before you start" steps. A rebase conflict on the row means someone else claimed it first: stop and tell the caller.
+- No row fits: add one in the right phase with the next free ID, then claim it the same way.
+
+Comment on the issue that auto-ship is picking it up, naming the roadmap row. If `list_issue_fields` shows a project `Status` field, move the issue to In Progress instead of commenting. Re-check that each run.
 
 ## 2. Route the work to the reference docs
 
@@ -77,6 +83,7 @@ The review is done when every finding is fixed in the branch or answered in the 
 In the same branch:
 
 - Update the "Grow A Golem today" section of every routed doc whose described behavior changed, and tick off or edit any "Gaps worth closing" line this run closes.
+- Set this run's row in `ROADMAP.md` to `Done: #<PR>` (you'll know the number after step 7; push it to the branch before merging), and add any follow-up tasks the work uncovered as new `Open` rows.
 - Update the systems table in `README.md` if a system or its location changed, and any setup steps (new pass or product ids to create, new codes).
 - Update project memory if this run settles a fact a later thread would otherwise have to ask again.
 
@@ -107,4 +114,4 @@ After the merge, confirm the issue closed with `issue_read`. If the project has 
 
 ## When you're done
 
-Tell the caller in one short message: what merged, the issue and PR (numbers and links), that the issue closed with the merge, and the playtest steps to try in Studio. If something blocked the loop (a safety conflict, a required review, an ambiguous design choice), say exactly what's blocking and where the branch and issue were left.
+Tell the caller in one short message: what merged, the issue and PR (numbers and links), that the issue closed with the merge, and the playtest steps to try in Studio. If something blocked the loop (a safety conflict, a required review, an ambiguous design choice), say exactly what's blocking and where the branch and issue were left. If the run stops without merging, leave the roadmap row `In progress` only while the branch is still being worked on; otherwise set it back to `Open` on `main`.

@@ -4,6 +4,8 @@ A 3D idle auto-battler for Roblox. You ride on the shoulder of a golem you build
 
 Game code lives in this repo and syncs into Roblox Studio with [Rojo](https://rojo.space). Maps, models, and UI art are built in Studio.
 
+**Contributing:** see [`ROADMAP.md`](ROADMAP.md) for what's open, in progress and done. Claim a row there before you start work, and leave rows marked "In progress" alone.
+
 ## Setup (one time)
 
 1. Install Rojo 7. The easiest way is the **Rojo** extension for VS Code, or `rokit add rojo-rbx/rojo` if you use Rokit.
