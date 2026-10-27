@@ -42,7 +42,7 @@ Let go of the controls and the golem plays itself: it fights enemies nearby, and
 | Awakening, Ascension and permanent upgrades | `ProgressionService` |
 | Co-op parties, shared kill rewards, friend bonus | `PartyService` |
 | Golem Hub island, Inspect cards, nametag titles, rare-find shout | `SocialService`, `Config.Hub`, `Config.Titles`, client Hub tab |
-| Safe artifact trading (spare copies, Ready / countdown / Confirm, policy gate, trade log) | `TradeService`, `Config.Trading`, client Trade tab |
+| Safe artifact trading (spare copies, Ready / countdown / Confirm, policy gate, trade log, crash-safe escrow and journal) | `TradeService`, `src/shared/TradeJournal.luau`, `Config.Trading`, client Trade tab |
 | Global leaderboards | `LeaderboardService` |
 | Daily login streak, daily and weekly quests, session gifts, offline mining, group reward | `RewardService` |
 | Redeemable codes (Codes box in the Shop) | `CodeService`, `Config.Codes` |

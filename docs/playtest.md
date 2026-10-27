@@ -33,8 +33,11 @@ and disconnects the old session. Disconnected loads release any acquired lease.
 
 ProfileStore remains a reasonable future replacement; adopting it is not required
 for this atomic ownership check. It would require migration and lifecycle tests.
-No session lease can make the existing two-player trade write transaction atomic
-across two DataStore keys; crash recovery for trades remains a separate concern.
+No session lease can make a two-player trade atomic across two DataStore keys,
+so trades use their own escrow and journal (`src/shared/TradeJournal.luau`,
+DataStore `TradeJournal_v1`): offered spares wait in escrow in both saves, one
+journal write decides the trade, and each save settles from it, on its next
+load if the server died.
 
 Before publishing, **drain old servers running the version without leases**.
 Those binaries do not respect ownership tokens and can still overwrite records.
@@ -49,6 +52,9 @@ Required published-place tests:
 - [ ] Disconnect while load is pending, during a purchase save, and during shutdown. Rejoin without a wipe.
 - [ ] Existing v1 saves reconcile all four new minerals and the Ascension fields.
 - [ ] Studio API access disabled: visible unsaved warning, no live writes.
+- [ ] Trade with two test accounts: both see "Saving your trade..." then "Trade complete", and both keep the swapped spares after rejoining.
+- [ ] Shut the server down (or stop the test) straight after both press Confirm. On rejoin both players either have the swapped spares or both have their own back, never a mix; the Trade tab doesn't stay stuck on "still being saved".
+- [ ] Existing saves with a pending-free `trades` table load and trade normally.
 
 ## Gameplay matrix
 
