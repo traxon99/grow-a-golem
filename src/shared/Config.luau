@@ -207,6 +207,7 @@ Config.Zones = {
 		size = Vector3.new(320, 6, 320),
 		color = Color3.fromRGB(92, 132, 72),
 		material = Enum.Material.Grass,
+		theme = "meadow", -- scenery style for the placeholder island
 		gate = {},
 		maxEnemies = 12,
 		extraEnemiesPerPlayer = 4,
@@ -224,6 +225,7 @@ Config.Zones = {
 		size = Vector3.new(320, 6, 320),
 		color = Color3.fromRGB(110, 70, 55),
 		material = Enum.Material.Basalt,
+		theme = "ember",
 		gate = { boss = 1 },
 		maxEnemies = 12,
 		extraEnemiesPerPlayer = 4,
@@ -241,6 +243,7 @@ Config.Zones = {
 		size = Vector3.new(320, 6, 320),
 		color = Color3.fromRGB(70, 110, 120),
 		material = Enum.Material.Glacier,
+		theme = "crystal",
 		gate = { boss = 2, size = 3 },
 		maxEnemies = 12,
 		extraEnemiesPerPlayer = 4,
@@ -410,6 +413,19 @@ Config.Products = {
 	mineralsLarge = { id = 0, name = "Mineral Vault", price = 449, packMinutes = 480 },
 	boostXp = { id = 0, name = "2x XP (30 min)", price = 39, boost = "xp", minutes = 30 },
 	boostLuck = { id = 0, name = "2x Luck (30 min)", price = 39, boost = "luck", minutes = 30 },
+}
+
+---------------------------------------------------------------- visuals
+
+Config.Visuals = {
+	-- Set to false once you tune Lighting by hand in Studio, so the game
+	-- stops overwriting your settings.
+	controlLighting = true,
+	-- Recolors the Baseplate template's floor into a sea of clouds far below
+	-- the islands. Only touches a part named "Baseplate".
+	cloudSeaBaseplate = true,
+	-- Adds trees, rocks and a rocky underside to placeholder islands.
+	decorateIslands = true,
 }
 
 ---------------------------------------------------------------- data
