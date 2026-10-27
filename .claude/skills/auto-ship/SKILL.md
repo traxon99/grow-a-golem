@@ -1,6 +1,6 @@
 ---
 name: auto-ship
-description: End-to-end delivery of one Grow A Golem change, tracked through a GitHub issue. Find or create the issue (checking for duplicates first), sort the work into categories and read the matching docs in docs/reference/ (always including safety-compliance.md), implement it in Luau, syntax-check it, have a fresh subagent review the diff against those docs, update the docs' "Grow A Golem today" sections, open a PR that closes the issue, and merge it. Use this when someone asks to "ship", "auto-ship", "just get this done", "build and merge", or says "auto-ship <feature>" or "auto-ship #NN". Don't use it for exploration, questions, or anything the caller wants reviewed before it lands.
+description: End-to-end delivery of one Grow A Golem change, tracked through a GitHub issue. Find or create the issue (checking for duplicates first) and claim it by the workflow in CONTRIBUTING.md, sort the work into categories and read the matching docs in docs/reference/ (always including safety-compliance.md), implement it in Luau, syntax-check it, have a fresh subagent review the diff against those docs, update the docs' "Grow A Golem today" sections, open a PR that closes the issue, and merge it. Use this when someone asks to "ship", "auto-ship", "just get this done", "build and merge", or says "auto-ship <feature>" or "auto-ship #NN". Don't use it for exploration, questions, or anything the caller wants reviewed before it lands.
 ---
 
 # Auto-ship
@@ -16,19 +16,20 @@ Don't skip the doc routing, syntax check, review or documentation steps to get t
 Work out the feature from the request ("auto-ship trading" means trading; "auto-ship #13" means issue 13; a bare "ship this" means the fuller description earlier in the conversation).
 
 - **An issue number was given.** Confirm it exists and is open with `issue_read`.
-- **Otherwise, search first.** Run `list_issues` (open first) or `search_issues` on this repo (the `origin` remote) with keywords from the request. The backlog of gaps against top Roblox games lives here with `priority: P0`/`P1`/`P2` labels, so a matching issue often exists already.
+- **Otherwise, search first.** Run `list_issues` (open first) or `search_issues` on this repo (the `origin` remote) with keywords from the request. All tasks live here, grouped into phase milestones, so a matching issue often exists already. Tasks moved from the old roadmap keep their row ID at the start of the title, so "auto-ship R5.7" means the issue titled `R5.7: …`.
   - A clear open match: use it.
   - The best match is closed as completed: the feature probably shipped. Say so and ask the caller before redoing it.
   - Several plausible matches: ask if it's genuinely ambiguous, otherwise create a new issue.
 - **No match.** Create one with `issue_write` (`method: create`): a title from the request and a short body saying what was asked and who asked (the caller).
 
-**Then check and claim the roadmap.** Pull `main` and find the matching row in `ROADMAP.md`.
+**Then follow the repo's workflow definition to check and claim it.** Pull `main` and read `CONTRIBUTING.md` there. It defines how this repo tracks work (milestones, labels, the **Touches** and **Blocked by** fields) and the exact steps to claim, finish, release and add an issue. Follow the version on `main` each run rather than any steps remembered from an earlier run or written in this skill; if `CONTRIBUTING.md` is missing, look for the workflow `CLAUDE.md` points to. In this skill, "claim", "release" and "file a new task" mean doing what that file says. Act for the caller: assign the caller's login and name them in any claim comment.
 
-- The row (or any row whose **Touches** column covers files you'd change) is `In progress` for someone else: stop and tell the caller who holds it. Don't build around it.
-- The row is `Open`: claim it by setting its status to `In progress: Claude for @<caller's login>, <branch>, <date>` and pushing that one-line commit (`roadmap: claim R1.3`) straight to `main`, following the roadmap's "Before you start" steps. A rebase conflict on the row means someone else claimed it first: stop and tell the caller.
-- No row fits: add one in the right phase with the next free ID, then claim it the same way.
+- If you created the issue above, give it the milestone, labels and fields the workflow's "Adding work" section asks for before claiming it.
+- The tracking issue, or any issue whose **Touches** covers files you'd change, is claimed by someone else: stop and tell the caller who holds it. Don't build around it.
+- The tracking issue is blocked: tell the caller what it waits on and ask before going on.
+- Otherwise claim the tracking issue. If the workflow's claim check shows someone else got there first, stop and tell the caller.
 
-Comment on the issue that auto-ship is picking it up, naming the roadmap row. If `list_issue_fields` shows a project `Status` field, move the issue to In Progress instead of commenting. Re-check that each run.
+If `list_issue_fields` shows a project `Status` field, also move the issue to In Progress. Re-check that each run.
 
 ## 2. Route the work to the reference docs
 
@@ -70,7 +71,7 @@ Read `README.md` for where each system lives, then follow the patterns already i
 
 **Syntax-check every changed `.luau` file.** Download the official Luau release into your scratchpad (`https://github.com/luau-lang/luau/releases/latest/download/luau-ubuntu.zip`), unzip it, and run `luau-compile --null <file>` on each changed file. If the download or run is refused, say so in the PR body and read the changed code once more by hand instead.
 
-CI does the rest on the PR: StyLua, selene, the luau-lsp type check against `scripts/type-baseline.json`, the offline tests and the Rojo build (README "Verification and launch preparation"). You can run the same pinned tools from GitHub releases in your scratchpad to catch problems before pushing, except selene's Roblox standard library, which the sandbox can't download. If you change a file listed in `.styluaignore`, leave it unformatted unless no other `In progress` roadmap row touches it.
+CI does the rest on the PR: StyLua, selene, the luau-lsp type check against `scripts/type-baseline.json`, the offline tests and the Rojo build (README "Verification and launch preparation"). You can run the same pinned tools from GitHub releases in your scratchpad to catch problems before pushing, except selene's Roblox standard library, which the sandbox can't download. If you change a file listed in `.styluaignore`, leave it unformatted unless no other issue labelled `in progress` touches it.
 
 Studio can't run here, so nothing executes the game before merge. Write numbered playtest steps for whoever playtests (what to do in Studio, what they should see, what to look for in the Output window) for the PR body and the final message.
 
@@ -85,7 +86,7 @@ The review is done when every finding is fixed in the branch or answered in the 
 In the same branch:
 
 - Update the "Grow A Golem today" section of every routed doc whose described behavior changed, and tick off or edit any "Gaps worth closing" line this run closes.
-- Set this run's row in `ROADMAP.md` to `Done: #<PR>` (you'll know the number after step 7; push it to the branch before merging), and add any follow-up tasks the work uncovered as new `Open` rows.
+- File any follow-up tasks the work uncovered as new issues, as `CONTRIBUTING.md` says, and link them in the PR body. Do anything else the workflow asks for when work finishes.
 - Update the systems table in `README.md` if a system or its location changed, and any setup steps (new pass or product ids to create, new codes).
 - Update project memory if this run settles a fact a later thread would otherwise have to ask again.
 
@@ -117,4 +118,4 @@ After the merge, confirm the issue closed with `issue_read`. If the project has 
 
 ## When you're done
 
-Tell the caller in one short message: what merged, the issue and PR (numbers and links), that the issue closed with the merge, and the playtest steps to try in Studio. If something blocked the loop (a safety conflict, a required review, an ambiguous design choice), say exactly what's blocking and where the branch and issue were left. If the run stops without merging, leave the roadmap row `In progress` only while the branch is still being worked on; otherwise set it back to `Open` on `main`.
+Tell the caller in one short message: what merged, the issue and PR (numbers and links), that the issue closed with the merge, and the playtest steps to try in Studio. If something blocked the loop (a safety conflict, a required review, an ambiguous design choice), say exactly what's blocking and where the branch and issue were left. If the run stops without merging, keep the issue claimed only while the branch is still being worked on; otherwise release it as `CONTRIBUTING.md` says.

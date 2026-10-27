@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
-"""Report what has changed on main: merged pull requests and roadmap rows.
+"""Report what has changed on main and in the issues: merged PRs and task issues.
 
 Every session runs this before starting work and before its final report, then
-tells its user the result in a few lines (see CLAUDE.md).
+tells its user the result in a few lines (see CLAUDE.md and CONTRIBUTING.md).
 
-    python3 scripts/progress.py --login shmurkles   # since your last roadmap edit or merge
+    python3 scripts/progress.py --login shmurkles   # since your last commit or merge
     python3 scripts/progress.py --since 3a1b2c4      # since a commit
     python3 scripts/progress.py --since 2026-10-27   # since a date (UTC)
     python3 scripts/progress.py --since 12h          # since 12 hours ago (or 3d)
     python3 scripts/progress.py                      # since 24 hours ago
 
-Needs only git (and gh, if present, to list open pull requests).
+Needs git, and gh signed in for the issue and pull request parts.
 """
 import argparse
+from datetime import datetime, timezone
 import json
 import re
 import signal
@@ -20,7 +21,7 @@ import subprocess
 import sys
 
 BRANCH = "origin/main"
-ROW = re.compile(r"^\|\s*((?:R\d+\.\d+)|(?:B\d+))\s*\|")
+CLAIM = "in progress"
 
 
 def git(*args, check=True):
@@ -30,39 +31,32 @@ def git(*args, check=True):
     return result.stdout if result.returncode == 0 else None
 
 
-def rows(text):
-    """Roadmap rows as {id: (task, status)}; the status is the last cell."""
-    found = {}
-    for line in (text or "").splitlines():
-        match = ROW.match(line)
-        if match:
-            cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-            found[match.group(1)] = (cells[1], cells[-1])
-    return found
+def short(text, width=90):
+    text = text.replace("`", "")
+    return text if len(text) <= width else text[: width - 1] + "…"
 
 
-def kind(status):
-    for word in ("Done", "In progress", "Waiting", "Open"):
-        if status.startswith(word):
-            return word
-    return status
+def repo():
+    url = git("remote", "get-url", "origin", check=False) or ""
+    match = re.search(r"github\.com[:/]([^/]+)/([^/.\s]+)", url)
+    return f"{match.group(1)}/{match.group(2)}" if match else None
 
 
-def short(task, width=90):
-    task = task.replace("`", "")
-    return task if len(task) <= width else task[: width - 1] + "…"
+def gh(path):
+    """GET a GitHub API path with gh; None if gh is missing or fails."""
+    try:
+        out = subprocess.run(["gh", "api", path], capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return json.loads(out.stdout) if out.returncode == 0 else None
 
 
 def resolve_since(since, login):
     if login:
-        at = re.escape("@" + login)
         for line in (git("log", BRANCH, "--format=%H\t%an\t%cn") or "").splitlines():
             sha, author, committer = line.split("\t")
             if login.lower() in (author.lower(), committer.lower()):
                 return sha, f"your last commit or merge as {login}"
-            added = git("show", "--format=", "--unified=0", sha, "--", "ROADMAP.md", check=False) or ""
-            if any(l.startswith("+") and re.search(at, l, re.I) for l in added.splitlines()):
-                return sha, f"your last roadmap edit as @{login}"
         print(f"No commit by {login} found in fetched history; showing the last 24 hours.\n")
         since = "24h"
     since = since or "24h"
@@ -80,32 +74,50 @@ def resolve_since(since, login):
     return sha.strip(), f"commit {since}"
 
 
-def open_pulls():
-    url = git("remote", "get-url", "origin", check=False) or ""
-    match = re.search(r"github\.com[:/]([^/]+)/([^/.\s]+)", url)
-    if not match:
-        return None
-    try:
-        out = subprocess.run(["gh", "api", f"repos/{match.group(1)}/{match.group(2)}/pulls?state=open"],
-                             capture_output=True, text=True, timeout=30)
-    except (OSError, subprocess.TimeoutExpired):
-        return None
-    if out.returncode != 0:
-        return None
-    return [(p["number"], p["title"], p["head"]["ref"]) for p in json.loads(out.stdout)]
+def issue_changes(name, since_iso):
+    """Issues done, claimed, released and added since a UTC time, from the issue events."""
+    changes = {"Done": {}, "Claimed": {}, "Released": {}, "New": {}}
+    for page in range(1, 11):
+        events = gh(f"repos/{name}/issues/events?per_page=100&page={page}")
+        if events is None:
+            return None
+        for event in events:
+            if event["created_at"] < since_iso:
+                return changes, True
+            issue = event.get("issue") or {}
+            if not issue or issue.get("pull_request"):
+                continue
+            number, title = issue["number"], short(issue["title"])
+            label = (event.get("label") or {}).get("name")
+            if event["event"] == "closed" and issue.get("state_reason") == "completed":
+                changes["Done"].setdefault(number, f"  #{number} {title}")
+            elif event["event"] == "labeled" and label == CLAIM:
+                who = ", ".join(a["login"] for a in issue.get("assignees") or []) or event["actor"]["login"]
+                changes["Claimed"].setdefault(number, f"  #{number} {title}: {who}")
+            elif event["event"] == "unlabeled" and label == CLAIM and issue["state"] == "open":
+                changes["Released"].setdefault(number, f"  #{number} {title}")
+        if len(events) < 100:
+            break
+    created = gh(f"repos/{name}/issues?state=all&since={since_iso}&per_page=100") or []
+    for issue in created:
+        if not issue.get("pull_request") and issue["created_at"] >= since_iso:
+            changes["New"][issue["number"]] = f"  #{issue['number']} {short(issue['title'])} [{issue['state']}]"
+    return changes, False
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--since", help="commit, date (YYYY-MM-DD) or age (12h, 3d)")
-    parser.add_argument("--login", help="GitHub login: report since that person's last commit or roadmap edit")
+    parser.add_argument("--login", help="GitHub login: report since that person's last commit or merge")
     args = parser.parse_args()
 
     git("fetch", "--quiet", "--depth=500", "origin", "main", check=False)
     since, label = resolve_since(args.since, args.login)
     head = git("rev-parse", BRANCH).strip()
     date = git("show", "-s", "--format=%cd", "--date=format:%Y-%m-%d %H:%M UTC", since).strip()
-    print(f"Progress on main since {label} ({since[:7]}, {date}):\n")
+    stamp = git("show", "-s", "--format=%cI", since).strip()
+    since_iso = datetime.fromisoformat(stamp).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    print(f"Progress since {label} ({since[:7]}, {date}):\n")
     if since == head:
         print("Nothing new on main.")
 
@@ -126,48 +138,37 @@ def main():
         print("Other commits to main:")
         print("\n".join(reversed(direct)))
 
-    old = rows(git("show", f"{since}:ROADMAP.md", check=False))
-    new = rows(git("show", f"{head}:ROADMAP.md"))
-    changes = {"Done": [], "Claimed": [], "Released": [], "New": [], "Other": []}
-    for row_id, (task, status) in new.items():
-        before = old.get(row_id)
-        if before is None:
-            changes["New"].append(f"  {row_id} {short(task)} [{status}]")
-        elif before[1] != status:
-            now, was = kind(status), kind(before[1])
-            if now == "Done":
-                changes["Done"].append(f"  {row_id} {short(task)} ({status})")
-            elif now == "In progress":
-                changes["Claimed"].append(f"  {row_id} {short(task)}: {status[len('In progress: '):]}")
-            elif now == "Open" and was == "In progress":
-                changes["Released"].append(f"  {row_id} {short(task)}")
-            else:
-                changes["Other"].append(f"  {row_id} {short(task)}: {before[1]} -> {status}")
-    if not old and new:
-        changes = {"Done": [], "Claimed": [], "Released": [], "Other": [],
-                   "New": [f"  ROADMAP.md was added, with {len(new)} rows (summary below)"]}
-    titles = {"Done": "Roadmap rows done", "Claimed": "Roadmap rows claimed",
-              "Released": "Roadmap rows released (open again)", "New": "New roadmap rows",
-              "Other": "Other roadmap changes"}
+    name = repo()
+    found = issue_changes(name, since_iso) if name else None
+    if found is None:
+        print("\n(gh isn't available or signed in, so issues and open PRs aren't listed.)")
+        return
+    changes, complete = found
+    titles = {"Done": "Issues done", "Claimed": "Issues claimed", "Released": "Issues released (free again)",
+              "New": "New issues"}
     for key, lines in changes.items():
         if lines:
             print(f"{titles[key]}:")
-            print("\n".join(lines))
+            print("\n".join(lines.values()))
+    if not complete:
+        print("(Only the latest 1,000 issue events were read; older changes may be missing.)")
 
-    counts = {}
-    for _, status in new.values():
-        counts[kind(status)] = counts.get(kind(status), 0) + 1
-    print("\nRoadmap now: " + ", ".join(f"{counts.get(k, 0)} {k.lower()}" for k in ("Open", "In progress", "Waiting", "Done")))
-    busy = [f"  {row_id} {short(task, 60)}: {status[len('In progress: '):]}"
-            for row_id, (task, status) in new.items() if kind(status) == "In progress"]
+    open_issues = gh(f"repos/{name}/issues?state=open&per_page=100") or []
+    issues = [i for i in open_issues if not i.get("pull_request")]
+    has = lambda issue, name: any(l["name"] == name for l in issue["labels"])
+    busy = [i for i in issues if has(i, CLAIM)]
+    blocked = sum(1 for i in issues if has(i, "blocked") and not has(i, CLAIM))
+    print(f"\nIssues now: {len(issues) - len(busy) - blocked} open, {len(busy)} in progress, {blocked} blocked")
     if busy:
-        print("In progress now (leave these and their files alone):")
-        print("\n".join(busy))
-    pulls = open_pulls()
+        print("In progress now (leave these and their Touches files alone):")
+        for issue in busy:
+            who = ", ".join(a["login"] for a in issue["assignees"]) or "unassigned"
+            print(f"  #{issue['number']} {short(issue['title'], 60)}: {who}")
+    pulls = gh(f"repos/{name}/pulls?state=open")
     if pulls:
         print("Open pull requests:")
-        for number, title, ref in pulls:
-            print(f"  #{number} {title} ({ref})")
+        for pull in pulls:
+            print(f"  #{pull['number']} {pull['title']} ({pull['head']['ref']})")
 
 
 if __name__ == "__main__":

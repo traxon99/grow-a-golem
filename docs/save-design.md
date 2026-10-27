@@ -44,7 +44,7 @@ The post doesn't say how existing raw DataStore records would be imported, or wh
 
 ## When to revisit
 
-Reopen this decision (add a roadmap row) if any of these happen:
+Reopen this decision (file an issue) if any of these happen:
 
 - Playtests or analytics show players often kicked with "still saving in another server" on normal rejoins.
 - The game adds teleports between places.

@@ -4,7 +4,7 @@ A 3D idle auto-battler for Roblox. You ride on the shoulder of a golem you build
 
 Game code lives in this repo and syncs into Roblox Studio with [Rojo](https://rojo.space). Maps, models, and UI art are built in Studio.
 
-**Contributing:** see [`ROADMAP.md`](ROADMAP.md) for what's open, in progress and done. Claim a row there before you start work, and leave rows marked "In progress" alone.
+**Contributing:** work is tracked in [GitHub issues](https://github.com/traxon99/grow-a-golem/issues) grouped into phase [milestones](https://github.com/traxon99/grow-a-golem/milestones). Read [`CONTRIBUTING.md`](CONTRIBUTING.md), claim an issue before you start work, and leave issues labelled `in progress` alone.
 
 ## Setup (one time)
 
@@ -197,7 +197,7 @@ They validate syntax and selected logic, not Studio physics, UI or measured paci
 
 CI also runs a lint job on every push and PR (versions are pinned in `.github/workflows/check.yml`):
 
-- **StyLua** (`stylua --check src tests`, settings in `stylua.toml`). Files written before CI had StyLua are listed in `.styluaignore`. Format one with `stylua <file>` and delete its line only when no `In progress` roadmap row touches it.
+- **StyLua** (`stylua --check src tests`, settings in `stylua.toml`). Files written before CI had StyLua are listed in `.styluaignore`. Format one with `stylua <file>` and delete its line only when no issue labelled `in progress` touches it.
 - **selene** (`selene --allow-warnings src`, Roblox standard library from `golem.yml`; `tests/` are fragments that `scripts/check.py` joins, so they aren't linted on their own). Errors fail the build; warnings are shown.
 - **luau-lsp type check** with the Roblox API definitions: `rojo sourcemap default.project.json -o sourcemap.json`, then `python3 scripts/typecheck.py --definitions <globalTypes.d.luau>`. Existing strict-mode errors are counted per file in `scripts/type-baseline.json`; the check fails if any file gets more. After fixing some, run it with `--update` to lower the baseline.
 
