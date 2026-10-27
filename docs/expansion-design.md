@@ -25,8 +25,10 @@ roll. Artifact odds and pity are unchanged, including for elites.
 Each added island has six artifacts: four enemy drops, one boss, one hidden.
 All sources use the existing shown odds, pity, set bonuses and bound-copy rules.
 No paid access gates. The level cap is 100, with additional size milestones at
-40, 55, 75 and 100. New themes currently reuse the existing scenery palettes;
-unique atmospheric effects remain art polish work.
+40, 55, 75 and 100. Each new island has its own scenery theme (R5.3): Storm Peak has slate
+spires with glowing stormglass streaks, Sunken Ruins has broken pillars, arches,
+kelp and coral, and Sky Forge has anvils, smoking chimneys and brass gears. The
+client blends a per-theme color tint and sky haze on arrival.
 
 ## Ascension specification and implementation
 

@@ -22,6 +22,7 @@ local allIds = {}
 for _, zoneId in Config.ZoneOrder do
 	local zone = Config.Zones[zoneId]
 	assert(#zone.enemies >= 2)
+	assert(Config.Visuals.zoneTints[zone.theme] and Config.Visuals.zoneAtmosphere[zone.theme], `zone {zoneId} theme needs a tint and haze`)
 	assert(Config.Bosses[zoneId].slam.warning >= 1.2)
 	if zone.gate.boss then
 		assert(zone.gate.boss < zoneId, "A zone cannot require its own boss")
