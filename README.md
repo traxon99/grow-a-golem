@@ -175,7 +175,19 @@ The server decides every result (damage, drops, costs, cooldowns, unlocks). The 
 
 ## Building your own islands
 
-Make an anchored part named `Zone1` (and `Zone2`, `Zone3`, and `Hub` for the Golem Hub) in Workspace. Its top surface becomes that island's playable area, and the game uses it instead of the placeholder. Your own islands don't get the generated scenery, so decorate them however you like. Keep decorations non-colliding (or low), because golems and enemies walk in straight lines and can get stuck on tall solid parts.
+Make an anchored part in Workspace named after the island it replaces. There is one name for each entry in `Config.Zones`, plus the hub:
+
+| Part name | Island |
+| --- | --- |
+| `Zone1` | Mossy Quarry |
+| `Zone2` | Ember Flats |
+| `Zone3` | Glasswood |
+| `Zone4` | Storm Peak |
+| `Zone5` | Sunken Ruins |
+| `Zone6` | Sky Forge |
+| `Hub` | Golem Hub |
+
+Its top surface becomes that island's playable area, and the game uses it instead of the placeholder. Your own islands don't get the generated scenery, so decorate them however you like. Keep decorations non-colliding (or low), because golems and enemies walk in straight lines and can get stuck on tall solid parts.
 
 ## Verification and launch preparation
 
