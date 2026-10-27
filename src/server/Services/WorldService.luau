@@ -4,9 +4,11 @@
 -- Once you build real islands in Studio, name each ground part "Zone1",
 -- "Zone2"... and this service will use yours instead of making flat ones.
 
+local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local Islands = require(script.Parent.Parent.Models.Islands)
 
 local WorldService = {}
 
@@ -49,7 +51,82 @@ local function makeSign(ground: BasePart, text: string)
 	sign.Parent = ground
 end
 
+-- Finds the first child of a class, or makes one.
+local function ensure(parent: Instance, className: string): any
+	local existing = parent:FindFirstChildOfClass(className)
+	if existing then
+		return existing
+	end
+	local made = Instance.new(className)
+	made.Parent = parent
+	return made
+end
+
+-- A bright, warm afternoon with soft haze and a little glow on neon parts.
+-- Low-poly art reads best with saturated colors and soft shadows.
+local function setupLighting()
+	Lighting.ClockTime = 14.5
+	Lighting.GeographicLatitude = 30
+	Lighting.Brightness = 2.6
+	Lighting.Ambient = Color3.fromRGB(78, 74, 88)
+	Lighting.OutdoorAmbient = Color3.fromRGB(150, 146, 160)
+	Lighting.ColorShift_Top = Color3.fromRGB(255, 240, 220)
+	Lighting.ColorShift_Bottom = Color3.fromRGB(0, 0, 0)
+	Lighting.EnvironmentDiffuseScale = 0.6
+	Lighting.EnvironmentSpecularScale = 0.3
+	Lighting.GlobalShadows = true
+	Lighting.ShadowSoftness = 0.35
+	Lighting.FogEnd = 100000
+
+	local atmosphere = ensure(Lighting, "Atmosphere") :: Atmosphere
+	atmosphere.Density = 0.28
+	atmosphere.Offset = 0.2
+	atmosphere.Color = Color3.fromRGB(200, 222, 255)
+	atmosphere.Decay = Color3.fromRGB(120, 140, 190)
+	atmosphere.Glare = 0.25
+	atmosphere.Haze = 1.2
+
+	local bloom = ensure(Lighting, "BloomEffect") :: BloomEffect
+	bloom.Intensity = 0.5
+	bloom.Size = 24
+	bloom.Threshold = 1.4
+
+	local color = ensure(Lighting, "ColorCorrectionEffect") :: ColorCorrectionEffect
+	color.Saturation = 0.18
+	color.Contrast = 0.06
+	color.Brightness = 0.02
+
+	local rays = ensure(Lighting, "SunRaysEffect") :: SunRaysEffect
+	rays.Intensity = 0.05
+	rays.Spread = 0.7
+
+	ensure(Lighting, "Sky")
+end
+
+-- The Baseplate template's grey floor sits right under the islands; turn it
+-- into a soft cloud layer instead so the islands look like they float.
+local function cloudSea()
+	local baseplate = workspace:FindFirstChild("Baseplate")
+	if not (baseplate and baseplate:IsA("BasePart")) then
+		return
+	end
+	baseplate.Color = Color3.fromRGB(236, 242, 255)
+	baseplate.Material = Enum.Material.SmoothPlastic
+	for _, child in baseplate:GetChildren() do
+		if child:IsA("Texture") or child:IsA("Decal") then
+			child.Transparency = 1
+		end
+	end
+end
+
 function WorldService.start()
+	if Config.Visuals.controlLighting then
+		setupLighting()
+	end
+	if Config.Visuals.cloudSeaBaseplate then
+		cloudSea()
+	end
+
 	for id, zone in Config.Zones do
 		local name = "Zone" .. id
 		local ground = workspace:FindFirstChild(name)
@@ -65,6 +142,20 @@ function WorldService.start()
 			part.Parent = workspace
 			makeSign(part, zone.name)
 			ground = part
+			grounds[id] = part
+			if Config.Visuals.decorateIslands then
+				local ok, err = pcall(Islands.decorate, part, {
+					theme = zone.theme or "meadow",
+					seed = id * 7919,
+					keepClear = {
+						{ position = WorldService.getSpawnPoint(id), radius = 30 },
+						{ position = WorldService.getBossPoint(id), radius = 40 },
+					},
+				})
+				if not ok then
+					warn(`[WorldService] island scenery failed for zone {id}: {err}`)
+				end
+			end
 		end
 		grounds[id] = ground :: BasePart
 	end
