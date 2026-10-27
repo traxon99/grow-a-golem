@@ -57,7 +57,7 @@ local settling: { [Player]: boolean } = {} -- a pending trade is being finished 
 local journalOk, journalOrError = pcall(function()
 	return DataStoreService:GetDataStore(Config.Trading.journalStore)
 end)
-local journal: DataStore? = if journalOk then journalOrError else nil
+local journal: DataStore? = if journalOk then journalOrError :: any else nil
 
 local function today(): number
 	return os.time() // 86400
@@ -344,7 +344,7 @@ local function commit(trade: Trade)
 		-- Nothing was saved yet, so undo a's escrow in memory and stop.
 		if okA then
 			DataService.update(a, function(d)
-				TradeJournal.resolve(d, "aborted", function() end, Config.Trading.logKept)
+				TradeJournal.resolve(d, "aborted", function(_: any, _: string) end, Config.Trading.logKept)
 			end)
 		end
 		cancel(trade, "The trade was cancelled: an offered artifact isn't available any more.")
