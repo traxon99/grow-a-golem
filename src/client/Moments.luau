@@ -164,6 +164,8 @@ local function startReveal(gui: ScreenGui)
 		local stroke = Ui.surface(card, "crystal", { tint = Color3.fromRGB(46, 40, 70) })
 		stroke.Color = GOLD
 		stroke.Thickness = 4
+		-- Ui.surface adds the "Grain" gradient that the glow below spins.
+		local gradient = card:FindFirstChild("Grain") :: UIGradient
 
 		local content = Instance.new("Frame")
 		content.BackgroundTransparency = 1
@@ -206,7 +208,7 @@ local function startReveal(gui: ScreenGui)
 		}):Play()
 
 		-- The card's glow sweeps and pulses while it is up.
-		local spin = RunService.RenderStepped:Connect(function(dt)
+		local spin = RunService.RenderStepped:Connect(function(dt: number)
 			gradient.Rotation = (gradient.Rotation + dt * 90) % 360
 			stroke.Thickness = 3 + math.sin(os.clock() * 6)
 		end)

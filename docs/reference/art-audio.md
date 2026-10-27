@@ -43,11 +43,12 @@ Button scale-bounce about 1.05-1.1x over 0.1 s; click SFX on every button; pop s
 ## Grow A Golem today
 
 - Original low-poly templates in `assets/models/Assets.rbxmx` now cover eight golem tiers, six bosses and three prop types. `Build.attachAsset` prefers these under `ReplicatedStorage.Assets`, retains gameplay roots and Motor6D animation, strips imported scripts/physics, and falls back to procedural art when absent. Regular enemies and remaining props use procedural models. Studio appearance remains unverified.
-- Server-side lighting setup in `WorldService` with per-zone color grading (`Config` `controlLighting`); Technology choice not set in code (check in Studio).
+- Server-side lighting setup in `WorldService`; the client blends per-zone color grading and sky haze (`Config.Visuals.zoneTints`, `zoneAtmosphere`, both need `controlLighting`). Technology choice not set in code (check in Studio).
+- Six island scenery themes in `Islands.luau` (meadow, ember, crystal, storm, ruins, forge), one per zone, all decoration-only and non-colliding. Part counts for the new three are about half of the meadow island's; not yet measured on a phone.
 - Feedback: hit flashes, damage numbers, debris, boss HP bar, artifact reveal card, level-up banner.
 - Audio: built-in client sounds (`rbxasset://sounds/...`) re-pitched via `Config.SoundEffects`; `Config.Sounds` moment ids (artifact, levelUp, grow) are 0, so they fall back to the re-pitched effects. 19 original synthesized WAV files are ready for upload in `assets/audio/`, but no valid numeric Roblox IDs or universe permissions have been supplied. No music or volume settings. See `assets/README.md` and [launch/plan.md](../launch/plan.md).
 - No shared rarity color table with symbols found; no ReducedMotion gating.
-- Two 512px icon alternatives and three 1920x1080 thumbnail illustrations now exist in `assets/keyart/` (editable SVG and exported PNG). They are draft illustrations, not gameplay captures or published page assets.
+- Two face-first 512px icon alternatives (checked at 48px) and four 1920x1080 thumbnail illustrations (ride, Old Rockjaw's slam, party, growth) now exist in `assets/keyart/` (editable SVG and exported PNG). They are draft illustrations, not gameplay captures or published page assets.
 - UI surfaces use five original materials (wood, stone, metal, studs, crystal), drawn in code with optional tiling textures in `assets/ui-textures/`; see [ui-materials.md](ui-materials.md).
 
 ## Gaps worth closing

@@ -60,16 +60,18 @@ exist. An invented ID would hide an incomplete task and may play unlicensed audi
 
 ## Key-art drafts
 
-`keyart/icon-a.png` and `icon-b.png` are 512×512 icon alternatives. The three
+`keyart/icon-a.png` and `icon-b.png` are 512×512 face-first icon alternatives
+(stone on blue, crystal on orange) drawn to stay readable at 48 px. The four
 `thumbnail-*.png` files are 1920×1080 vector illustration drafts, with editable
-SVG sources. They depict the ride, a boss warning and a party; **they are not
-screenshots**. Prefer actual Studio captures following the launch shot list
+SVG sources. They depict the ride, Old Rockjaw's slam warning, a party and a
+starter golem beside its grown self; **they are not screenshots**. Prefer actual Studio captures following the launch shot list
 before advertising. Do not imply the illustrations are recorded gameplay.
 
 Rebuild:
 
 ```sh
 python3 scripts/create_assets.py
-# Optional: pip install cairosvg==2.9.1 (used only for SVG -> PNG export)
+# PNG export uses cairosvg if installed (pip install cairosvg==2.9.1),
+# otherwise Playwright's Chromium through node.
 python3 scripts/create_keyart.py
 ```

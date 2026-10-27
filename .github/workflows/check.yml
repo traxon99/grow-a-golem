@@ -23,3 +23,35 @@ jobs:
           unzip "$RUNNER_TEMP/rojo.zip" -d "$RUNNER_TEMP/rojo"
           chmod +x "$RUNNER_TEMP/rojo/rojo"
           "$RUNNER_TEMP/rojo/rojo" build default.project.json -o "$RUNNER_TEMP/grow-a-golem.rbxlx"
+
+  # Style, lint and Roblox type checks. Versions are pinned; bump them together.
+  lint:
+    runs-on: ubuntu-latest
+    env:
+      ROJO: 7.6.1
+      STYLUA: 2.6.0
+      SELENE: 0.32.0
+      LUAU_LSP_VERSION: 1.70.0
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rojo, StyLua, selene and luau-lsp
+        run: |
+          bin="$RUNNER_TEMP/bin"
+          mkdir -p "$bin"
+          get() { curl -fsSL "$1" -o "$RUNNER_TEMP/tool.zip" && unzip -oq "$RUNNER_TEMP/tool.zip" -d "$bin"; }
+          get "https://github.com/rojo-rbx/rojo/releases/download/v$ROJO/rojo-$ROJO-linux-x86_64.zip"
+          get "https://github.com/JohnnyMorganz/StyLua/releases/download/v$STYLUA/stylua-linux-x86_64.zip"
+          get "https://github.com/Kampfkarren/selene/releases/download/$SELENE/selene-$SELENE-linux.zip"
+          get "https://github.com/JohnnyMorganz/luau-lsp/releases/download/$LUAU_LSP_VERSION/luau-lsp-linux-x86_64.zip"
+          # Roblox API types from the same luau-lsp release, so they always parse.
+          curl -fsSL "https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/$LUAU_LSP_VERSION/scripts/globalTypes.d.luau" -o "$RUNNER_TEMP/globalTypes.d.luau"
+          chmod +x "$bin"/*
+          echo "$bin" >> "$GITHUB_PATH"
+      - name: StyLua format check (files in .styluaignore are not formatted yet)
+        run: stylua --check src tests
+      - name: selene lint (errors fail, warnings are shown)
+        run: selene --allow-warnings src
+      - name: luau-lsp type check against scripts/type-baseline.json
+        run: |
+          rojo sourcemap default.project.json -o sourcemap.json
+          python3 scripts/typecheck.py --definitions "$RUNNER_TEMP/globalTypes.d.luau"

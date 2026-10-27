@@ -1,0 +1,2 @@
+# golem.yml is the Roblox standard library with an optional assert() message.
+std = "golem"

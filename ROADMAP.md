@@ -111,7 +111,7 @@ Owner rows can start now. Gate: the owner signs off on the store page and the pu
 | R3.6 | Publish the store description once it matches the build | Owner | `docs/launch/game-page.md` | Waiting: R3.5 |
 | R3.7 | Check analytics events appear in the Creator Dashboard | Owner | none | Waiting: R1.5 |
 | R3.8 | Release plan: shut down servers running the version without save leases before going live | Owner | `docs/playtest.md` | Open |
-| R3.9 | Redraw the concept icon and thumbnails so they read at small size: a face-first icon, a real boss, a growth shot | Code | `assets/keyart`, `scripts/create_keyart.py`, `docs/launch/game-page.md` | In progress: Claude for @traxon99, claude/project-thread-pklm20, 2026-10-27 |
+| R3.9 | Redraw the concept icon and thumbnails so they read at small size: a face-first icon, a real boss, a growth shot | Code | `assets/keyart`, `assets/README.md`, `scripts/create_keyart.py`, `docs/launch/game-page.md` | Done: #34 |
 
 ## Phase 4: Soft launch
 
@@ -131,10 +131,12 @@ Code rows can start any time, but Phase 1 fixes come first, and building on unte
 | --- | --- | --- | --- | --- |
 | R5.1 | Build the co-op tower from `docs/expansion-design.md` | Code, Studio | new service, `PartyService`, `WorldService`, `Menus.luau`, `Config.luau` | Open |
 | R5.2 | Make trades crash-safe across both players' saves | Code, Studio | `TradeService`, `DataService` | In progress: Claude for @shmurkles, claude/r5-2-crash-safe-trades, 2026-10-27 |
-| R5.3 | Give zones 4–6 their own scenery and atmosphere | Code | `src/server/Models/Islands.luau`, `WorldService`, `theme` lines of `Config.Zones[4–6]`, `Config.Visuals`, `zoneTint` in `src/client/Fx.luau` | In progress: Claude for @traxon99, claude/project-thread-snc8t6, 2026-10-27 |
+| R5.3 | Give zones 4–6 their own scenery and atmosphere | Code | `src/server/Models/Islands.luau`, `WorldService`, `theme` lines of `Config.Zones[4–6]`, `Config.Visuals`, `zoneTint` in `src/client/Fx.luau` | Done: #33 |
 | R5.4 | Measure the full path toward the 20-hour goal; plan content per update from the data | Studio | `docs/expansion-design.md` | Waiting: Phase 2 |
 | R5.5 | Decide whether to move saves to ProfileStore | Code | `DataService` | In progress: Claude for @shmurkles, claude/r5-5-profilestore-decision, 2026-10-27 |
-| R5.6 | Add StyLua, selene and luau-lsp type checks to CI without reformatting files other rows have claimed | Code | `.github/workflows/check.yml`, `stylua.toml`, `selene.toml`, `scripts/lint.py`, `scripts/type-baseline.json`, `.claude/skills/auto-ship/SKILL.md` | In progress: Claude for @traxon99, claude/project-thread-jbo1mb, 2026-10-27 |
+| R5.6 | Add StyLua, selene and luau-lsp type checks to CI without reformatting files other rows have claimed | Code | `.github/workflows/check.yml`, `stylua.toml`, `.styluaignore`, `selene.toml`, `golem.yml`, `scripts/typecheck.py`, `scripts/type-baseline.json`, `.claude/skills/auto-ship/SKILL.md`, README "Verification" section | Done: #36 |
+| R5.9 | Run StyLua on the files in `.styluaignore`, one at a time, when no `In progress` row touches them; delete each line as you go | Code | the file being formatted, `.styluaignore` | Open |
+| R5.10 | Lower `scripts/type-baseline.json` to zero by fixing strict-mode type errors (most are in `Config.luau`, `Stats.luau`, `PassService`) | Code | the file being fixed, `scripts/type-baseline.json` | Open |
 | R5.8 | Progress report: `scripts/progress.py` lists PRs merged and roadmap rows done, claimed, released or added since a commit or since a person's last claim; `CLAUDE.md` tells every session to report it to its user | Code | `scripts/progress.py`, `CLAUDE.md`, the "How to use" section of `ROADMAP.md` | Done: #35 |
 
 ## Found in testing
@@ -143,4 +145,4 @@ Bugs and problems found while working through the phases. Give each a `B` number
 
 | ID | Problem | Found by | Touches | Status |
 | --- | --- | --- | --- | --- |
-| | None yet | | | |
+| B1 | Artifact reveal card errors every frame: its glow spun a `gradient` variable that no longer existed after the UI materials change | CI type check (R5.6) | `src/client/Moments.luau` | Done: #36 |
