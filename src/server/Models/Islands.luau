@@ -368,7 +368,8 @@ function DECOR.stormSpire(parent, rng, at, theme)
 	})
 	local streak = Build.part(parent, {
 		size = Vector3.new(0.3, h * 0.7, 0.3),
-		cframe = tilt * CFrame.new(w * 0.36, h * 0.45, 0) * CFrame.Angles(0, 0, math.rad(rng:NextNumber(-8, 8))),
+		-- On one face of the turned spire, so it shows.
+		cframe = tilt * CFrame.Angles(0, math.rad(45), 0) * CFrame.new(w / 2 + 0.1, h * 0.45, 0) * CFrame.Angles(0, 0, math.rad(rng:NextNumber(-8, 8))),
 		color = Color3.fromRGB(120, 210, 255),
 		material = Enum.Material.Neon,
 	})
@@ -476,7 +477,10 @@ function DECOR.chimney(parent, rng, at, theme)
 		material = Enum.Material.Neon,
 	})
 	local smoke = Instance.new("ParticleEmitter")
+	smoke.Texture = "rbxasset://textures/particles/smoke_main.dds"
 	smoke.Color = ColorSequence.new(Color3.fromRGB(120, 112, 108))
+	smoke.Rotation = NumberRange.new(0, 360)
+	smoke.RotSpeed = NumberRange.new(-20, 20)
 	smoke.Size = NumberSequence.new(1.5, 4)
 	smoke.Transparency = NumberSequence.new(0.4, 1)
 	smoke.Lifetime = NumberRange.new(3, 5)
