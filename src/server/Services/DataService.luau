@@ -53,7 +53,7 @@ local function defaultData(): any
 		minerals = minerals,
 		golem = { xp = 0, parts = {} },
 		bossesDefeated = {}, -- ["1"] = true
-		artifacts = { found = {}, equipped = {} },
+		artifacts = { found = {}, equipped = {}, pity = {} }, -- pity["drop1"] = rolls since last find
 		skills = {},
 		awakening = { count = 0, shards = 0, upgrades = {} },
 		daily = { streak = 0, lastClaimDay = 0 },

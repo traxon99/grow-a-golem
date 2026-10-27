@@ -9,6 +9,7 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
+local Stats = require(Shared:WaitForChild("Stats"))
 
 local ActionService = require(script.Parent.ActionService)
 local DataService = require(script.Parent.DataService)
@@ -47,7 +48,7 @@ function ArtifactService.grant(player: Player, artifactId: string)
 		end
 	end)
 	Events.fire("artifactFound", player, artifactId)
-	Remotes.Notify:FireClient(player, "artifact", artifact.name)
+	Remotes.Notify:FireClient(player, "artifact", artifact.name, artifactId)
 end
 
 -- Rolls for an artifact drop. `source` is "drop" or "boss".
@@ -57,15 +58,24 @@ function ArtifactService.roll(player: Player, zoneId: number, source: string)
 	if not data then
 		return
 	end
-	local chance = if source == "boss" then Config.ArtifactBossChance else Config.ArtifactDropChance
-	chance *= if golem then golem.stats.luckMult else 1
-	if math.random() >= chance then
+	local chance, rollsLeft = Stats.artifactOdds(data, zoneId, source, if golem then golem.stats.luckMult else 1)
+	if chance <= 0 then
+		return -- nothing left to find here
+	end
+	local key = Stats.pityKey(zoneId, source)
+	-- An honest roll: the shown chance, plus a guaranteed find on the last
+	-- roll of the pity window. Never a fake near-miss.
+	if rollsLeft > 1 and math.random() >= chance then
+		DataService.update(player, function(d)
+			d.artifacts.pity[key] = (d.artifacts.pity[key] or 0) + 1
+		end)
 		return
 	end
+	DataService.update(player, function(d)
+		d.artifacts.pity[key] = 0
+	end)
 	local options = unfound(data, zoneId, source)
-	if #options > 0 then
-		ArtifactService.grant(player, options[math.random(1, #options)])
-	end
+	ArtifactService.grant(player, options[math.random(1, #options)])
 end
 
 ---------------------------------------------------------------- hidden relics

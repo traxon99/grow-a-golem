@@ -35,14 +35,15 @@ Let go of the controls and the golem plays itself: it fights enemies nearby, and
 | Riding, steering, auto-battle, mining | `GolemService`, `CombatService`, `MiningService` |
 | Forging parts (5 slots × 4 tiers), growth in size, full-set bonus | `ProgressionService`, `Stats` |
 | 3 islands with gates, travel menu, zone bosses with a dodgeable slam | `WorldService`, `EnemyService` |
-| 18 artifacts (drops, boss drops, hidden relics), index, zone set bonuses | `ArtifactService` |
+| 18 artifacts (drops, boss drops, hidden relics), index, zone set bonuses, shown odds and bad-luck protection | `ArtifactService` |
 | Skill tree (3 branches), respec | `ProgressionService` |
 | Awakening (rebirth) and shard upgrades | `ProgressionService` |
 | Co-op parties, shared kill rewards, friend bonus | `PartyService` |
 | Global leaderboards | `LeaderboardService` |
 | Daily login streak, daily and weekly quests, session gifts, offline mining, group reward | `RewardService` |
 | Game passes, developer products, receipts | `PassService` |
-| HUD, next-goal tracker, menus | `src/client` |
+| HUD, next-goal tracker with progress bar, menus | `src/client` |
+| Boss health bar, artifact reveal card, level-up banner | `src/client/Moments.luau` |
 
 Every balance number and all content (zones, enemies, bosses, artifacts, skills, quests, prices) is in `src/shared/Config.luau`.
 
@@ -69,6 +70,7 @@ src/
     State.luau         latest server snapshot and menu requests
     Controls.luau      steering and spell input
     Hud.luau           minerals, level, health, spell bar, next goal, messages
+    Moments.luau       boss health bar, artifact reveal, level-up banner
     Menus.luau         Forge, Travel, Artifacts, Skills, Awaken, Quests, Party, Shop, Ranks
     Ui.luau            UI building helpers
 ```
