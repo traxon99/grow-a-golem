@@ -91,8 +91,7 @@ function Tutorial.start()
 	panel.AnchorPoint = Vector2.new(0.5, 0)
 	panel.Position = UDim2.new(0.5, 0, 0, 46)
 	panel.Size = UDim2.new(0.62, 0, 0, 78)
-	panel.BackgroundColor3 = Ui.Colors.panel
-	panel.BackgroundTransparency = 0.1
+	panel.BackgroundTransparency = 0.05
 	panel.Visible = false
 	panel.Parent = gui
 	Ui.corner(panel, 14)
@@ -101,10 +100,10 @@ function Tutorial.start()
 	sizeLimit.Parent = panel
 	local scale = Instance.new("UIScale")
 	scale.Parent = panel
-	local stroke = Instance.new("UIStroke")
+	-- A wooden sign with a gold rim, so the tutorial stands out from menus.
+	local stroke = Ui.surface(panel, "wood", { details = true })
 	stroke.Color = GOLD
 	stroke.Thickness = 3
-	stroke.Parent = panel
 
 	local counter = Ui.label(panel, "", UDim2.fromOffset(60, 18), UDim2.fromOffset(14, 6), {
 		TextColor3 = GOLD,
@@ -129,7 +128,7 @@ function Tutorial.start()
 		end
 		State.request("skipTutorial")
 	end)
-	skip.BackgroundColor3 = Ui.Colors.row
+	Ui.surface(skip, "stone")
 
 	local function pop()
 		scale.Scale = 1.12

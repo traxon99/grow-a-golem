@@ -332,7 +332,6 @@ local function renderShop(list: ScrollingFrame, snap: any)
 	box.Name = "CodeBox"
 	box.Size = UDim2.new(1, -150, 1, -12)
 	box.Position = UDim2.fromOffset(6, 6)
-	box.BackgroundColor3 = Ui.Colors.panel
 	box.TextColor3 = Ui.Colors.text
 	box.PlaceholderText = "Type a code"
 	box.PlaceholderColor3 = Ui.Colors.quiet
@@ -342,6 +341,7 @@ local function renderShop(list: ScrollingFrame, snap: any)
 	box.ClearTextOnFocus = false
 	box.Parent = codeRow
 	Ui.corner(box, 6)
+	Ui.surface(box, "stone") -- a slot carved into the plate
 	codeBox = box
 	box:GetPropertyChangedSignal("Text"):Connect(function()
 		codeDraft = string.sub(box.Text, 1, Config.CodeLimits.maxLength)
@@ -571,8 +571,8 @@ function Menus.start()
 		end)
 		b.LayoutOrder = index
 		tabButtons[tab.id] = b
-		b.BackgroundColor3 = Ui.Colors.panel
-		b.BackgroundTransparency = 0.15
+		b.BackgroundTransparency = 0.05
+		Ui.surface(b, "studs", { details = true })
 	end
 
 	window = Instance.new("Frame")
@@ -580,20 +580,21 @@ function Menus.start()
 	window.AnchorPoint = Vector2.new(0.5, 0.5)
 	window.Position = UDim2.fromScale(0.5, 0.52)
 	window.Size = UDim2.fromScale(0.5, 0.66)
-	window.BackgroundColor3 = Ui.Colors.panel
 	window.BackgroundTransparency = 0.05
 	window.Visible = false
 	window.Parent = gui
 	Ui.corner(window, 12)
+	Ui.surface(window, "wood", { details = true })
 	local constraint = Instance.new("UISizeConstraint")
 	constraint.MinSize = Vector2.new(320, 260)
 	constraint.MaxSize = Vector2.new(640, 620)
 	constraint.Parent = window
 
 	titleLabel = Ui.label(window, "", UDim2.new(1, -70, 0, 30), UDim2.fromOffset(16, 10))
-	Ui.button(window, "X", UDim2.fromOffset(36, 36), UDim2.new(1, -46, 0, 8), true, function()
+	local close = Ui.button(window, "X", UDim2.fromOffset(36, 36), UDim2.new(1, -46, 0, 8), true, function()
 		open(openTab)
 	end)
+	Ui.surface(close, "metal")
 
 	list = Instance.new("ScrollingFrame")
 	list.Name = "List"

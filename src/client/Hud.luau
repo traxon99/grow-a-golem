@@ -78,23 +78,23 @@ function Hud.start()
 	stats.Name = "Stats"
 	stats.Size = UDim2.fromOffset(210, 26 * #Config.MineralOrder + 58)
 	stats.Position = UDim2.fromOffset(12, 12)
-	stats.BackgroundColor3 = Ui.Colors.panel
-	stats.BackgroundTransparency = 0.25
+	stats.BackgroundTransparency = 0.1
 	stats.Parent = gui
 	Ui.corner(stats, 10)
+	Ui.surface(stats, "stone", { details = true })
 
 	local levelLabel = Ui.label(stats, "Level 1", UDim2.new(1, -20, 0, 22), UDim2.fromOffset(10, 6))
 	local xpBack = Instance.new("Frame")
 	xpBack.Size = UDim2.new(1, -20, 0, 8)
 	xpBack.Position = UDim2.fromOffset(10, 32)
-	xpBack.BackgroundColor3 = Ui.Colors.row
 	xpBack.Parent = stats
 	Ui.corner(xpBack, 4)
+	Ui.surface(xpBack, "metal", { tint = Ui.Colors.row })
 	local xpFill = Instance.new("Frame")
 	xpFill.Size = UDim2.fromScale(0, 1)
-	xpFill.BackgroundColor3 = Ui.Colors.rune
 	xpFill.Parent = xpBack
 	Ui.corner(xpFill, 4)
+	Ui.fill(xpFill, Ui.Colors.rune)
 
 	local mineralLabels: { [string]: TextLabel } = {}
 	for index, id in Config.MineralOrder do
@@ -110,16 +110,16 @@ function Hud.start()
 	healthBack.AnchorPoint = Vector2.new(0.5, 0)
 	healthBack.Size = UDim2.fromOffset(280, 26)
 	healthBack.Position = UDim2.new(0.5, 0, 0, 12)
-	healthBack.BackgroundColor3 = Ui.Colors.panel
-	healthBack.BackgroundTransparency = 0.25
+	healthBack.BackgroundTransparency = 0.1
 	healthBack.Parent = gui
 	Ui.corner(healthBack, 8)
+	Ui.surface(healthBack, "metal")
 
 	local healthFill = Instance.new("Frame")
 	healthFill.Size = UDim2.fromScale(1, 1)
-	healthFill.BackgroundColor3 = Ui.Colors.good
 	healthFill.Parent = healthBack
 	Ui.corner(healthFill, 8)
+	Ui.fill(healthFill, Ui.Colors.good)
 
 	local healthText = Ui.label(healthBack, "Golem", UDim2.new(1, -16, 1, -6), UDim2.fromOffset(8, 3), {
 		TextXAlignment = Enum.TextXAlignment.Center,
@@ -139,15 +139,15 @@ function Hud.start()
 	goalBack.AnchorPoint = Vector2.new(0.5, 0)
 	goalBack.Size = UDim2.fromOffset(240, 6)
 	goalBack.Position = UDim2.new(0.5, 0, 0, 68)
-	goalBack.BackgroundColor3 = Ui.Colors.row
 	goalBack.Visible = false
 	goalBack.Parent = gui
 	Ui.corner(goalBack, 3)
+	Ui.surface(goalBack, "metal", { tint = Ui.Colors.row })
 	local goalFill = Instance.new("Frame")
 	goalFill.Size = UDim2.fromScale(0, 1)
-	goalFill.BackgroundColor3 = Ui.Colors.warn
 	goalFill.Parent = goalBack
 	Ui.corner(goalFill, 3)
+	Ui.fill(goalFill, Ui.Colors.warn)
 
 	local function refreshHealth()
 		local hp = player:GetAttribute("GolemHealth") or 0
@@ -172,18 +172,19 @@ function Hud.start()
 		b.AnchorPoint = Vector2.new(1, 1)
 		b.Size = UDim2.fromOffset(84, 84)
 		b.Position = UDim2.new(1, -24 - (index - 1) * 94, 1, -150)
-		b.BackgroundColor3 = Ui.Colors.panel
-		b.BackgroundTransparency = 0.15
+		b.BackgroundTransparency = 0.05
 		b.TextColor3 = Ui.Colors.rune
+		b.TextStrokeColor3 = Color3.fromRGB(10, 14, 20)
+		b.TextStrokeTransparency = 0.3
 		b.Font = Enum.Font.GothamBold
 		b.TextScaled = true
 		b.Text = if isTouch then spell.displayName else `{spell.displayName}\n[{spell.key.Name}]`
 		b.Parent = gui
 		Ui.corner(b, 42)
-		local stroke = Instance.new("UIStroke")
-		stroke.Color = Ui.Colors.rune
-		stroke.Thickness = 2
-		stroke.Parent = b
+		-- Runestones: a stone disc with a glowing rune rim.
+		local rim = Ui.surface(b, "stone")
+		rim.Color = Ui.Colors.rune
+		rim.Thickness = 3
 		b.Activated:Connect(function()
 			Controls.castSpell(spellId)
 		end)
@@ -212,11 +213,11 @@ function Hud.start()
 	banner.Name = "EventBanner"
 	banner.Size = UDim2.fromOffset(230, 46)
 	banner.Position = UDim2.fromOffset(232, 12)
-	banner.BackgroundColor3 = Ui.Colors.panel
-	banner.BackgroundTransparency = 0.25
+	banner.BackgroundTransparency = 0.05
 	banner.Visible = false
 	banner.Parent = gui
 	Ui.corner(banner, 10)
+	Ui.surface(banner, "wood", { details = true }) -- a notice board
 	local bannerTitle = Ui.label(banner, "", UDim2.new(1, -16, 0, 20), UDim2.fromOffset(8, 4), { TextColor3 = Ui.Colors.warn })
 	local bannerInfo = Ui.label(banner, "", UDim2.new(1, -16, 0, 16), UDim2.fromOffset(8, 26), { TextColor3 = Ui.Colors.quiet, Font = Enum.Font.Gotham })
 	task.spawn(function()

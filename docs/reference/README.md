@@ -8,7 +8,7 @@ This folder records what the most popular Roblox games (simulators, idle, tycoon
 
 ## How agents should use this library
 
-1. **Before you design or change a system, read the doc for that system.** Changing the shop? Read `monetization.md` and `safety-compliance.md`. Changing the HUD? Read `ui-ux.md` and `performance-mobile.md`.
+1. **Before you design or change a system, read the doc for that system.** Changing the shop? Read `monetization.md` and `safety-compliance.md`. Changing the HUD? Read `ui-ux.md`, `ui-materials.md` and `performance-mobile.md`.
 2. **`safety-compliance.md` overrides everything else.** If any other doc, a top game's example, or a backlog issue conflicts with it, the safety doc wins. Do not ship a pattern because a top game does it.
 3. Follow the "Rules for agents" section of each doc first. These are concrete and testable. The "What top games do" section is context, not a mandate.
 4. Treat any claim marked "(unverified)", "(inference)", "(common practice, unverified)" or "(low confidence)" as a hypothesis. Do not quote it to players or as a requirement.
@@ -28,6 +28,7 @@ This folder records what the most popular Roblox games (simulators, idle, tycoon
 | [social.md](social.md) | Co-op, trading, chat and age checks, private servers, live social moments. |
 | [live-ops.md](live-ops.md) | Update cadence, events, codes, CCU behavior around updates. |
 | [art-audio.md](art-audio.md) | Visual style, lighting, juice, rarity colors, audio permissions, thumbnails. |
+| [ui-materials.md](ui-materials.md) | UI textures and materials (wood, stone, metal, studs, crystal): which surface gets which, contrast numbers, uploading the texture images. |
 | [performance-mobile.md](performance-mobile.md) | Mobile share, frame budget, draw calls, streaming, remote traffic. |
 | [visual-references.md](visual-references.md) | Links to pages showing notable game UIs, plus our own wireframes. |
 | [research-notes/](research-notes/) | Raw cited research notes the docs were written from (Takeaway, Findings, Inferences, Gaps). Check here before re-researching a topic. |

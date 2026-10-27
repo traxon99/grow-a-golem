@@ -28,15 +28,15 @@ local function bar(parent: Instance, size: UDim2, position: UDim2, color: Color3
 	local back = Instance.new("Frame")
 	back.Size = size
 	back.Position = position
-	back.BackgroundColor3 = Ui.Colors.row
 	back.Parent = parent
 	Ui.corner(back, 6)
+	Ui.surface(back, "metal", { tint = Ui.Colors.row })
 	local fill = Instance.new("Frame")
 	fill.Size = UDim2.fromScale(0, 1)
-	fill.BackgroundColor3 = color
 	fill.ZIndex = 3
 	fill.Parent = back
 	Ui.corner(fill, 6)
+	Ui.fill(fill, color)
 	return back, fill
 end
 
@@ -48,11 +48,11 @@ local function startBossBar(gui: ScreenGui)
 	frame.AnchorPoint = Vector2.new(0.5, 0)
 	frame.Size = UDim2.fromOffset(420, 52)
 	frame.Position = UDim2.new(0.5, 0, 0, 82)
-	frame.BackgroundColor3 = Ui.Colors.panel
-	frame.BackgroundTransparency = 0.2
+	frame.BackgroundTransparency = 0.1
 	frame.Visible = false
 	frame.Parent = gui
 	Ui.corner(frame, 10)
+	Ui.surface(frame, "stone", { details = true })
 
 	local title = Ui.label(frame, "", UDim2.new(1, -20, 0, 18), UDim2.fromOffset(10, 4), {
 		TextXAlignment = Enum.TextXAlignment.Center,
@@ -157,21 +157,13 @@ local function startReveal(gui: ScreenGui)
 		card.AnchorPoint = Vector2.new(0.5, 0.5)
 		card.Position = UDim2.fromScale(0.5, 0.45)
 		card.Size = UDim2.fromOffset(0, 0)
-		card.BackgroundColor3 = Ui.Colors.panel
 		card.ZIndex = 10
 		card.Parent = gui
 		Ui.corner(card, 16)
-		local stroke = Instance.new("UIStroke")
+		-- A dark faceted crystal with a gold rim.
+		local stroke = Ui.surface(card, "crystal", { tint = Color3.fromRGB(46, 40, 70) })
 		stroke.Color = GOLD
 		stroke.Thickness = 4
-		stroke.Parent = card
-		local gradient = Instance.new("UIGradient")
-		gradient.Color = ColorSequence.new({
-			ColorSequenceKeypoint.new(0, Color3.fromRGB(70, 60, 30)),
-			ColorSequenceKeypoint.new(0.5, Ui.Colors.panel),
-			ColorSequenceKeypoint.new(1, Color3.fromRGB(70, 60, 30)),
-		})
-		gradient.Parent = card
 
 		local content = Instance.new("Frame")
 		content.BackgroundTransparency = 1

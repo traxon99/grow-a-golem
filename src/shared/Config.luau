@@ -571,6 +571,12 @@ Config.Visuals = {
 	},
 }
 
+-- Tiling textures for UI surfaces (see docs/reference/ui-materials.md).
+-- Upload each PNG in assets/ui-textures/ as a Decal or Image in Studio and
+-- paste its image id here. 0 = no image: the panel still gets its material's
+-- color, grain gradient, edge and details, all drawn in code.
+Config.UiTextures = { wood = 0, stone = 0, metal = 0, studs = 0, crystal = 0 }
+
 -- Sound ids for the big moments (artifact reveal, level up, growing a size).
 -- 0 = silent. Paste rbxassetid numbers from the Creator Store.
 Config.Sounds = { artifact = 0, levelUp = 0, grow = 0 }

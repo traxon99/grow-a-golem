@@ -232,10 +232,10 @@ function Wardrobe.render(list: ScrollingFrame, snap: any, nextOrder: () -> numbe
 	local holder = Instance.new("Frame")
 	holder.Name = "PreviewHolder"
 	holder.Size = UDim2.new(1, -8, 0, PREVIEW_HEIGHT)
-	holder.BackgroundColor3 = Ui.Colors.row
 	holder.LayoutOrder = nextOrder()
 	holder.Parent = list
 	Ui.corner(holder, 8)
+	Ui.surface(holder, "studs")
 	local vp = ensureViewport()
 	vp.Parent = holder
 	local source = if previewId and Config.Cosmetics[previewId].slot == "outfit" then player.Character else golemModel()

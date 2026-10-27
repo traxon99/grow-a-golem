@@ -48,6 +48,7 @@ Button scale-bounce about 1.05-1.1x over 0.1 s; click SFX on every button; pop s
 - Audio: built-in client sounds (`rbxasset://sounds/...`) re-pitched via `Config.SoundEffects`; `Config.Sounds` moment ids (artifact, levelUp, grow) are 0, so they fall back to the re-pitched effects. No music found. No volume settings found.
 - No shared rarity color table with symbols found; no ReducedMotion gating.
 - No thumbnails or icon yet (#16).
+- UI surfaces use five original materials (wood, stone, metal, studs, crystal), drawn in code with optional tiling textures in `assets/ui-textures/`; see [ui-materials.md](ui-materials.md).
 
 ## Gaps worth closing
 
