@@ -86,7 +86,21 @@ do
 		assert(
 			TradeJournal.resolve(back, "aborted", adds, 2) and back.artifacts.spares[X] == 1 and back.trades.count == 0
 		)
-		print("PASS: TradeJournal escrow, decisions and one-time resolution")
+		-- Cleanup: only a decided record can be marked, and only both sides
+		-- marked means the record is no longer needed.
+		assert(TradeJournal.markSettled(nil, "a") == nil, "Nothing settles before a decision")
+		local record = TradeJournal.decide(nil, "committed", 1)
+		record = TradeJournal.markSettled(record, "a")
+		assert(TradeJournal.status(record) == "committed" and not TradeJournal.bothSettled(record))
+		record = TradeJournal.markSettled(record, "a")
+		assert(not TradeJournal.bothSettled(record), "Marking one side twice isn't both sides")
+		record = TradeJournal.markSettled(record, "b")
+		assert(TradeJournal.bothSettled(record))
+		assert(
+			TradeJournal.status(TradeJournal.decide(record, "aborted", 2)) == "committed",
+			"Marks never change the decision"
+		)
+		print("PASS: TradeJournal escrow, decisions, one-time resolution and cleanup marks")
 	end
 
 	---------------------------------------------------------------- the service
@@ -151,6 +165,12 @@ do
 							journalRecords[key] = copy(value)
 						end
 						return copy(value)
+					end,
+					RemoveAsync = function(_, key)
+						if failJournal then
+							error("simulated journal outage")
+						end
+						journalRecords[key] = nil
 					end,
 				}
 			end,
@@ -285,7 +305,7 @@ do
 		"Both settled saves are written"
 	)
 	assert(live[a].trades.count == 1 and #live[b].trades.log == 1 and fired.traded == 1)
-	assert(TradeJournal.status(journalRecords["trade_g1"]) == "committed")
+	assert(journalRecords["trade_g1"] == nil, "A trade both sides settled leaves no journal record")
 
 	-- 2. b's save fails during escrow: the trade aborts and both get their spares back.
 	a, b = join(3, { [X] = 1 }), join(4, { [Y] = 1 })
@@ -296,6 +316,10 @@ do
 	assert(live[a].artifacts.spares[X] == 1 and live[b].artifacts.spares[Y] == 1)
 	assert(live[a].trades.pending == nil and live[b].trades.pending == nil and fired.traded == 1)
 	assert(records[3].artifacts.spares[X] == 1, "The returned spare is saved")
+	assert(
+		TradeJournal.status(journalRecords["trade_g2"]) == "aborted",
+		"b's save never landed, so b hasn't marked and the record stays"
+	)
 
 	-- 3. The server crashes after a's escrow save, before b's: b never saved the
 	-- trade, a's save holds it. On rejoin a asks the journal, finds no decision,
@@ -331,6 +355,7 @@ do
 	b = join(8)
 	assert(live[b].artifacts.spares[X] == 1 and live[b].artifacts.spares[Y] == nil)
 	assert(total(X, live[a], live[b]) == 1 and total(Y, live[a], live[b]) == 1)
+	assert(journalRecords["trade_g4"] == nil, "Removed once the second side settles on rejoin")
 
 	-- 5. The journal can't be reached: the trade stays in escrow, trading is
 	-- blocked with a clear message, and it settles once the journal is back.
@@ -351,7 +376,7 @@ do
 	drain()
 	assert(live[a].trades.pending == nil and live[b].trades.pending == nil)
 	assert(total(X, live[a], live[b]) == 1 and total(Y, live[a], live[b]) == 1)
-	assert(TradeJournal.status(journalRecords["trade_g5"]) == "aborted", "Unknown outcomes resolve safely to aborted")
+	assert(journalRecords["trade_g5"] == nil, "Settled after the outage, aborted, and cleaned up")
 
 	Config.Trading.countdownSeconds = countdown
 	Config.Trading.requestCooldown = cooldown

@@ -217,19 +217,46 @@ local function decide(id: string, wanted: string): string?
 end
 
 -- Applies the decision to a loaded player's save if it still holds that trade.
+-- Marks one side of a decided trade settled; removes the record once both are.
+-- Failing here only leaves a small record behind, so it doesn't retry for long.
+local function markSettled(id: string, side: string)
+	if not journal then
+		return
+	end
+	local store = journal
+	local key = "trade_" .. id
+	local ok, record = pcall(function()
+		return store:UpdateAsync(key, function(current)
+			return TradeJournal.markSettled(current, side)
+		end)
+	end)
+	if ok and TradeJournal.bothSettled(record) then
+		pcall(function()
+			store:RemoveAsync(key)
+		end)
+	end
+end
+
 local function settleLoaded(player: Player, id: string, status: string): boolean
 	local data = DataService.get(player)
 	local pending = data and data.trades.pending
 	if not pending or pending.id ~= id then
 		return false
 	end
+	local side = pending.side
 	local addCopy = receive(player)
 	local done = false
 	DataService.update(player, function(d)
 		done = TradeJournal.resolve(d, status, addCopy, Config.Trading.logKept)
 	end)
 	if done then
-		task.spawn(saveWithRetries, player)
+		task.spawn(function()
+			-- Only once the save without `pending` is written may this side
+			-- tell the journal it no longer needs the record.
+			if saveWithRetries(player) and side then
+				markSettled(id, side)
+			end
+		end)
 	end
 	return done
 end
@@ -335,7 +362,15 @@ local function commit(trade: Trade)
 	local id = HttpService:GenerateGUID(false)
 	local day, now = today(), os.time()
 	local function entry(player: Player, other: Player): any
-		return { id = id, with = other.UserId, gave = give[player], got = give[other], day = day, at = now }
+		return {
+			id = id,
+			with = other.UserId,
+			gave = give[player],
+			got = give[other],
+			day = day,
+			at = now,
+			side = if player == a then "a" else "b",
+		}
 	end
 	local okA, okB = false, false
 	DataService.update(a, function(d)
