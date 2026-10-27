@@ -512,7 +512,7 @@ local function snapshot(player: Player): any
 	if not Config.Tower.enabled then
 		return { enabled = false }
 	end
-	local view = nil
+	local view: any = nil
 	local run = runOf[player]
 	if run then
 		local members = {}
