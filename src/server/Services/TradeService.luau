@@ -8,11 +8,15 @@
 --     minerals or cosmetics. Spares found under Robux-bought 2x Luck are bound.
 --   * Both players press Ready, wait out a countdown, then both press Confirm.
 --     Any change to either side resets everything.
---   * The swap re-checks both saves and applies both sides in one go with no
---     waiting in between, so a player leaving mid-trade can't duplicate items.
+--   * The swap re-checks both saves, then runs as a crash-safe journal trade
+--     (TradeJournal): offered spares go into escrow in both saves, one journal
+--     write decides the trade, and each save settles from that decision. A
+--     crash or failed save at any step can't duplicate or lose an artifact.
 --   * Each trade is logged in both saves, keyed by UserId.
 -- There is no text input anywhere in a trade.
 
+local DataStoreService = game:GetService("DataStoreService")
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -20,6 +24,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Stats = require(Shared:WaitForChild("Stats"))
+local TradeJournal = require(Shared:WaitForChild("TradeJournal"))
 
 local ActionService = require(script.Parent.ActionService)
 local AnalyticsService = require(script.Parent.AnalyticsService)
@@ -46,6 +51,13 @@ local TradeService = {}
 local tradeOf: { [Player]: Trade } = {}
 local requests: { [Player]: { [Player]: number } } = {} -- target -> requester -> expiry (os.clock)
 local lastRequest: { [Player]: number } = {}
+local settling: { [Player]: boolean } = {} -- a pending trade is being finished for this player
+
+-- GetDataStore throws in an unpublished place; trading then stays off.
+local journalOk, journalOrError = pcall(function()
+	return DataStoreService:GetDataStore(Config.Trading.journalStore)
+end)
+local journal: DataStore? = if journalOk then journalOrError :: any else nil
 
 local function today(): number
 	return os.time() // 86400
@@ -66,8 +78,11 @@ local function blockReason(player: Player): string?
 	if not profile then
 		return "Your golem is still loading"
 	end
-	if not profile.canSave then
+	if not profile.canSave or not journal then
 		return "Trading needs your progress to save, and it isn't saving here"
+	end
+	if profile.data.trades.pending then
+		return "Your last trade is still being saved. Your artifacts are safe."
 	end
 	if not PolicyService.isReady(player) then
 		return "Checking your account, try again in a moment"
@@ -155,7 +170,136 @@ end
 
 ---------------------------------------------------------------- the swap
 
--- Runs with no waiting from the first check to the last write.
+local function receive(player: Player): ((any, string) -> ())
+	local golem = GolemService.get(player)
+	local slots = if golem then golem.stats.artifactSlots else Config.Golem.baseArtifactSlots
+	return function(data: any, id: string)
+		ArtifactService.addCopy(data, id, slots, false)
+	end
+end
+
+-- Saves one player, retrying. True only if this server wrote the save.
+local function saveWithRetries(player: Player): boolean
+	for attempt = 1, Config.Trading.saveAttempts do
+		if DataService.saveNow(player) then
+			return true
+		end
+		if not player.Parent or not DataService.get(player) then
+			return false
+		end
+		task.wait(attempt * 2)
+	end
+	warn(`[TradeService] couldn't save {player.UserId} during a trade`)
+	return false
+end
+
+-- Writes `wanted` into the trade's journal record unless it already holds a
+-- decision, and returns the decision that stands. Nil if it couldn't be read.
+local function decide(id: string, wanted: string): string?
+	if not journal then
+		return nil
+	end
+	local store = journal
+	for attempt = 1, Config.Trading.saveAttempts do
+		local ok, record = pcall(function()
+			return store:UpdateAsync("trade_" .. id, function(current)
+				return TradeJournal.decide(current, wanted, os.time())
+			end)
+		end)
+		local status = if ok then TradeJournal.status(record) else nil
+		if status then
+			return status
+		end
+		warn(`[TradeService] journal write for trade {id} failed (attempt {attempt}): {record}`)
+		task.wait(attempt * 2)
+	end
+	return nil
+end
+
+-- Applies the decision to a loaded player's save if it still holds that trade.
+local function settleLoaded(player: Player, id: string, status: string): boolean
+	local data = DataService.get(player)
+	local pending = data and data.trades.pending
+	if not pending or pending.id ~= id then
+		return false
+	end
+	local addCopy = receive(player)
+	local done = false
+	DataService.update(player, function(d)
+		done = TradeJournal.resolve(d, status, addCopy, Config.Trading.logKept)
+	end)
+	if done then
+		task.spawn(saveWithRetries, player)
+	end
+	return done
+end
+
+-- Finishes a trade left pending by an earlier session (a crash, a failed save
+-- or a lost journal write). Writing "aborted" only takes effect if nothing was
+-- decided; a trade that did commit still completes.
+local function settle(player: Player)
+	local data = DataService.get(player)
+	local pending = data and data.trades.pending
+	if not pending or settling[player] then
+		return
+	end
+	settling[player] = true
+	local status = decide(pending.id, "aborted")
+	settling[player] = nil
+	if not status then
+		task.delay(Config.Trading.settleRetrySeconds, function()
+			if player.Parent then
+				settle(player)
+			end
+		end)
+		return
+	end
+	if settleLoaded(player, pending.id, status) then
+		say(player, if status == "committed"
+			then "Your last trade finished. Check your artifacts!"
+			else "Your last trade didn't go through, so your artifacts were returned.")
+	end
+end
+
+-- After escrow: save both sides, decide, then settle whoever is still here.
+-- Anyone who left settles from the journal the next time they load.
+local function finish(a: Player, b: Player, id: string)
+	local saved = saveWithRetries(a) and saveWithRetries(b)
+	local status = decide(id, if saved then "committed" else "aborted")
+	settling[a] = nil
+	settling[b] = nil
+	if not status then
+		for _, player in { a, b } do
+			if DataService.get(player) then
+				say(player, "Your trade is still being saved. Your artifacts are safe, and it will finish soon.")
+				task.delay(Config.Trading.settleRetrySeconds, function()
+					if player.Parent then
+						settle(player)
+					end
+				end)
+			end
+		end
+		return
+	end
+	for _, player in { a, b } do
+		local other = if player == a then b else a
+		if settleLoaded(player, id, status) then
+			say(player, if status == "committed"
+				then `Trade complete with {other.DisplayName}!`
+				else "The trade couldn't be saved, so it was cancelled. Your artifacts are back.")
+		end
+	end
+	if status == "committed" then
+		Events.fire("traded", a, b)
+		for _, player in { a, b } do
+			if player.Parent then
+				AnalyticsService.custom(player, "TradeCompleted", 1)
+			end
+		end
+	end
+end
+
+-- Runs with no waiting from the first check to escrow; finish() does the rest.
 local function commit(trade: Trade)
 	local a, b = trade.a, trade.b
 	local dataA, dataB = DataService.get(a), DataService.get(b)
@@ -164,7 +308,7 @@ local function commit(trade: Trade)
 		return
 	end
 	local blocked = blockReason(a) or blockReason(b)
-	if blocked or not mayTradeWith(a, b, false) then
+	if blocked or not mayTradeWith(a, b, false) or settling[a] or settling[b] then
 		cancel(trade, "The trade was cancelled because one of you can't trade right now.")
 		return
 	end
@@ -182,54 +326,36 @@ local function commit(trade: Trade)
 		end
 	end
 
-	local day = today()
-	local function apply(player: Player, other: Player, sends: { string }, gets: { string })
-		local golem = GolemService.get(player)
-		local slots = if golem then golem.stats.artifactSlots else Config.Golem.baseArtifactSlots
-		DataService.update(player, function(d)
-			for _, id in sends do
-				local left = d.artifacts.spares[id] - 1
-				d.artifacts.spares[id] = if left > 0 then left else nil
-				if (d.artifacts.boundSpares[id] or 0) > left then
-					d.artifacts.boundSpares[id] = if left > 0 then left else nil
-				end
-			end
-			for _, id in gets do
-				ArtifactService.addCopy(d, id, slots, false)
-			end
-			local trades = d.trades
-			if trades.day ~= day then
-				trades.day = day
-				trades.count = 0
-			end
-			trades.count += 1
-			table.insert(trades.log, { t = os.time(), with = other.UserId, gave = sends, got = gets })
-			while #trades.log > Config.Trading.logKept do
-				table.remove(trades.log, 1)
-			end
+	local id = HttpService:GenerateGUID(false)
+	local day, now = today(), os.time()
+	local function entry(player: Player, other: Player): any
+		return { id = id, with = other.UserId, gave = give[player], got = give[other], day = day, at = now }
+	end
+	local okA, okB = false, false
+	DataService.update(a, function(d)
+		okA = TradeJournal.prepare(d, entry(a, b))
+	end)
+	if okA then
+		DataService.update(b, function(d)
+			okB = TradeJournal.prepare(d, entry(b, a))
 		end)
 	end
-	apply(a, b, give[a], give[b])
-	apply(b, a, give[b], give[a])
+	if not okB then
+		-- Nothing was saved yet, so undo a's escrow in memory and stop.
+		if okA then
+			DataService.update(a, function(d)
+				TradeJournal.resolve(d, "aborted", function(_: any, _: string) end, Config.Trading.logKept)
+			end)
+		end
+		cancel(trade, "The trade was cancelled: an offered artifact isn't available any more.")
+		return
+	end
+	settling[a] = true
+	settling[b] = true
 	close(trade)
-	say(a, `Trade complete with {b.DisplayName}!`)
-	say(b, `Trade complete with {a.DisplayName}!`)
-	Events.fire("traded", a, b)
-	AnalyticsService.custom(a, "TradeCompleted", 1)
-	AnalyticsService.custom(b, "TradeCompleted", 1)
-
-	-- Write both saves right away (retrying) so a crash can't leave one side undone.
-	for _, player in { a, b } do
-		task.spawn(function()
-			for attempt = 1, Config.Trading.saveAttempts do
-				if DataService.saveNow(player) or not player.Parent then
-					return
-				end
-				task.wait(attempt * 2)
-			end
-			warn(`[TradeService] couldn't save {player.UserId} after a trade`)
-		end)
-	end
+	say(a, "Saving your trade...")
+	say(b, "Saving your trade...")
+	task.spawn(finish, a, b, id)
 end
 
 ---------------------------------------------------------------- actions
@@ -254,6 +380,10 @@ local function request(player: Player, userId: any): (boolean, string?)
 		return false, "Slow down a little!"
 	end
 	lastRequest[player] = now
+	local data = DataService.get(player)
+	if data and data.trades.pending and not settling[player] then
+		task.spawn(settle, player) -- a trade from an earlier session is still open
+	end
 	local mine = blockReason(player)
 	if mine then
 		return false, mine
@@ -473,6 +603,11 @@ function TradeService.start()
 	ActionService.register("tradeReady", setReady)
 	ActionService.register("tradeConfirm", confirm)
 	ActionService.register("tradeCancel", cancelAction)
+
+	-- A save can hold a trade that a crash or failed save left unfinished.
+	DataService.ProfileLoaded:Connect(function(player)
+		task.spawn(settle, player)
+	end)
 
 	-- Open trades don't sit around forever.
 	task.spawn(function()
