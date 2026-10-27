@@ -2,6 +2,16 @@
 
 Read `README.md` for setup, the code layout and where each system lives.
 
+## Roadmap: check it and claim before you start
+
+More than one person, and more than one Claude session, works on this repo at once. [`ROADMAP.md`](ROADMAP.md) is the shared list of what's open, in progress and done.
+
+- Before any work, pull `main` and read `ROADMAP.md`. Never work on a row marked `In progress`, and don't edit the files in its **Touches** column. If what you were asked to do overlaps one, tell the person who asked and stop until they decide.
+- Claim your row first: set its status to `In progress: Claude for @<login>, <branch>, <date>` and push that one-line change straight to `main`, as the roadmap's "Before you start" section shows. If the push is rejected and the rebase conflicts on your row, someone else got there first.
+- If the work has no row, add one (next free ID, right phase) and claim it.
+- In the PR that does the work, set the row to `Done: #<PR>`. If you stop early, set it back to `Open`.
+- Questions, exploration and reviews that change no files need no claim.
+
 ## Design reference library
 
 Before you design or change any player-facing system (UI, loops, progression, monetization, retention, onboarding, social, live ops, art, audio, performance, safety), read the matching doc in [`docs/reference/`](docs/reference/README.md). Start at its README.
