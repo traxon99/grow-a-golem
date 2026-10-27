@@ -41,6 +41,7 @@ Let go of the controls and the golem plays itself: it fights enemies nearby, and
 | Skill tree (3 branches × 8 nodes), respec | `ProgressionService` |
 | Awakening, Ascension and permanent upgrades | `ProgressionService` |
 | Co-op parties, shared kill rewards, friend bonus | `PartyService` |
+| Golem Tower: ten-wave co-op or solo runs in private arenas, fixed rewards per wave (off by default) | `TowerService`, `Config.Tower`, `Stats.towerWaveReward`, Tower section of the Travel menu |
 | Golem Hub island, Inspect cards, nametag titles, rare-find shout | `SocialService`, `Config.Hub`, `Config.Titles`, client Hub tab |
 | Safe artifact trading (spare copies, Ready / countdown / Confirm, policy gate, trade log, crash-safe escrow and journal) | `TradeService`, `src/shared/TradeJournal.luau`, `Config.Trading`, client Trade tab |
 | Global leaderboards | `LeaderboardService` |
@@ -74,6 +75,10 @@ For the group join reward, set `Config.Group.id` to your Roblox group's id.
 **Paid cosmetics** (Frost skin, Starlight Wizard outfit, Ember Sprite and Crystal Owl pets, Rune Trail) are each their own game pass. Create one per item, set its price to the `price` in `Config.Cosmetics`, and paste the id into its `passId`. Until then the Wardrobe shows "Coming soon" (players can still preview them). Earned cosmetics need nothing.
 
 Kid-safe rules for cosmetics, please keep them: every paid cosmetic is a direct purchase of one item the player has previewed. No eggs, crates, spins or "limited stock" timers. If a free random cosmetic drop is ever added, show its real odds and give it a pity limit like `Config.ArtifactPity`.
+
+## Turning on the Golem Tower
+
+The tower ships switched off (`Config.Tower.enabled = false`), so players don't see it. To try it, set `enabled = true` and run the three-player tests in `docs/playtest.md` (Test → Clients and Servers). Turn it on in a published version only after those pass. Balance (wave sizes, enemy health, rewards, arenas per server) is all in `Config.Tower`; the Travel menu shows exactly what each route pays.
 
 ## UI textures
 
@@ -125,7 +130,7 @@ Everything is logged through Roblox's own `AnalyticsService`, so no data leaves 
 | Funnels → Shop | Shop opened → purchase prompted → purchase completed (per item) |
 | Progression | Golem level reached, Awakenings and Ascensions |
 | Economy | Each mineral by source (mining, enemy, boss, relic, quest, daily, session, offline, event, code, group, tutorial, purchase) and sink (forge, respec, awaken) |
-| Custom events | SpellsCast, ArtifactFound, PartyJoined, CodeRedeemed, EventRewardClaimed |
+| Custom events | SpellsCast, ArtifactFound, PartyJoined, CodeRedeemed, EventRewardClaimed, TowerWaveCleared (value: wave), TowerRunEnded (value: waves cleared) |
 
 Mineral income and spell casts are added up and sent once a minute per player to stay inside Roblox's rate limits.
 

@@ -70,6 +70,7 @@ names and personal information out of public reports.
 | Three clients | Invite/accept/leave, share-range boundary, friend bonus, trading Ready/countdown/Confirm | Not run |
 | Rewards | Offline cap; daily/week rollover; streak; quests; session gifts; codes; event track | Not run |
 | Commerce | Unset IDs show Coming soon; test pass/product receipts once configured; restricted policy hides luck/trades | Not run |
+| Tower | Set `Config.Tower.enabled = true`. Solo run on Mossy Quarry: waves 1 to 10, boss on 5 and 10, reward per wave matches the menu, golem returns home after. Three clients: leader starts, both others accept, all move in; a decline and a timeout each cancel; one player travels away mid-wave and stops being paid; everyone knocked out ends the run; four runs at once, the fifth is told it's full; Output clean throughout | Not run |
 | Progression | Six zones; weighted tank/swarmer spawns; gold elite every 20 successful zone spawns; eight tiers; Awakening; Ascension reset and upgrades | Not run |
 | Assets | Remove Assets folder to check fallback; malformed empty model falls back; imported art never collides; new WAV uploads audible with permissions | Not run |
 | Persistence | Published-place checks above; leaderboards; fast hopping; leave/rejoin | Not run |

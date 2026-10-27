@@ -44,6 +44,7 @@ Details:
 | Session | Golem size steps (levels 1/5/10/18/28/40/55/75/100) plus boss kills unlock the next island (Mossy Quarry → Ember Flats → Glasswood → Storm Peak → Sunken Ruins → Sky Forge); each boss has a dodgeable telegraphed slam; artifacts; Awakening at level 20+; Ascension after five unspent Awakenings and boss 6 |
 
 - Strong fit with the genre skeleton. Co-op parties add a social multiplier (see [social.md](social.md)).
+- **Golem Tower (#62, off until playtested):** a session-layer side mode. Ten waves of an unlocked island's enemies in a private arena, with fixed, pre-shown rewards per cleared wave instead of drops. It gives parties a shared goal without a new random reward table.
 - No global shared timer (restock, world boss) yet; nothing pulls players to a shared moment every few minutes.
 - Each island now has weighted swarmer/tank spawns; every twentieth successful spawn is an elite with more fixed XP/minerals. The 20-hour completion goal is unmeasured.
 - Unknown until playtest (#9): whether the first forge feels like a power jump, and how long each zone takes.

@@ -8,15 +8,35 @@ import os
 import re
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 compiler = os.environ.get("LUAU_COMPILE", "luau-compile")
 runner = os.environ.get("LUAU", "luau")
 files = sorted(ROOT.glob("src/**/*.luau")) + sorted(ROOT.glob("tests/*.luau"))
-subprocess.run([compiler, "--null", *map(str, files)], check=True)
+compiled = subprocess.run([compiler, "--null", *map(str, files)], capture_output=True, text=True)
+if compiled.returncode != 0:
+    sys.stderr.write(compiled.stdout + compiled.stderr)
+    if os.environ.get("GITHUB_ACTIONS"):
+        for line in (compiled.stdout + compiled.stderr).strip().splitlines()[:8]:
+            print(f"::error title=Luau compile::{line}")
+    sys.exit(compiled.returncode)
 prelude = '''local Color3 = { fromRGB = function(r, g, b) return { R = r/255, G = g/255, B = b/255 } end }
-local Vector3 = { new = function(x, y, z) return { X = x, Y = y, Z = z } end }
+local Vector3 = {}
+do
+ local mt = {}
+ mt.__index = function(v, key) if key == "Magnitude" then return math.sqrt(v.X * v.X + v.Y * v.Y + v.Z * v.Z) end return nil end
+ mt.__add = function(a, b) return Vector3.new(a.X + b.X, a.Y + b.Y, a.Z + b.Z) end
+ mt.__sub = function(a, b) return Vector3.new(a.X - b.X, a.Y - b.Y, a.Z - b.Z) end
+ mt.__mul = function(a, b)
+  if type(a) == "number" then return Vector3.new(a * b.X, a * b.Y, a * b.Z) end
+  if type(b) == "number" then return Vector3.new(a.X * b, a.Y * b, a.Z * b) end
+  return Vector3.new(a.X * b.X, a.Y * b.Y, a.Z * b.Z)
+ end
+ Vector3.new = function(x, y, z) return setmetatable({ X = x or 0, Y = y or 0, Z = z or 0 }, mt) end
+ Vector3.zero = Vector3.new(0, 0, 0)
+end
 local Enum = setmetatable({}, { __index = function(_, kind)
  return setmetatable({}, { __index = function(_, name) return kind .. "." .. name end })
 end })
@@ -53,8 +73,25 @@ trade_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependen
 bundle += "\nlocal function loadTradeService(dependencies, game, task)\n"
 bundle += 'local warn = function() end\nlocal script = { Parent = {} }\n' + trade_service + "\nend\n"
 bundle += (ROOT / "tests/trade-service.luau").read_text()
+# The real TowerService with mocked services and a test-controlled clock.
+tower_service = (ROOT / "src/server/Services/TowerService.luau").read_text()
+tower_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', tower_service)
+bundle += "\nlocal function loadTowerService(dependencies, game, task, clock)\n"
+bundle += 'local os = { clock = clock, time = os.time }\nlocal warn = function() end\nlocal script = { Parent = {} }\n'
+bundle += tower_service + "\nend\n"
+bundle += (ROOT / "tests/tower-service.luau").read_text()
 with tempfile.TemporaryDirectory(prefix="golem-check-") as folder:
     path = Path(folder) / "regression.luau"
     path.write_text(bundle)
-    subprocess.run([runner, str(path)], check=True, cwd=ROOT)
+    result = subprocess.run([runner, str(path)], cwd=ROOT, capture_output=True, text=True)
+    sys.stdout.write(result.stdout)
+    sys.stderr.write(result.stderr)
+    if result.returncode != 0:
+        # On GitHub Actions, "::error::" lines become annotations on the PR, so
+        # the failing assert shows without opening the log. Line numbers refer
+        # to the bundle; the message says which test failed.
+        if os.environ.get("GITHUB_ACTIONS"):
+            for line in (result.stderr or result.stdout).strip().splitlines()[:8]:
+                print(f"::error title=Regression tests::{line}")
+        sys.exit(result.returncode)
 print(f"Checked {len(files)} Luau files; Studio playtests are still required.")

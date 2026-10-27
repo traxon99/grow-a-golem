@@ -36,6 +36,8 @@ export type Enemy = {
 	slamPosition: Vector3,
 	slamMarker: BasePart?,
 	contributors: { [Player]: boolean },
+	-- Set for tower enemies: called once on defeat instead of island rewards.
+	onDefeated: ((Enemy) -> ())?,
 }
 
 local EnemyService = {}
@@ -98,6 +100,7 @@ local function makeEnemy(id: string, def: any, zoneId: number, at: Vector3, isBo
 		slamPosition = Vector3.zero,
 		slamMarker = nil,
 		contributors = {},
+		onDefeated = nil,
 	}
 	enemies[model] = enemy
 	return enemy
@@ -192,7 +195,10 @@ end
 local function remove(enemy: Enemy)
 	enemies[enemy.model] = nil
 	clearSlam(enemy)
-	if enemy.isBoss then
+	if enemy.onDefeated then
+		-- Tower enemies don't touch the island spawn counts or boss timers.
+		countByZone[enemy.zoneId] = math.max((countByZone[enemy.zoneId] or 1) - 1, 0)
+	elseif enemy.isBoss then
 		bossByZone[enemy.zoneId] = nil
 		bossReadyAt[enemy.zoneId] = os.clock() + enemy.def.respawn
 	else
@@ -304,8 +310,51 @@ function EnemyService.damage(enemy: Enemy, amount: number, player: Player)
 		enemy.humanoid.Health = enemy.hp
 		return
 	end
+	local onDefeated = enemy.onDefeated
+	if onDefeated then
+		remove(enemy)
+		onDefeated(enemy)
+		return
+	end
 	rewardKill(enemy, player)
 	remove(enemy)
+end
+
+-- Spawns one tower enemy into an arena. `healthMult` scales its health.
+-- `onDefeated` runs once when it's beaten; it gives no drops or artifact rolls.
+function EnemyService.spawnInArena(
+	zoneId: number,
+	enemyId: string,
+	def: any,
+	at: Vector3,
+	isBoss: boolean,
+	healthMult: number,
+	onDefeated: (Enemy) -> ()
+): Enemy
+	local scaled = table.clone(def)
+	scaled.maxHealth = math.floor(def.maxHealth * healthMult)
+	-- Bosses use their island's design id ("boss1"), like island bosses do.
+	local enemy = makeEnemy(enemyId, scaled, zoneId, at, isBoss)
+	enemy.onDefeated = onDefeated
+	countByZone[zoneId] = (countByZone[zoneId] or 0) + 1
+	if isBoss then
+		-- The client's boss bar finds bosses in the player's zone by this.
+		enemy.model:SetAttribute("BossZone", zoneId)
+	end
+	return enemy
+end
+
+-- Removes every enemy in a zone without rewards (a tower run ending).
+function EnemyService.clearZone(zoneId: number)
+	for _, enemy in enemies do
+		if enemy.zoneId == zoneId then
+			enemy.onDefeated = nil
+			enemies[enemy.model] = nil
+			clearSlam(enemy)
+			enemy.model:Destroy()
+		end
+	end
+	countByZone[zoneId] = 0
 end
 
 local function updateSlam(enemy: Enemy, now: number)

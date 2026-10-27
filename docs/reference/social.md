@@ -39,7 +39,7 @@ Last updated: 2026-10-27. Read [safety-compliance.md](safety-compliance.md) firs
 
 1. ~~**P1 (#13):** Hub design with no hangout or drawing features.~~ Done. Emotes and pings are still open.
 2. ~~**P1 (#13):** If trading ships: `IsPaidItemTradingAllowed` gate, two-sided confirm, value warning, trade log keyed by UserId, no trading of Robux-bought items.~~ Done. The known limit (a crash between the two players' saves could copy or lose an artifact) is fixed by the escrow and journal in R5.2; session locking alone could not fix it, since a trade spans two save records.
-3. **P1:** Co-op world boss or shared event so parties have a reason to form (also [live-ops.md](live-ops.md)).
+3. **P1:** Co-op world boss or shared event so parties have a reason to form (also [live-ops.md](live-ops.md)). Partly addressed by the Golem Tower (#62): a private ten-wave party run with Accept buttons for every member, no text and fixed rewards; it ships switched off until the three-client playtest.
 4. **P2:** Free private servers (goodwill; inference).
 5. **P2:** Make sure leaderboards show only Roblox display names and can drop a user on RTBF.
 

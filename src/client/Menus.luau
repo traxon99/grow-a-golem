@@ -97,6 +97,126 @@ local function renderForge(list: ScrollingFrame, snap: any)
 	Ui.row(list, nextOrder(), "Tip", "Forge all five parts from the same tier for +15% health and damage.")
 end
 
+-- The co-op Golem Tower section of Travel (TowerService). Every reward shown
+-- here is the fixed amount the server pays (Stats.towerWaveReward).
+local function renderTower(list: ScrollingFrame, snap: any, start: number)
+	local tower = snap.tower
+	if not tower or not tower.enabled then
+		return
+	end
+	local order = start
+	local function nextOrder(): number
+		order += 1
+		return order
+	end
+	local name = Config.Tower.name
+	local waves = Config.Tower.waves
+	Ui.heading(list, nextOrder(), name)
+	local run = tower.run
+	if run then
+		local route = (Config.Zones[run.route] :: any).name
+		if run.state == "inviting" then
+			if run.isLeader then
+				local waiting = 0
+				for _, member in run.members do
+					if not member.accepted then
+						waiting += 1
+					end
+				end
+				Ui.row(
+					list,
+					nextOrder(),
+					`{route} route: waiting for {waiting} to accept`,
+					`The run starts when everyone accepts ({run.inviteLeft}s left).`,
+					"Cancel",
+					true,
+					function()
+						State.request("towerLeave")
+					end
+				)
+			else
+				local reward = Stats.towerRunReward(run.route)
+				Ui.row(
+					list,
+					nextOrder(),
+					`{run.leaderName} invites you: {route} route, {waves} waves`,
+					`Full clear pays you {Ui.rewardText(reward)}. {run.inviteLeft}s left to answer.`,
+					"Accept",
+					true,
+					function()
+						State.request("towerAccept")
+					end
+				)
+				Ui.row(list, nextOrder(), "Not this time", nil, "Decline", true, function()
+					State.request("towerDecline")
+				end)
+			end
+			return
+		end
+		local status = if run.state == "ended"
+			then run.endText or "The run is over."
+			elseif run.state == "break" then `Wave {run.wave + 1} of {waves} starts in a moment`
+			else `Wave {run.wave} of {waves}: {run.remaining} enemies left`
+		Ui.row(list, nextOrder(), `{route} route  ·  {run.cleared} / {waves} waves cleared`, status)
+		if run.state ~= "ended" then
+			local nextWave = math.min(run.wave + (if run.state == "break" then 1 else 0), waves)
+			local reward = Stats.towerWaveReward(run.route, math.max(nextWave, 1))
+			Ui.row(
+				list,
+				nextOrder(),
+				`Clearing this wave pays {Ui.rewardText(reward)}`,
+				"Leaving keeps what you've earned; you miss the waves you haven't cleared.",
+				"Leave",
+				true,
+				function()
+					State.request("towerLeave")
+				end
+			)
+		end
+		return
+	end
+
+	local data = snap.data
+	local bossList = {}
+	for wave in Config.Tower.bossWaves do
+		table.insert(bossList, wave)
+	end
+	table.sort(bossList)
+	local bossWaves = table.concat(bossList, " and ")
+	if not tower.isLeader then
+		Ui.row(
+			list,
+			nextOrder(),
+			"Your party leader starts tower runs",
+			`{waves} waves together, each one paid as you clear it.`
+		)
+		return
+	end
+	Ui.row(
+		list,
+		nextOrder(),
+		if tower.partySize > 1 then `Climb with your party of {tower.partySize}` else "Climb solo, or with a party",
+		`{waves} waves of one island's enemies, with its boss on waves {bossWaves}. Every cleared wave pays everyone.`
+	)
+	for _, zoneId in Config.ZoneOrder do
+		local unlocked = Stats.zoneUnlocked(data, zoneId)
+		if unlocked then
+			local reward = Stats.towerRunReward(zoneId)
+			Ui.row(
+				list,
+				nextOrder(),
+				`{(Config.Zones[zoneId] :: any).name} route`,
+				`Full clear: {Ui.rewardText(reward)}`,
+				if tower.full then "Full" else "Start",
+				not tower.full,
+				function()
+					State.request("towerStart", zoneId)
+				end
+			)
+		end
+	end
+end
+
 local function renderTravel(list: ScrollingFrame, snap: any)
 	local data = snap.data
 	local currentZone = if snap.golem then snap.golem.zoneId else 1
@@ -133,6 +253,7 @@ local function renderTravel(list: ScrollingFrame, snap: any)
 			State.request("travel", zoneId)
 		end)
 	end
+	renderTower(list, snap, 100)
 end
 
 local function renderArtifacts(list: ScrollingFrame, snap: any)
@@ -627,7 +748,7 @@ local function renderShop(list: ScrollingFrame, snap: any)
 		if product.boost == "luck" then
 			-- The player's actual odds on this island right now, from the same
 			-- numbers the server rolls with, and what the boost changes them to.
-			local zoneId = if snap.golem and snap.golem.zoneId ~= Config.HubZone then snap.golem.zoneId else 1
+			local zoneId = if snap.golem and Config.Zones[snap.golem.zoneId] then snap.golem.zoneId else 1
 			local luckMult = Stats.compute(data, State.context()).luckMult
 			local zoneName = Config.Zones[zoneId].name
 			if activeFor > 0 then

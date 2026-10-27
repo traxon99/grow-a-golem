@@ -76,6 +76,12 @@ function PartyService.members(player: Player): { Player }
 	return if party then party.members else { player }
 end
 
+-- True if the player leads a party, or isn't in one (a party of one).
+function PartyService.isLeader(player: Player): boolean
+	local party = partyOf[player]
+	return party == nil or party.leader == player
+end
+
 -- % mineral bonus from friends in the same party.
 function PartyService.friendBonus(player: Player): number
 	local bonus = 0

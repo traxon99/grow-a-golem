@@ -73,6 +73,11 @@ for f in worse:
     print(f"::error file={f}::{f} has {counts[f]} type diagnostics, baseline is {baseline.get(f, 0)}")
     for raw in lines[f]:
         print("  " + raw.replace(str(ROOT) + "/", ""))
+        # One annotation per diagnostic, so the PR shows each line and message.
+        match = HEADER.match(raw)
+        if match:
+            message = raw[match.end() :].strip()
+            print(f"::warning file={f},line={match['line']},col={match['col']}::{match['kind']}: {message}")
 for f in better:
     print(f"{f}: {counts.get(f, 0)} type diagnostics, down from {baseline[f]}. Run scripts/typecheck.py --update to lock it in.")
 
