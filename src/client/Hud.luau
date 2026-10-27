@@ -1,6 +1,7 @@
 --!strict
 -- Always-on HUD: minerals, level and XP bar, golem health, the spell bar,
--- the next-goal tracker, first-time hints, and pop-up messages.
+-- the next-goal tracker, and pop-up messages. First-time guidance lives in
+-- Tutorial.luau.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -19,6 +20,13 @@ local Ui = require(script.Parent:WaitForChild("Ui"))
 local Hud = {}
 
 local player = Players.LocalPlayer
+
+local spellButtons: { [string]: TextButton } = {}
+
+-- The tutorial points at these.
+function Hud.getSpellButton(spellId: string): TextButton?
+	return spellButtons[spellId]
+end
 
 -- Works out the single most useful next thing to do, and how far along the
 -- player is (0 to 1) when that can be measured honestly.
@@ -155,7 +163,6 @@ function Hud.start()
 
 	---------------------------------------------------------------- spell bar
 
-	local spellButtons: { [string]: TextButton } = {}
 	local readyAt: { [string]: number } = {}
 	local isTouch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 	for index, spellId in Config.SpellOrder do
@@ -261,18 +268,18 @@ function Hud.start()
 		levelLabel.Text = `Level {level}  ·  Size {size}`
 		local floor, ceiling = Stats.xpForLevel(level), Stats.xpForLevel(level + 1)
 		xpFill.Size = UDim2.fromScale(if level >= Config.Golem.maxLevel then 1 else math.clamp((data.golem.xp - floor) / math.max(ceiling - floor, 1), 0, 1), 1)
+		-- The tutorial gives one instruction at a time; the goal takes over after.
+		local inTutorial = data.tutorial and not data.tutorial.done and data.tutorial.step >= 1
 		local goalText, progress = nextGoal(snap)
 		goal.Text = "Next: " .. goalText
-		goalBack.Visible = progress ~= nil
+		goal.Visible = not inTutorial
+		goalBack.Visible = progress ~= nil and not inTutorial
 		if progress then
 			TweenService:Create(goalFill, TweenInfo.new(0.3), { Size = UDim2.fromScale(math.clamp(progress, 0, 1), 1) }):Play()
 		end
 
 		if not hintShown then
 			hintShown = true
-			if data.golem.xp == 0 then
-				showToast("Steer with WASD or the joystick. Let go and your golem fights on its own!", 8)
-			end
 			if not snap.canSave then
 				task.delay(9, showToast, "Progress isn't saving in this test place (see the Output window).", 6)
 			end

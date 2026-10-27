@@ -9,10 +9,12 @@ local Menus = require(script:WaitForChild("Menus"))
 local Moments = require(script:WaitForChild("Moments"))
 local Sfx = require(script:WaitForChild("Sfx"))
 local State = require(script:WaitForChild("State"))
+local Tutorial = require(script:WaitForChild("Tutorial"))
 
 Hud.start() -- sets up the toast handler State uses
 Menus.start()
 Moments.start()
+Tutorial.start()
 State.start()
 Controls.start()
 Animator.start()

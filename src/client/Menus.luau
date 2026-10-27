@@ -489,6 +489,16 @@ local window: Frame
 local titleLabel: TextLabel
 local list: ScrollingFrame
 local openTab: number? = nil
+local tabButtons: { [string]: TextButton } = {}
+
+-- The tutorial points at these.
+function Menus.getTabButton(id: string): TextButton?
+	return tabButtons[id]
+end
+
+function Menus.isOpen(id: string): boolean
+	return openTab ~= nil and TABS[openTab].id == id
+end
 
 function Menus.refresh()
 	if not openTab or not State.snapshot then
@@ -541,6 +551,7 @@ function Menus.start()
 			open(index)
 		end)
 		b.LayoutOrder = index
+		tabButtons[tab.id] = b
 		b.BackgroundColor3 = Ui.Colors.panel
 		b.BackgroundTransparency = 0.15
 	end
