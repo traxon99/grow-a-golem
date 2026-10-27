@@ -410,7 +410,9 @@ Config.Trading = {
 	idleTimeout = 300, -- an open trade closes after this long
 	dailyLimit = 10, -- completed trades per player per UTC day
 	minAccountAgeDays = 7, -- fresh accounts can't trade (alt and scam protection)
-	saveAttempts = 3, -- tries to save both players right after a trade
+	saveAttempts = 3, -- tries to write each player's save at each step of a trade
+	journalStore = "TradeJournal_v1", -- DataStore holding one commit/abort decision per trade (see TradeJournal)
+	settleRetrySeconds = 60, -- wait before retrying a trade whose decision couldn't be read
 	sweepSeconds = 5, -- how often idle trades are checked
 	logKept = 30, -- trade records kept per player, keyed by UserId
 	-- Value points per artifact source, only used for the "this is lopsided"

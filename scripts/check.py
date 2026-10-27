@@ -28,6 +28,8 @@ lease = (ROOT / "src/shared/SessionLease.luau").read_text()
 bundle = prelude + '\nlocal Config = (function()\n' + config + '\nend)()\n'
 bundle += 'local Stats = (function()\n' + stats + '\nend)()\n'
 bundle += 'local SessionLease = (function()\n' + lease + '\nend)()\n'
+journal = (ROOT / "src/shared/TradeJournal.luau").read_text()
+bundle += 'local TradeJournal = (function()\n' + journal + '\nend)()\n'
 bundle += (ROOT / "tests/regression.luau").read_text()
 # Exercise the actual server handlers with mocked services, including repeated
 # requests. This avoids a test that merely repeats the Ascension implementation.
@@ -44,6 +46,13 @@ bundle += "\nlocal function loadDataService(dependencies, game, Instance)\n"
 bundle += 'local task = { spawn = function() end, wait = function() end }\nlocal warn = function() end\n'
 bundle += 'local script = { Parent = {} }\n' + data_service + "\nend\n"
 bundle += (ROOT / "tests/data-service.luau").read_text()
+# The real TradeService, with its requires swapped for mocks; the test drives
+# its action handlers and simulates crashes by reloading from written saves.
+trade_service = (ROOT / "src/server/Services/TradeService.luau").read_text()
+trade_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', trade_service)
+bundle += "\nlocal function loadTradeService(dependencies, game, task)\n"
+bundle += 'local warn = function() end\nlocal script = { Parent = {} }\n' + trade_service + "\nend\n"
+bundle += (ROOT / "tests/trade-service.luau").read_text()
 with tempfile.TemporaryDirectory(prefix="golem-check-") as folder:
     path = Path(folder) / "regression.luau"
     path.write_text(bundle)
