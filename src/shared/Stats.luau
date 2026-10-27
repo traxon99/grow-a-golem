@@ -1,0 +1,323 @@
+--!strict
+-- Pure functions that turn saved player data into game numbers: level, size,
+-- stats, costs, and unlock checks. Shared so the client can show the same
+-- numbers the server uses; the server is still the one that decides.
+
+local Config = require(script.Parent:WaitForChild("Config"))
+
+export type Context = {
+	passes: { [string]: boolean },
+	now: number, -- os.time()
+}
+
+export type GolemStats = {
+	level: number,
+	size: number,
+	scale: number,
+	maxHealth: number,
+	regenPerSecond: number,
+	attackDamage: number,
+	attackCooldown: number,
+	attackRange: number,
+	miningDamage: number,
+	miningCooldown: number,
+	miningRange: number,
+	walkSpeed: number,
+	mineralMult: number,
+	xpMult: number,
+	luckMult: number,
+	spellPowerMult: number,
+	spellCooldownMult: number,
+	artifactSlots: number,
+	offlineCapHours: number,
+	fullSet: string?,
+}
+
+local Stats = {}
+
+---------------------------------------------------------------- levels and size
+
+function Stats.xpForLevel(level: number): number
+	return math.floor(Config.LevelCurve.base * (level - 1) ^ Config.LevelCurve.exponent)
+end
+
+function Stats.levelForXp(xp: number): number
+	local level = 1
+	while level < Config.Golem.maxLevel and xp >= Stats.xpForLevel(level + 1) do
+		level += 1
+	end
+	return level
+end
+
+function Stats.sizeForLevel(level: number): number
+	local size = 1
+	for index, required in Config.SizeLevels do
+		if level >= required then
+			size = index
+		end
+	end
+	return size
+end
+
+function Stats.scaleForSize(size: number): number
+	return 1 + Config.SizeScaleStep * (size - 1)
+end
+
+---------------------------------------------------------------- costs
+
+function Stats.partCost(slot: string, tier: string): { [string]: number }
+	local cost = {}
+	local multiplier = Config.Slots[slot].costMultiplier
+	for mineral, amount in Config.Tiers[tier].cost do
+		cost[mineral] = math.ceil(amount * multiplier)
+	end
+	return cost
+end
+
+function Stats.canAfford(data: any, cost: { [string]: number }): boolean
+	for mineral, amount in cost do
+		if (data.minerals[mineral] or 0) < amount then
+			return false
+		end
+	end
+	return true
+end
+
+function Stats.upgradeCost(upgradeId: string, currentRank: number): number
+	local upgrade = Config.AwakenUpgrades[upgradeId]
+	return upgrade.baseCost + upgrade.costStep * currentRank
+end
+
+function Stats.awakeningShards(level: number): number
+	return math.max(level - Config.Awakening.shardBaseLevel, 0) * Config.Awakening.shardsPerLevelAbove
+end
+
+---------------------------------------------------------------- skills
+
+function Stats.skillPointsSpent(data: any): number
+	local spent = 0
+	for id in data.skills do
+		local skill = Config.Skills[id]
+		if skill then
+			spent += skill.cost
+		end
+	end
+	return spent
+end
+
+function Stats.skillPointsAvailable(data: any): number
+	return Stats.levelForXp(data.golem.xp) - 1 - Stats.skillPointsSpent(data)
+end
+
+-- Returns whether a skill can be learned now, and why not.
+function Stats.canLearnSkill(data: any, skillId: string): (boolean, string?)
+	local skill = Config.Skills[skillId]
+	if not skill then
+		return false, "Unknown skill"
+	end
+	if data.skills[skillId] then
+		return false, "Already learned"
+	end
+	for _, branch in Config.SkillBranches do
+		local index = table.find(branch.nodes, skillId)
+		if index and index > 1 and not data.skills[branch.nodes[index - 1]] then
+			return false, "Learn the previous skill first"
+		end
+	end
+	if Stats.skillPointsAvailable(data) < skill.cost then
+		return false, "Not enough skill points"
+	end
+	return true, nil
+end
+
+---------------------------------------------------------------- zones
+
+function Stats.bossDefeated(data: any, zoneId: number): boolean
+	return data.bossesDefeated[tostring(zoneId)] == true
+end
+
+-- Returns whether the player may travel to a zone, and what is missing.
+function Stats.zoneUnlocked(data: any, zoneId: number): (boolean, string?)
+	local zone = Config.Zones[zoneId]
+	if not zone then
+		return false, "Unknown zone"
+	end
+	local gate = zone.gate
+	if gate.boss and not Stats.bossDefeated(data, gate.boss) then
+		return false, `Defeat {Config.Bosses[gate.boss].displayName}`
+	end
+	if gate.size and Stats.sizeForLevel(Stats.levelForXp(data.golem.xp)) < gate.size then
+		return false, `Reach golem size {gate.size}`
+	end
+	return true, nil
+end
+
+function Stats.highestZone(data: any): number
+	local highest = 1
+	for _, zoneId in Config.ZoneOrder do
+		if Stats.zoneUnlocked(data, zoneId) then
+			highest = zoneId
+		end
+	end
+	return highest
+end
+
+---------------------------------------------------------------- artifacts
+
+function Stats.zoneSetComplete(data: any, zoneId: number): boolean
+	for id, artifact in Config.Artifacts do
+		if artifact.zone == zoneId and not data.artifacts.found[id] then
+			return false
+		end
+	end
+	return true
+end
+
+function Stats.artifactsFound(data: any): number
+	local count = 0
+	for id in data.artifacts.found do
+		if Config.Artifacts[id] then
+			count += 1
+		end
+	end
+	return count
+end
+
+---------------------------------------------------------------- bonuses
+
+local function addBonus(total: { [string]: number }, bonus: { [string]: number }, times: number)
+	for stat, amount in bonus do
+		total[stat] = (total[stat] or 0) + amount * times
+	end
+end
+
+-- Sums every % bonus a player has, plus extra slots and offline hours.
+function Stats.bonuses(data: any, ctx: Context): ({ [string]: number }, number, number)
+	local total: { [string]: number } = {}
+	local extraSlots = 0
+	local extraHours = 0
+
+	for id in data.skills do
+		local skill = Config.Skills[id]
+		if skill then
+			addBonus(total, skill.bonus, 1)
+			extraSlots += skill.artifactSlots or 0
+			extraHours += skill.offlineHours or 0
+		end
+	end
+
+	for id, rank in data.awakening.upgrades do
+		local upgrade = Config.AwakenUpgrades[id]
+		if upgrade and rank > 0 then
+			addBonus(total, upgrade.bonus or {}, rank)
+			extraSlots += (upgrade.artifactSlots or 0) * rank
+			extraHours += (upgrade.offlineHours or 0) * rank
+		end
+	end
+	total.minerals = (total.minerals or 0) + data.awakening.count * Config.Awakening.mineralBonusPerAwakening
+
+	if ctx.passes.extraSlot then
+		extraSlots += 1
+	end
+	local slots = Config.Golem.baseArtifactSlots + extraSlots
+
+	-- Equipped artifacts, only up to the number of slots.
+	local used = 0
+	for _, id in data.artifacts.equipped do
+		local artifact = Config.Artifacts[id]
+		if artifact and data.artifacts.found[id] and used < slots then
+			used += 1
+			addBonus(total, artifact.bonus, 1)
+		end
+	end
+	for _, zoneId in Config.ZoneOrder do
+		if Stats.zoneSetComplete(data, zoneId) then
+			addBonus(total, Config.ZoneSetBonus, 1)
+		end
+	end
+
+	if ctx.passes.vip then
+		total.xp = (total.xp or 0) + Config.VipXpBonus
+	end
+
+	local capHours = Config.Offline.baseCapHours + extraHours
+	if ctx.passes.longRest then
+		capHours = math.max(capHours, Config.LongRestCapHours + extraHours)
+	end
+	return total, slots, capHours
+end
+
+---------------------------------------------------------------- golem stats
+
+function Stats.compute(data: any, ctx: Context): GolemStats
+	local base = Config.Golem
+	local level = Stats.levelForXp(data.golem.xp)
+	local size = Stats.sizeForLevel(level)
+	local scale = Stats.scaleForSize(size)
+
+	local health = base.maxHealth * (1 + 0.06 * (level - 1))
+	local damage = base.attackDamage * (1 + 0.06 * (level - 1))
+	local mining = base.miningDamage * (1 + 0.05 * (level - 1))
+	local speed = base.walkSpeed
+
+	-- Parts: each slot favours different stats.
+	local setTier: string? = data.golem.parts[Config.SlotOrder[1]]
+	for _, slot in Config.SlotOrder do
+		local tier = data.golem.parts[slot]
+		local power = if tier and Config.Tiers[tier] then Config.Tiers[tier].power else 0
+		if tier ~= setTier then
+			setTier = nil
+		end
+		if slot == "core" then
+			health += 10 * power
+			damage += 1.5 * power
+			mining += 2 * power
+		elseif slot == "torso" then
+			health += 30 * power
+		elseif slot == "armL" or slot == "armR" then
+			damage += 3 * power
+			mining += 1.5 * power
+		elseif slot == "legs" then
+			health += 8 * power
+			speed += 0.6 * power
+		end
+	end
+	if setTier then
+		health *= 1 + Config.FullSetBonus
+		damage *= 1 + Config.FullSetBonus
+	end
+
+	local bonus, slots, capHours = Stats.bonuses(data, ctx)
+	local function pct(stat: string): number
+		return 1 + (bonus[stat] or 0) / 100
+	end
+
+	local boosts = data.boosts or {}
+	local xpBoost = if (boosts.xp or 0) > ctx.now then 2 else 1
+	local luckBoost = if (boosts.luck or 0) > ctx.now then 2 else 1
+
+	return {
+		level = level,
+		size = size,
+		scale = scale,
+		maxHealth = math.floor(health * pct("health")),
+		regenPerSecond = base.regenPerSecond * (1 + 0.04 * (level - 1)) * pct("regen"),
+		attackDamage = damage * pct("damage"),
+		attackCooldown = base.attackCooldown / pct("attackSpeed"),
+		attackRange = base.attackRange * scale,
+		miningDamage = mining * pct("mining"),
+		miningCooldown = base.miningCooldown,
+		miningRange = base.miningRange * scale,
+		walkSpeed = math.min(speed * pct("speed"), 40),
+		mineralMult = pct("minerals") * (if ctx.passes.doubleMinerals then 2 else 1),
+		xpMult = pct("xp") * xpBoost,
+		luckMult = pct("luck") * luckBoost,
+		spellPowerMult = pct("spellPower"),
+		spellCooldownMult = 1 / pct("spellHaste"),
+		artifactSlots = slots,
+		offlineCapHours = capHours,
+		fullSet = setTier,
+	}
+end
+
+return Stats

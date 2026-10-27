@@ -9,6 +9,8 @@ local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 
 local DataService = require(script.Parent.DataService)
+local EconomyService = require(script.Parent.EconomyService)
+local Events = require(script.Parent.Events)
 local WorldService = require(script.Parent.WorldService)
 
 export type Node = {
@@ -57,12 +59,14 @@ local function placeNode(zoneId: number)
 	nodes[part] = { mineral = mineral, def = def, zoneId = zoneId, part = part, hp = def.maxHealth }
 end
 
-function MiningService.findNearest(position: Vector3, range: number): (Node?, number)
+function MiningService.findNearest(position: Vector3, range: number, zoneId: number): (Node?, number)
 	local best, bestDistance = nil, range
 	for _, node in nodes do
-		local distance = (node.part.Position - position).Magnitude
-		if distance <= bestDistance then
-			best, bestDistance = node, distance
+		if node.zoneId == zoneId then
+			local distance = (node.part.Position - position).Magnitude
+			if distance <= bestDistance then
+				best, bestDistance = node, distance
+			end
 		end
 	end
 	return best, bestDistance
@@ -83,8 +87,12 @@ function MiningService.damage(node: Node, amount: number, player: Player)
 		return
 	end
 
-	DataService.addMineral(player, node.mineral, node.def.yield)
-	Remotes.Notify:FireClient(player, "mined", node.mineral, node.def.yield)
+	local given = EconomyService.grant(player, { minerals = { [node.mineral] = node.def.yield } })
+	DataService.update(player, function(data)
+		data.totals.nodes += 1
+	end)
+	Events.fire("nodeMined", player, node.mineral)
+	Remotes.Notify:FireClient(player, "mined", node.mineral, given.minerals and given.minerals[node.mineral] or 0)
 	nodes[node.part] = nil
 	node.part:Destroy()
 	task.delay(Config.Zones[node.zoneId].nodeRespawn, placeNode, node.zoneId)

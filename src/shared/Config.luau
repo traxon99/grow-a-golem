@@ -1,16 +1,23 @@
 --!strict
--- All balance numbers live here so tuning never means touching game logic.
+-- All balance numbers and content live here so tuning never means touching
+-- game logic. Names are placeholders we can rename freely.
 
 local Config = {}
 
 Config.TickRate = 10 -- server game-logic updates per second
 
-Config.MineralOrder = { "stone", "copper" }
+---------------------------------------------------------------- minerals
+
+Config.MineralOrder = { "stone", "copper", "iron", "crystal" }
 
 Config.Minerals = {
 	stone = { displayName = "Stone", color = Color3.fromRGB(150, 150, 150) },
 	copper = { displayName = "Copper", color = Color3.fromRGB(201, 118, 64) },
+	iron = { displayName = "Iron", color = Color3.fromRGB(176, 184, 196) },
+	crystal = { displayName = "Crystal", color = Color3.fromRGB(150, 110, 255) },
 }
+
+---------------------------------------------------------------- golem
 
 Config.Golem = {
 	maxHealth = 200,
@@ -18,18 +25,77 @@ Config.Golem = {
 	walkSpeed = 14,
 	attackDamage = 12,
 	attackCooldown = 1.0,
-	attackRange = 10, -- studs between golem root and enemy root
+	attackRange = 10, -- studs between golem root and enemy root (grows with size)
 	aggroRange = 35, -- golem auto-targets enemies inside this range
 	miningDamage = 10,
 	miningCooldown = 0.8,
 	miningRange = 10,
 	seekRange = 150, -- when idle, golem walks to nodes this far away
 	respawnTime = 5,
+	maxLevel = 60,
+	baseArtifactSlots = 3,
 }
 
-Config.Spells = {
-	quake = { displayName = "Quake", cooldown = 8, damage = 40, radius = 20 },
+-- Total XP needed to reach a level: 25 * (level - 1) ^ 1.6
+Config.LevelCurve = { base = 25, exponent = 1.6 }
+
+-- Golem size steps up at these levels. Size gates zones and scales the model.
+Config.SizeLevels = { 1, 5, 10, 18, 28 }
+Config.SizeScaleStep = 0.25 -- each size step makes the model 25% bigger
+
+-- Part tiers, weakest first. `power` scales every stat a part gives.
+Config.TierOrder = { "stone", "copper", "iron", "crystal" }
+Config.Tiers = {
+	stone = {
+		displayName = "Stone",
+		power = 1,
+		color = Color3.fromRGB(128, 122, 110),
+		material = Enum.Material.Slate,
+		cost = { stone = 20 },
+	},
+	copper = {
+		displayName = "Copper",
+		power = 2,
+		color = Color3.fromRGB(184, 108, 60),
+		material = Enum.Material.CorrodedMetal,
+		cost = { copper = 25, stone = 40 },
+	},
+	iron = {
+		displayName = "Iron",
+		power = 3.5,
+		color = Color3.fromRGB(150, 156, 166),
+		material = Enum.Material.DiamondPlate,
+		cost = { iron = 30, copper = 40 },
+	},
+	crystal = {
+		displayName = "Crystal",
+		power = 5.5,
+		color = Color3.fromRGB(150, 110, 255),
+		material = Enum.Material.Glass,
+		cost = { crystal = 30, iron = 50 },
+	},
 }
+
+Config.SlotOrder = { "core", "torso", "armL", "armR", "legs" }
+Config.Slots = {
+	core = { displayName = "Core", costMultiplier = 1.5 },
+	torso = { displayName = "Torso", costMultiplier = 1.2 },
+	armL = { displayName = "Left Arm", costMultiplier = 1 },
+	armR = { displayName = "Right Arm", costMultiplier = 1 },
+	legs = { displayName = "Legs", costMultiplier = 1 },
+}
+Config.FullSetBonus = 0.15 -- all five slots the same tier: +15% health and damage
+
+---------------------------------------------------------------- spells
+
+Config.SpellOrder = { "quake", "mend", "magnet" }
+Config.Spells = {
+	quake = { displayName = "Quake", key = Enum.KeyCode.Q, cooldown = 8, damage = 40, radius = 20 },
+	mend = { displayName = "Mend", key = Enum.KeyCode.E, cooldown = 20, healFraction = 0.35 },
+	magnet = { displayName = "Magnet", key = Enum.KeyCode.R, cooldown = 30, duration = 10, mineralBonus = 1.0 },
+}
+
+---------------------------------------------------------------- enemies
 
 Config.Enemies = {
 	pebbleCritter = {
@@ -45,32 +111,323 @@ Config.Enemies = {
 		xp = 5,
 		drops = { stone = 2 },
 	},
+	cinderImp = {
+		displayName = "Cinder Imp",
+		maxHealth = 90,
+		damage = 10,
+		attackCooldown = 1.1,
+		attackRange = 8,
+		aggroRange = 45,
+		walkSpeed = 12,
+		size = Vector3.new(3, 4, 3),
+		color = Color3.fromRGB(200, 80, 40),
+		xp = 12,
+		drops = { copper = 2, iron = 1 },
+	},
+	shardSprite = {
+		displayName = "Shard Sprite",
+		maxHealth = 220,
+		damage = 22,
+		attackCooldown = 1.0,
+		attackRange = 9,
+		aggroRange = 50,
+		walkSpeed = 13,
+		size = Vector3.new(3, 5, 3),
+		color = Color3.fromRGB(170, 140, 255),
+		xp = 28,
+		drops = { iron = 2, crystal = 1 },
+	},
+}
+
+-- One boss per zone. It slams the ground: a red circle appears, then hits
+-- every golem still inside it. Steer out of the circle to dodge.
+Config.Bosses = {
+	[1] = {
+		displayName = "Old Rockjaw",
+		maxHealth = 900,
+		damage = 15,
+		attackCooldown = 1.5,
+		attackRange = 12,
+		aggroRange = 60,
+		walkSpeed = 8,
+		size = Vector3.new(10, 10, 10),
+		color = Color3.fromRGB(96, 90, 80),
+		xp = 150,
+		drops = { stone = 150, copper = 40 },
+		slam = { every = 6, warning = 1.5, radius = 14, damage = 60 },
+		respawn = 60,
+	},
+	[2] = {
+		displayName = "Slag Matron",
+		maxHealth = 4000,
+		damage = 30,
+		attackCooldown = 1.4,
+		attackRange = 13,
+		aggroRange = 60,
+		walkSpeed = 9,
+		size = Vector3.new(11, 12, 11),
+		color = Color3.fromRGB(150, 50, 30),
+		xp = 500,
+		drops = { copper = 150, iron = 60 },
+		slam = { every = 5, warning = 1.3, radius = 16, damage = 140 },
+		respawn = 75,
+	},
+	[3] = {
+		displayName = "The Prism Stag",
+		maxHealth = 12000,
+		damage = 55,
+		attackCooldown = 1.2,
+		attackRange = 14,
+		aggroRange = 65,
+		walkSpeed = 11,
+		size = Vector3.new(9, 14, 14),
+		color = Color3.fromRGB(190, 170, 255),
+		xp = 1400,
+		drops = { iron = 150, crystal = 60 },
+		slam = { every = 4.5, warning = 1.2, radius = 18, damage = 260 },
+		respawn = 90,
+	},
 }
 
 Config.Nodes = {
 	stone = { maxHealth = 30, yield = 5, size = Vector3.new(5, 4, 5), material = Enum.Material.Slate },
 	copper = { maxHealth = 50, yield = 3, size = Vector3.new(4, 5, 4), material = Enum.Material.CorrodedMetal },
+	iron = { maxHealth = 120, yield = 3, size = Vector3.new(5, 5, 5), material = Enum.Material.DiamondPlate },
+	crystal = { maxHealth = 300, yield = 3, size = Vector3.new(3, 7, 3), material = Enum.Material.Glass },
 }
 
+---------------------------------------------------------------- zones
+
+-- `gate` lists what a player needs before they can travel here.
+Config.ZoneOrder = { 1, 2, 3 }
 Config.Zones = {
 	[1] = {
 		name = "Mossy Quarry",
 		center = Vector3.new(0, 60, 0), -- top surface of the floating island
 		size = Vector3.new(320, 6, 320),
 		color = Color3.fromRGB(92, 132, 72),
+		material = Enum.Material.Grass,
+		gate = {},
 		maxEnemies = 12,
+		extraEnemiesPerPlayer = 4,
 		spawnInterval = 3,
-		minSpawnDistance = 40, -- enemies never spawn on top of a golem
+		minSpawnDistance = 40,
 		enemies = { "pebbleCritter" },
 		nodeCount = 16,
 		nodeRespawn = 20,
 		nodes = { { mineral = "stone", weight = 3 }, { mineral = "copper", weight = 1 } },
+		offlineMinerals = { stone = 4, copper = 1 }, -- per minute, before multipliers
+	},
+	[2] = {
+		name = "Ember Flats",
+		center = Vector3.new(500, 60, 0),
+		size = Vector3.new(320, 6, 320),
+		color = Color3.fromRGB(110, 70, 55),
+		material = Enum.Material.Basalt,
+		gate = { boss = 1 },
+		maxEnemies = 12,
+		extraEnemiesPerPlayer = 4,
+		spawnInterval = 3,
+		minSpawnDistance = 40,
+		enemies = { "cinderImp" },
+		nodeCount = 16,
+		nodeRespawn = 25,
+		nodes = { { mineral = "copper", weight = 2 }, { mineral = "iron", weight = 2 } },
+		offlineMinerals = { copper = 3, iron = 2 },
+	},
+	[3] = {
+		name = "Glasswood",
+		center = Vector3.new(1000, 60, 0),
+		size = Vector3.new(320, 6, 320),
+		color = Color3.fromRGB(70, 110, 120),
+		material = Enum.Material.Glacier,
+		gate = { boss = 2, size = 3 },
+		maxEnemies = 12,
+		extraEnemiesPerPlayer = 4,
+		spawnInterval = 3,
+		minSpawnDistance = 40,
+		enemies = { "shardSprite" },
+		nodeCount = 16,
+		nodeRespawn = 30,
+		nodes = { { mineral = "iron", weight = 2 }, { mineral = "crystal", weight = 2 } },
+		offlineMinerals = { iron = 3, crystal = 2 },
 	},
 }
+
+---------------------------------------------------------------- artifacts
+
+-- Stat keys used by artifacts, skills, and upgrades (all are % bonuses):
+-- health, damage, attackSpeed, mining, minerals, speed, luck, spellPower,
+-- spellHaste, regen, xp
+-- source: "drop" (rare from zone enemies), "boss" (zone boss), "hidden" (relic on the map)
+Config.ArtifactOrder = {
+	"pebbleCharm", "quarryLantern", "oldChisel", "rootboundRing", "rockjawTooth", "mossHeart",
+	"emberCoal", "slagGauntlet", "cinderBell", "bellowsRune", "matronCrown", "ashenMap",
+	"prismShard", "glassLeaf", "mirrorSeed", "refractedLens", "stagAntler", "hollowBulb",
+}
+Config.Artifacts = {
+	pebbleCharm = { name = "Pebble Charm", zone = 1, source = "drop", bonus = { health = 5 } },
+	quarryLantern = { name = "Quarry Lantern", zone = 1, source = "drop", bonus = { minerals = 5 } },
+	oldChisel = { name = "Old Chisel", zone = 1, source = "drop", bonus = { mining = 8 } },
+	rootboundRing = { name = "Rootbound Ring", zone = 1, source = "drop", bonus = { regen = 25 } },
+	rockjawTooth = { name = "Rockjaw's Tooth", zone = 1, source = "boss", bonus = { damage = 8 } },
+	mossHeart = { name = "Moss Heart", zone = 1, source = "hidden", bonus = { speed = 6 } },
+
+	emberCoal = { name = "Ember Coal", zone = 2, source = "drop", bonus = { damage = 6 } },
+	slagGauntlet = { name = "Slag Gauntlet", zone = 2, source = "drop", bonus = { health = 8 } },
+	cinderBell = { name = "Cinder Bell", zone = 2, source = "drop", bonus = { attackSpeed = 6 } },
+	bellowsRune = { name = "Bellows Rune", zone = 2, source = "drop", bonus = { minerals = 8 } },
+	matronCrown = { name = "Matron's Crown", zone = 2, source = "boss", bonus = { health = 12 } },
+	ashenMap = { name = "Ashen Map", zone = 2, source = "hidden", bonus = { luck = 10 } },
+
+	prismShard = { name = "Prism Shard", zone = 3, source = "drop", bonus = { spellPower = 15 } },
+	glassLeaf = { name = "Glass Leaf", zone = 3, source = "drop", bonus = { speed = 8 } },
+	mirrorSeed = { name = "Mirror Seed", zone = 3, source = "drop", bonus = { luck = 12 } },
+	refractedLens = { name = "Refracted Lens", zone = 3, source = "drop", bonus = { mining = 12 } },
+	stagAntler = { name = "Stag Antler", zone = 3, source = "boss", bonus = { damage = 12 } },
+	hollowBulb = { name = "Hollow Bulb", zone = 3, source = "hidden", bonus = { minerals = 12 } },
+}
+Config.ArtifactDropChance = 0.006 -- per enemy defeated, before luck
+Config.ArtifactBossChance = 0.3 -- per boss defeat, before luck
+Config.ZoneSetBonus = { health = 5, damage = 5 } -- for finding every artifact in a zone
+Config.HiddenRelic = { respawn = 180, pickupRange = 10, consolationMinerals = 50 }
+
+---------------------------------------------------------------- skill tree
+
+Config.SkillBranches = {
+	{ id = "earthshaper", displayName = "Earthshaper", nodes = { "e1", "e2", "e3", "e4", "e5" } },
+	{ id = "prospector", displayName = "Prospector", nodes = { "p1", "p2", "p3", "p4", "p5" } },
+	{ id = "runebinder", displayName = "Runebinder", nodes = { "r1", "r2", "r3", "r4", "r5" } },
+}
+Config.Skills = {
+	e1 = { name = "Heavy Fists", cost = 1, bonus = { damage = 5 } },
+	e2 = { name = "Bedrock Hide", cost = 1, bonus = { health = 10 } },
+	e3 = { name = "Boulder Swing", cost = 1, bonus = { damage = 10 } },
+	e4 = { name = "Quick Strikes", cost = 1, bonus = { attackSpeed = 10 } },
+	e5 = { name = "Titan Blows", cost = 2, bonus = { damage = 15, health = 10 } },
+	p1 = { name = "Sharp Chisel", cost = 1, bonus = { mining = 10 } },
+	p2 = { name = "Keen Eye", cost = 1, bonus = { minerals = 10 } },
+	p3 = { name = "Long Stride", cost = 1, bonus = { speed = 5 } },
+	p4 = { name = "Rich Veins", cost = 1, bonus = { minerals = 15 } },
+	p5 = { name = "Night Shift", cost = 2, bonus = { minerals = 10 }, offlineHours = 1 },
+	r1 = { name = "Quick Runes", cost = 1, bonus = { spellHaste = 10 } },
+	r2 = { name = "Deep Runes", cost = 1, bonus = { spellPower = 20 } },
+	r3 = { name = "Lucky Star", cost = 1, bonus = { luck = 10 } },
+	r4 = { name = "Relic Keeper", cost = 1, bonus = {}, artifactSlots = 1 },
+	r5 = { name = "Runestorm", cost = 2, bonus = { spellPower = 30, spellHaste = 10 } },
+}
+Config.SkillRespecCost = { stone = 200 }
+
+---------------------------------------------------------------- awakening
+
+Config.Awakening = {
+	minLevel = 20,
+	shardsPerLevelAbove = 1, -- shards = level - 15
+	shardBaseLevel = 15,
+	mineralBonusPerAwakening = 10, -- % minerals for each Awakening, forever
+}
+Config.AwakenUpgradeOrder = { "might", "prospector", "longRest", "relicSlot" }
+Config.AwakenUpgrades = {
+	might = { name = "Ancient Might", description = "+5% health and damage", maxRank = 20, baseCost = 3, costStep = 2, bonus = { health = 5, damage = 5 } },
+	prospector = { name = "Prospector's Blessing", description = "+5% minerals", maxRank = 20, baseCost = 3, costStep = 2, bonus = { minerals = 5 } },
+	longRest = { name = "Long Rest", description = "+1 hour offline mining cap", maxRank = 10, baseCost = 4, costStep = 3, offlineHours = 1 },
+	relicSlot = { name = "Relic Slot", description = "+1 artifact slot", maxRank = 2, baseCost = 15, costStep = 15, artifactSlots = 1 },
+}
+
+---------------------------------------------------------------- party
+
+Config.Party = {
+	maxSize = 4,
+	shareRange = 80, -- party members this close share kill rewards
+	friendBonusPerFriend = 10, -- % minerals per friend in your party
+	maxFriendBonus = 30,
+	inviteTimeout = 60,
+}
+
+---------------------------------------------------------------- retention
+
+Config.Offline = { baseCapHours = 2, minSeconds = 60 }
+
+-- 7-day login track. Missing a single day keeps your streak.
+Config.DailyRewards = {
+	{ minerals = { stone = 100 } },
+	{ minerals = { stone = 200, copper = 40 } },
+	{ minerals = { copper = 100 } },
+	{ xp = 300 },
+	{ minerals = { copper = 150, iron = 40 } },
+	{ minerals = { iron = 100 } },
+	{ minerals = { iron = 150, crystal = 40 }, xp = 1000 },
+}
+
+-- Session gifts unlock after this many minutes in one session.
+Config.SessionRewards = {
+	{ minutes = 5, minerals = { stone = 60 } },
+	{ minutes = 15, minerals = { copper = 40 } },
+	{ minutes = 30, minerals = { iron = 30 }, xp = 200 },
+	{ minutes = 60, minerals = { crystal = 25 }, xp = 500 },
+}
+
+-- `event` names match what the server fires; `target` is how many to do.
+Config.QuestPool = {
+	{ id = "defeat50", text = "Defeat 50 enemies", event = "enemyDefeated", target = 50, reward = { xp = 200, minerals = { stone = 100 } } },
+	{ id = "defeat150", text = "Defeat 150 enemies", event = "enemyDefeated", target = 150, reward = { xp = 500, minerals = { copper = 80 } } },
+	{ id = "mine20", text = "Break 20 mineral nodes", event = "nodeMined", target = 20, reward = { minerals = { stone = 150, copper = 30 } } },
+	{ id = "mine60", text = "Break 60 mineral nodes", event = "nodeMined", target = 60, reward = { minerals = { copper = 100, iron = 30 } } },
+	{ id = "spells30", text = "Cast 30 spells", event = "spellCast", target = 30, reward = { xp = 300 } },
+	{ id = "boss1", text = "Defeat a zone boss", event = "bossDefeated", target = 1, reward = { xp = 400, minerals = { iron = 20 } } },
+	{ id = "craft2", text = "Forge 2 golem parts", event = "partCrafted", target = 2, reward = { minerals = { copper = 60 } } },
+}
+Config.WeeklyQuestPool = {
+	{ id = "w_defeat1000", text = "Defeat 1,000 enemies", event = "enemyDefeated", target = 1000, reward = { xp = 3000, minerals = { iron = 150 } } },
+	{ id = "w_mine300", text = "Break 300 mineral nodes", event = "nodeMined", target = 300, reward = { minerals = { iron = 120, crystal = 40 } } },
+	{ id = "w_boss10", text = "Defeat 10 zone bosses", event = "bossDefeated", target = 10, reward = { xp = 4000, minerals = { crystal = 60 } } },
+}
+Config.DailyQuestCount = 3
+
+-- Set to your Roblox group id to give a one-time reward for joining. 0 = off.
+Config.Group = { id = 0, reward = { minerals = { stone = 300, copper = 60 } } }
+
+---------------------------------------------------------------- shop
+
+-- Create these in the Creator Dashboard (Monetization) and paste the ids.
+-- An id of 0 shows the item as "Coming soon".
+Config.GamePassOrder = { "doubleMinerals", "autoForge", "extraSlot", "longRest", "vip" }
+Config.GamePasses = {
+	doubleMinerals = { id = 0, name = "2x Minerals", description = "Double all mineral income, forever.", price = 299 },
+	autoForge = { id = 0, name = "Auto-Forge", description = "Automatically forges and equips the best part you can afford.", price = 149 },
+	extraSlot = { id = 0, name = "Extra Artifact Slot", description = "+1 artifact slot.", price = 199 },
+	longRest = { id = 0, name = "Long Rest", description = "Offline mining cap becomes 12 hours.", price = 249 },
+	vip = { id = 0, name = "VIP", description = "VIP nametag, +10% XP.", price = 399 },
+}
+Config.LongRestCapHours = 12
+Config.VipXpBonus = 10
+
+Config.ProductOrder = { "mineralsSmall", "mineralsMedium", "mineralsLarge", "boostXp", "boostLuck" }
+Config.Products = {
+	-- Mineral packs scale with the best zone you've unlocked.
+	mineralsSmall = { id = 0, name = "Small Mineral Pack", price = 49, packMinutes = 30 },
+	mineralsMedium = { id = 0, name = "Mineral Crate", price = 149, packMinutes = 120 },
+	mineralsLarge = { id = 0, name = "Mineral Vault", price = 449, packMinutes = 480 },
+	boostXp = { id = 0, name = "2x XP (30 min)", price = 39, boost = "xp", minutes = 30 },
+	boostLuck = { id = 0, name = "2x Luck (30 min)", price = 39, boost = "luck", minutes = 30 },
+}
+
+---------------------------------------------------------------- data
 
 Config.Data = {
 	storeName = "PlayerData_v1",
 	autosaveInterval = 60,
+	pushInterval = 0.25, -- at most this often, state is sent to the client
+}
+
+Config.Leaderboards = {
+	refreshSeconds = 120,
+	size = 10,
+	boards = {
+		{ id = "level", displayName = "Highest level", store = "LB_Level_v1" },
+		{ id = "awakenings", displayName = "Most Awakenings", store = "LB_Awakenings_v1" },
+		{ id = "artifacts", displayName = "Artifacts found", store = "LB_Artifacts_v1" },
+	},
 }
 
 return Config

@@ -10,22 +10,24 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 
+local DataService = require(script.Parent.DataService)
 local EnemyService = require(script.Parent.EnemyService)
+local Events = require(script.Parent.Events)
 local GolemService = require(script.Parent.GolemService)
 local MiningService = require(script.Parent.MiningService)
 local WorldService = require(script.Parent.WorldService)
 
 local CombatService = {}
 
-local function quakeEffect(position: Vector3, radius: number)
+local function ringEffect(position: Vector3, radius: number, color: Color3)
 	local ring = Instance.new("Part")
-	ring.Name = "Quake"
+	ring.Name = "SpellRing"
 	ring.Shape = Enum.PartType.Cylinder
 	ring.Anchored = true
 	ring.CanCollide = false
 	ring.CanQuery = false
 	ring.Material = Enum.Material.Neon
-	ring.Color = Color3.fromRGB(90, 200, 255)
+	ring.Color = color
 	ring.Transparency = 0.3
 	ring.Size = Vector3.new(0.4, 2, 2)
 	ring.CFrame = CFrame.new(position) * CFrame.Angles(0, 0, math.rad(90))
@@ -54,17 +56,26 @@ local function onCastSpell(player: Player, spellId: any)
 	if now < (golem.spellReadyAt[spellId] or 0) then
 		return
 	end
-	golem.spellReadyAt[spellId] = now + spell.cooldown
+	local cooldown = spell.cooldown * golem.stats.spellCooldownMult
+	golem.spellReadyAt[spellId] = now + cooldown
+	local ground = golem.root.Position - Vector3.new(0, golem.groundOffset, 0) + Vector3.new(0, 0.3, 0)
 
 	if spellId == "quake" then
-		local ground = golem.root.Position - Vector3.new(0, golem.humanoid.HipHeight + golem.root.Size.Y / 2, 0)
-		for _, enemy in EnemyService.findInRadius(golem.root.Position, spell.radius) do
-			EnemyService.damage(enemy, spell.damage, player)
+		local radius = spell.radius * golem.stats.scale
+		for _, enemy in EnemyService.findInRadius(golem.root.Position, radius, golem.zoneId) do
+			EnemyService.damage(enemy, spell.damage * golem.stats.spellPowerMult * (1 + 0.05 * (golem.stats.level - 1)), player)
 		end
-		quakeEffect(ground + Vector3.new(0, 0.3, 0), spell.radius)
+		ringEffect(ground, radius, Color3.fromRGB(90, 200, 255))
+	elseif spellId == "mend" then
+		GolemService.heal(golem, golem.stats.maxHealth * spell.healFraction * golem.stats.spellPowerMult)
+		ringEffect(ground, 10 * golem.stats.scale, Color3.fromRGB(110, 230, 120))
+	elseif spellId == "magnet" then
+		golem.magnetUntil = now + spell.duration
+		ringEffect(ground, 14 * golem.stats.scale, Color3.fromRGB(255, 200, 80))
 	end
 
-	Remotes.Notify:FireClient(player, "spellCast", spellId, spell.cooldown)
+	Events.fire("spellCast", player, spellId)
+	Remotes.Notify:FireClient(player, "spellCast", spellId, cooldown)
 end
 
 local function updateGolem(player: Player, golem: GolemService.Golem, dt: number)
@@ -73,14 +84,15 @@ local function updateGolem(player: Player, golem: GolemService.Golem, dt: number
 		return
 	end
 
-	local stats = Config.Golem
+	local stats = golem.stats
 	local now = os.clock()
 	local position = golem.root.Position
+	local aggro = Config.Golem.aggroRange * stats.scale
 
-	local enemy, enemyDistance = EnemyService.findNearest(position, stats.aggroRange)
+	local enemy, enemyDistance = EnemyService.findNearest(position, aggro, golem.zoneId)
 	local node, nodeDistance = nil, math.huge
 	if not enemy then
-		node, nodeDistance = MiningService.findNearest(position, stats.seekRange)
+		node, nodeDistance = MiningService.findNearest(position, Config.Golem.seekRange, golem.zoneId)
 	end
 
 	-- Act: enemies first, mining when the area is clear.
@@ -107,6 +119,16 @@ end
 
 function CombatService.start()
 	Remotes.CastSpell.OnServerEvent:Connect(onCastSpell)
+
+	-- Lets the client show where the golem is and whether the zone boss is up.
+	DataService.addProvider("golem", function(player)
+		local golem = GolemService.get(player)
+		if not golem then
+			return nil
+		end
+		local bossAlive, bossRespawnIn = EnemyService.bossStatus(golem.zoneId)
+		return { zoneId = golem.zoneId, bossAlive = bossAlive, bossRespawnIn = math.ceil(bossRespawnIn) }
+	end)
 
 	task.spawn(function()
 		local interval = 1 / Config.TickRate
