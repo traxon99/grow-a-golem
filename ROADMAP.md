@@ -52,7 +52,19 @@ Every task is a row with an ID (like `R1.3`) and a **Status**. There are four st
 ### Adding work
 
 - New task: add a row to the right phase with the next free ID and status `Open`, then claim it as above. Never reuse or renumber IDs, since other notes point at them.
+- An ID added in an open pull request is taken too, even before it merges. Check the open PRs (the progress report below lists them) before picking the next free ID.
 - Bug found while testing: add it to [Found in testing](#found-in-testing), not to a phase.
+
+### Catching up
+
+`scripts/progress.py` lists the pull requests merged and the roadmap rows finished, claimed, released or added since a point you choose, then the rows in progress and the open PRs:
+
+```sh
+python3 scripts/progress.py --login <your GitHub login>   # since your last commit or roadmap edit
+python3 scripts/progress.py --since <commit, YYYY-MM-DD, 12h or 3d>
+```
+
+Claude sessions run it when they start and before they finish, and tell their user what changed (see `CLAUDE.md`).
 
 ### The Needs column
 
@@ -125,7 +137,7 @@ Code rows can start any time, but Phase 1 fixes come first, and building on unte
 | R5.6 | Add StyLua, selene and luau-lsp type checks to CI without reformatting files other rows have claimed | Code | `.github/workflows/check.yml`, `stylua.toml`, `.styluaignore`, `selene.toml`, `golem.yml`, `scripts/typecheck.py`, `scripts/type-baseline.json`, `.claude/skills/auto-ship/SKILL.md`, README "Verification" section | Done: #36 |
 | R5.9 | Run StyLua on the files in `.styluaignore`, one at a time, when no `In progress` row touches them; delete each line as you go | Code | the file being formatted, `.styluaignore` | Open |
 | R5.10 | Lower `scripts/type-baseline.json` to zero by fixing strict-mode type errors (most are in `Config.luau`, `Stats.luau`, `PassService`) | Code | the file being fixed, `scripts/type-baseline.json` | Open |
-| R5.8 | Progress report: `scripts/progress.py` lists PRs merged and roadmap rows done, claimed, released or added since a commit or since a person's last claim; `CLAUDE.md` tells every session to report it to its user | Code | `scripts/progress.py`, `CLAUDE.md`, the "How to use" section of `ROADMAP.md` | In progress: Claude for @shmurkles, claude/progress-report, 2026-10-27 |
+| R5.8 | Progress report: `scripts/progress.py` lists PRs merged and roadmap rows done, claimed, released or added since a commit or since a person's last claim; `CLAUDE.md` tells every session to report it to its user | Code | `scripts/progress.py`, `CLAUDE.md`, the "How to use" section of `ROADMAP.md` | Done: #35 |
 
 ## Found in testing
 
