@@ -189,6 +189,9 @@ Config.Bosses = {
 	},
 }
 
+-- Share of max health a boss heals each second while nobody is near it.
+Config.BossRegenPerSecond = 0.03
+
 Config.Nodes = {
 	stone = { maxHealth = 30, yield = 5, size = Vector3.new(5, 4, 5), material = Enum.Material.Slate },
 	copper = { maxHealth = 50, yield = 3, size = Vector3.new(4, 5, 4), material = Enum.Material.CorrodedMetal },
@@ -292,6 +295,11 @@ Config.Artifacts = {
 }
 Config.ArtifactDropChance = 0.006 -- per enemy defeated, before luck
 Config.ArtifactBossChance = 0.3 -- per boss defeat, before luck
+-- Bad-luck protection: after this many rolls in a row without a find in a
+-- zone, the next roll always succeeds. The Artifacts menu shows the real odds
+-- and the count, so random finds stay honest (Roblox requires disclosed odds
+-- for anything random that money can affect, like the luck boost).
+Config.ArtifactPity = { drop = 300, boss = 4 }
 Config.ZoneSetBonus = { health = 5, damage = 5 } -- for finding every artifact in a zone
 Config.HiddenRelic = { respawn = 180, pickupRange = 10, consolationMinerals = 50 }
 
@@ -427,6 +435,10 @@ Config.Visuals = {
 	-- Adds trees, rocks and a rocky underside to placeholder islands.
 	decorateIslands = true,
 }
+
+-- Sound ids for the big moments (artifact reveal, level up, growing a size).
+-- 0 = silent. Paste rbxassetid numbers from the Creator Store.
+Config.Sounds = { artifact = 0, levelUp = 0, grow = 0 }
 
 ---------------------------------------------------------------- data
 

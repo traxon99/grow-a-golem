@@ -4,6 +4,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -19,40 +20,42 @@ local Hud = {}
 
 local player = Players.LocalPlayer
 
--- Works out the single most useful next thing to do.
-local function nextGoal(snap: any): string
+-- Works out the single most useful next thing to do, and how far along the
+-- player is (0 to 1) when that can be measured honestly.
+local function nextGoal(snap: any): (string, number?)
 	local data = snap.data
 	local level = Stats.levelForXp(data.golem.xp)
 	local zoneId = if snap.golem then snap.golem.zoneId else 1
 
 	if next(data.golem.parts) == nil then
-		return "Mine stone, then open Forge to build your first part"
+		local cost = Stats.partCost("armL", "stone")
+		return "Mine stone, then open Forge to build your first part", math.min((data.minerals.stone or 0) / cost.stone, 1)
 	end
 	if Config.Bosses[zoneId] and not Stats.bossDefeated(data, zoneId) then
-		return `Defeat {Config.Bosses[zoneId].displayName} in the far corner of the island`
+		return `Defeat {Config.Bosses[zoneId].displayName} in the far corner of the island`, nil
 	end
 	for _, id in Config.ZoneOrder do
 		local unlocked, reason = Stats.zoneUnlocked(data, id)
 		if not unlocked then
-			return `{reason} to unlock {Config.Zones[id].name}`
+			local gate = Config.Zones[id].gate
+			local progress = nil
+			if gate.size and (not gate.boss or Stats.bossDefeated(data, gate.boss)) then
+				progress = data.golem.xp / Stats.xpForLevel(Config.SizeLevels[gate.size])
+			end
+			return `{reason} to unlock {Config.Zones[id].name}`, progress
 		end
 		if unlocked and id > zoneId and not Stats.bossDefeated(data, id) then
-			return `{Config.Zones[id].name} is open! Travel there from the Travel menu`
+			return `{Config.Zones[id].name} is open! Travel there from the Travel menu`, nil
 		end
 	end
 	if level >= Config.Awakening.minLevel then
-		return "You can Awaken! Open Awaken for permanent upgrades"
+		return "You can Awaken! Open Awaken for permanent upgrades", nil
 	end
 	if not Stats.zoneSetComplete(data, zoneId) then
-		local missing = 0
-		for id, artifact in Config.Artifacts do
-			if artifact.zone == zoneId and not data.artifacts.found[id] then
-				missing += 1
-			end
-		end
-		return `Find {missing} more artifacts in {Config.Zones[zoneId].name}`
+		local found, total = Stats.zoneArtifactCount(data, zoneId)
+		return `Find {total - found} more artifacts in {Config.Zones[zoneId].name} ({found} / {total})`, found / total
 	end
-	return `Reach level {Config.Awakening.minLevel} to Awaken`
+	return `Reach level {Config.Awakening.minLevel} to Awaken`, data.golem.xp / Stats.xpForLevel(Config.Awakening.minLevel)
 end
 
 function Hud.start()
@@ -121,6 +124,22 @@ function Hud.start()
 		TextColor3 = Ui.Colors.warn,
 		TextStrokeTransparency = 0.4,
 	})
+
+	-- A thin bar under the goal shows real progress toward it.
+	local goalBack = Instance.new("Frame")
+	goalBack.Name = "GoalProgress"
+	goalBack.AnchorPoint = Vector2.new(0.5, 0)
+	goalBack.Size = UDim2.fromOffset(240, 6)
+	goalBack.Position = UDim2.new(0.5, 0, 0, 68)
+	goalBack.BackgroundColor3 = Ui.Colors.row
+	goalBack.Visible = false
+	goalBack.Parent = gui
+	Ui.corner(goalBack, 3)
+	local goalFill = Instance.new("Frame")
+	goalFill.Size = UDim2.fromScale(0, 1)
+	goalFill.BackgroundColor3 = Ui.Colors.warn
+	goalFill.Parent = goalBack
+	Ui.corner(goalFill, 3)
 
 	local function refreshHealth()
 		local hp = player:GetAttribute("GolemHealth") or 0
@@ -213,7 +232,12 @@ function Hud.start()
 		levelLabel.Text = `Level {level}  ·  Size {size}`
 		local floor, ceiling = Stats.xpForLevel(level), Stats.xpForLevel(level + 1)
 		xpFill.Size = UDim2.fromScale(if level >= Config.Golem.maxLevel then 1 else math.clamp((data.golem.xp - floor) / math.max(ceiling - floor, 1), 0, 1), 1)
-		goal.Text = "Next: " .. nextGoal(snap)
+		local goalText, progress = nextGoal(snap)
+		goal.Text = "Next: " .. goalText
+		goalBack.Visible = progress ~= nil
+		if progress then
+			TweenService:Create(goalFill, TweenInfo.new(0.3), { Size = UDim2.fromScale(math.clamp(progress, 0, 1), 1) }):Play()
+		end
 
 		if not hintShown then
 			hintShown = true
@@ -234,8 +258,6 @@ function Hud.start()
 			showToast(`Defeated {args[1]}  +{args[2]} XP`)
 		elseif kind == "boss" then
 			showToast(if args[2] then `{args[1]} defeated! A new zone may be open.` else `{args[1]} defeated!`, 5)
-		elseif kind == "artifact" then
-			showToast(`Artifact found: {args[1]}!`, 5)
 		elseif kind == "offline" then
 			local text = `While you were away your golem mined for {args[1]} minutes: {Ui.costText(args[2])}`
 			if args[3] then

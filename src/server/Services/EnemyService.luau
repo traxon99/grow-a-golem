@@ -152,6 +152,9 @@ end
 local function spawnBoss(zoneId: number)
 	local def = Config.Bosses[zoneId]
 	local boss = makeEnemy("boss" .. zoneId, def, zoneId, WorldService.getBossPoint(zoneId), true)
+	-- The client's boss health bar finds the boss by this attribute and reads
+	-- the real health off its Humanoid.
+	boss.model:SetAttribute("BossZone", zoneId)
 	bossByZone[zoneId] = boss
 end
 
@@ -335,14 +338,18 @@ function EnemyService.update()
 				enemy.humanoid:MoveTo(target.root.Position)
 			end
 		elseif enemy.isBoss then
-			-- Bosses return home and heal when nobody is fighting them.
+			-- Bosses return home and slowly heal when nobody is fighting them,
+			-- so stepping away to mend doesn't throw away a close fight.
 			local home = WorldService.getBossPoint(enemy.zoneId)
 			if (enemy.root.Position - home).Magnitude > 15 then
 				enemy.humanoid:MoveTo(home)
 			end
-			enemy.hp = enemy.def.maxHealth
-			enemy.humanoid.Health = enemy.hp
-			enemy.contributors = {}
+			if enemy.hp < enemy.def.maxHealth then
+				enemy.hp = math.min(enemy.hp + enemy.def.maxHealth * Config.BossRegenPerSecond / Config.TickRate, enemy.def.maxHealth)
+				enemy.humanoid.Health = enemy.hp
+			else
+				enemy.contributors = {}
+			end
 		elseif now >= enemy.nextWander then
 			enemy.nextWander = now + math.random(3, 7)
 			local offset = Vector3.new(math.random(-15, 15), 0, math.random(-15, 15))

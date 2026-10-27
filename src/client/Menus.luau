@@ -98,7 +98,17 @@ local function renderArtifacts(list: ScrollingFrame, snap: any)
 	local sourceHint = { drop = "Rare drop from enemies", boss = "Dropped by the zone boss", hidden = "A glowing relic hidden on the island" }
 	for _, zoneId in Config.ZoneOrder do
 		local complete = Stats.zoneSetComplete(data, zoneId)
-		Ui.heading(list, nextOrder(), Config.Zones[zoneId].name .. (if complete then `  (set complete: {Ui.bonusText(Config.ZoneSetBonus)})` else ""))
+		local found, total = Stats.zoneArtifactCount(data, zoneId)
+		Ui.heading(list, nextOrder(), `{Config.Zones[zoneId].name}  {found} / {total}` .. (if complete then `  (set complete: {Ui.bonusText(Config.ZoneSetBonus)})` else `  ·  complete it for {Ui.bonusText(Config.ZoneSetBonus)}`))
+		-- The real odds, including luck, and how close bad-luck protection is.
+		for _, source in { "drop", "boss" } do
+			local chance, rollsLeft, unfound = Stats.artifactOdds(data, zoneId, source, stats.luckMult)
+			if unfound > 0 then
+				local who = if source == "boss" then "boss defeat" else "enemy defeated"
+				Ui.row(list, nextOrder(), `Odds: {string.format("%.2f", chance * 100)}% per {who}`,
+					`{unfound} left to find. One is guaranteed within {rollsLeft} more.`)
+			end
+		end
 		for _, id in Config.ArtifactOrder do
 			local artifact = Config.Artifacts[id]
 			if artifact.zone == zoneId then
@@ -319,6 +329,9 @@ local function renderShop(list: ScrollingFrame, snap: any)
 	for _, key in Config.ProductOrder do
 		local product = Config.Products[key]
 		local subtitle = if product.boost then "Stacks with itself" else "Scales with your best island"
+		if product.boost == "luck" then
+			subtitle = `Doubles artifact odds: {string.format("%.2f", Config.ArtifactDropChance * 100)}% to {string.format("%.2f", Config.ArtifactDropChance * 200)}% per enemy, {math.floor(Config.ArtifactBossChance * 100)}% to {math.floor(math.min(Config.ArtifactBossChance * 200, 100))}% per boss`
+		end
 		if product.boost and (data.boosts[product.boost] or 0) > now then
 			subtitle = `Active for {Ui.duration(data.boosts[product.boost] - now)}`
 		end

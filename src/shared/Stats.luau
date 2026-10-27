@@ -183,6 +183,44 @@ function Stats.artifactsFound(data: any): number
 	return count
 end
 
+-- Found and total artifacts in one zone.
+function Stats.zoneArtifactCount(data: any, zoneId: number): (number, number)
+	local found, total = 0, 0
+	for id, artifact in Config.Artifacts do
+		if artifact.zone == zoneId then
+			total += 1
+			if data.artifacts.found[id] then
+				found += 1
+			end
+		end
+	end
+	return found, total
+end
+
+function Stats.pityKey(zoneId: number, source: string): string
+	return source .. zoneId
+end
+
+-- The real odds of an artifact roll, used by the server to roll and by the
+-- menus to show them. Returns the chance per roll (0 to 1), how many rolls
+-- are left before one is guaranteed, and how many artifacts are still unfound.
+function Stats.artifactOdds(data: any, zoneId: number, source: string, luckMult: number): (number, number, number)
+	local unfound = 0
+	for id, artifact in Config.Artifacts do
+		if artifact.zone == zoneId and artifact.source == source and not data.artifacts.found[id] then
+			unfound += 1
+		end
+	end
+	local base = if source == "boss" then Config.ArtifactBossChance else Config.ArtifactDropChance
+	local chance = math.min(base * luckMult, 1)
+	local rolls = (data.artifacts.pity or {})[Stats.pityKey(zoneId, source)] or 0
+	local rollsLeft = math.max(Config.ArtifactPity[source] - rolls, 1)
+	if unfound == 0 then
+		return 0, 0, 0
+	end
+	return chance, rollsLeft, unfound
+end
+
 ---------------------------------------------------------------- bonuses
 
 local function addBonus(total: { [string]: number }, bonus: { [string]: number }, times: number)
