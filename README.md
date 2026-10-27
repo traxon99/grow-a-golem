@@ -48,6 +48,7 @@ Let go of the controls and the golem plays itself: it fights enemies nearby, and
 | Roblox Analytics: onboarding, zone and shop funnels, economy, progression | `AnalyticsService` |
 | First-time tutorial (5 steps with pointers, skippable, onboarding funnel) | `TutorialService`, client `Tutorial`, `Config.Tutorial` |
 | HUD, next-goal tracker with progress bar, menus | `src/client` |
+| UI materials: wood, stone, metal, studs and crystal surfaces, tiling textures | `Ui.surface` in `src/client/Ui.luau`, `Config.UiTextures`, `assets/ui-textures/` |
 | Boss health bar, artifact reveal card, level-up banner | `src/client/Moments.luau` |
 | Island scenery, lighting | `WorldService`, `src/server/Models/Islands.luau` |
 | Enemy and boss models | `src/server/Models/EnemyModels.luau` |
@@ -68,6 +69,10 @@ For the group join reward, set `Config.Group.id` to your Roblox group's id.
 **Paid cosmetics** (Frost skin, Starlight Wizard outfit, Ember Sprite and Crystal Owl pets, Rune Trail) are each their own game pass. Create one per item, set its price to the `price` in `Config.Cosmetics`, and paste the id into its `passId`. Until then the Wardrobe shows "Coming soon" (players can still preview them). Earned cosmetics need nothing.
 
 Kid-safe rules for cosmetics, please keep them: every paid cosmetic is a direct purchase of one item the player has previewed. No eggs, crates, spins or "limited stock" timers. If a free random cosmetic drop is ever added, show its real odds and give it a pity limit like `Config.ArtifactPity`.
+
+## UI textures
+
+Panels and buttons already have wood, stone, metal, stud and crystal looks drawn in code. For the full textured look, upload the five PNGs in `assets/ui-textures/` to Roblox (Studio's Asset Manager can bulk import images) and paste each image id into `Config.UiTextures`. Details are in `docs/reference/ui-materials.md`.
 
 ## Adding a code
 

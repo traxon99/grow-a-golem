@@ -80,6 +80,7 @@ Original wireframes drawn for Grow A Golem, stored in `docs/reference/images/`. 
 | [images/reward-popup.png](images/reward-popup.png) | Reward/artifact reveal card with rarity color and real odds | [art-audio.md](art-audio.md), [progression.md](progression.md) |
 | [images/mobile-safe-areas.png](images/mobile-safe-areas.png) | Phone screen with safe insets, thumb zones, and default joystick/jump areas to keep clear | [ui-ux.md](ui-ux.md), [performance-mobile.md](performance-mobile.md) |
 | [images/rarity-colors.png](images/rarity-colors.png) | Our rarity color ladder with symbols for color-blind players | [art-audio.md](art-audio.md) |
+| [images/ui-materials.png](images/ui-materials.png) | Our five UI materials (wood, stone, metal, studs, crystal), code-only and with textures, with worst-case text samples | [ui-materials.md](ui-materials.md) |
 
 ## Sources
 

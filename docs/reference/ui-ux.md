@@ -1,6 +1,6 @@
 # UI/UX
 
-Last updated: 2026-10-27. See also [performance-mobile.md](performance-mobile.md), [art-audio.md](art-audio.md) and the wireframes in [visual-references.md](visual-references.md#our-wireframes).
+Last updated: 2026-10-27. See also [ui-materials.md](ui-materials.md) (surface textures), [performance-mobile.md](performance-mobile.md), [art-audio.md](art-audio.md) and the wireframes in [visual-references.md](visual-references.md#our-wireframes).
 
 ![HUD layout wireframe](images/hud-layout.png)
 
@@ -44,7 +44,7 @@ Sourced points:
 
 ## Grow A Golem today
 
-- Placeholder UI built in code: dark slate panels (RGB 30,34,40), blue buttons, GothamBold with `TextScaled`.
+- UI built in code with themed materials (wood, stone, metal, studs, crystal) through `Ui.surface`; see [ui-materials.md](ui-materials.md). GothamBold with `TextScaled` and a dark text outline.
 - Layout: stats panel top-left (level, XP bar, mineral counts); golem health bar top-center with next-goal tracker and progress bar under it; menu buttons on the left; spell buttons Q/E/R bottom-right on touch; toasts bottom-center; event banner. This matches the common simulator layout (target wireframe: `images/hud-layout.png`).
 - Moments: boss HP bar, artifact reveal card, level-up banner, damage numbers.
 - **Not found in code:** number abbreviation helper, `ScreenInsets`/`CoreUISafeInsets`, ReducedMotion handling, PreferredTextSize support (TextScaled overrides it), PreferredTransparency, gamepad navigation, notification badges.
@@ -57,7 +57,7 @@ Sourced points:
 4. **P1:** Gate tweens, camera shake and banner slides on `ReducedMotionEnabled`.
 5. **P1:** Red "!" badges on Quests/Gifts/Artifacts buttons when something is claimable, with a symbol, not just color.
 6. **P1:** Collapse the left menu column into one button on small phones.
-7. **P2 (#16):** Cartoony restyle: rounded corners, outlined heavy font, brighter palette, once the loop is playtested.
+7. **P2 (#16):** Cartoony restyle: heavier outlined font and brighter palette, once the loop is playtested. Rounded corners and themed surface materials are done ([ui-materials.md](ui-materials.md)).
 8. **P2:** Gamepad focus order and input-aware prompts.
 
 ## Sources
