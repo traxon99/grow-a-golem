@@ -8,7 +8,7 @@ Game code lives in this repo and syncs into Roblox Studio with [Rojo](https://ro
 
 1. Install Rojo 7. The easiest way is the **Rojo** extension for VS Code, or `rokit add rojo-rbx/rojo` if you use Rokit.
 2. In Roblox Studio, install the **Rojo** plugin (Plugins tab → Manage Plugins, or from the Creator Store).
-3. Open a new **Baseplate** place in Studio, then go to Game Settings → Security and turn on **Enable Studio Access to API Services**. Without this, progress won't save in Studio.
+3. Open a new **Baseplate** place in Studio and publish it with **File → Publish to Roblox** (it can stay private). Then go to Game Settings → Security and turn on **Enable Studio Access to API Services**. Without both steps the game still runs, but progress won't save, and the Output window will warn you about it.
 
 ## Running it
 
