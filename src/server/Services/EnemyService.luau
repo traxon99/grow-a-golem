@@ -261,7 +261,11 @@ local function rewardKill(enemy: Enemy, killer: Player)
 	end
 
 	for _, player in recipients do
-		local given = EconomyService.grant(player, { minerals = enemy.def.drops, xp = enemy.def.xp }, if enemy.isBoss then "boss" else "enemy")
+		local given = EconomyService.grant(
+			player,
+			{ minerals = enemy.def.drops, xp = enemy.def.xp },
+			if enemy.isBoss then "boss" else "enemy"
+		)
 		if enemy.isBoss then
 			local firstTime = false
 			DataService.update(player, function(data)
@@ -377,7 +381,10 @@ function EnemyService.update()
 				enemy.humanoid:MoveTo(home)
 			end
 			if enemy.hp < enemy.def.maxHealth then
-				enemy.hp = math.min(enemy.hp + enemy.def.maxHealth * Config.BossRegenPerSecond / Config.TickRate, enemy.def.maxHealth)
+				enemy.hp = math.min(
+					enemy.hp + enemy.def.maxHealth * Config.BossRegenPerSecond / Config.TickRate,
+					enemy.def.maxHealth
+				)
 				enemy.humanoid.Health = enemy.hp
 			else
 				enemy.contributors = {}

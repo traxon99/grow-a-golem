@@ -2,16 +2,20 @@
 -- Only Roblox value constructors are stubbed; no game logic is reimplemented.
 local function fresh()
 	return {
-		golem = { xp = 0, parts = {} }, minerals = {}, bossesDefeated = {},
+		golem = { xp = 0, parts = {} },
+		minerals = {},
+		bossesDefeated = {},
 		artifacts = { found = {}, equipped = {}, pity = {}, spares = {}, boundSpares = {} },
-		skills = {}, awakening = { count = 0, shards = 0, upgrades = {} },
-		ascension = { count = 0, points = 0, upgrades = {} }, boosts = {},
+		skills = {},
+		awakening = { count = 0, shards = 0, upgrades = {} },
+		ascension = { count = 0, points = 0, upgrades = {} },
+		boosts = {},
 	}
 end
 local ctx = { passes = {}, now = 0 }
 local player = fresh()
 assert(Stats.compute(player, ctx).level == 1)
-assert(Stats.levelForXp(10^12) == Config.Golem.maxLevel)
+assert(Stats.levelForXp(10 ^ 12) == Config.Golem.maxLevel)
 for level = 1, Config.Golem.maxLevel do
 	assert(Stats.levelForXp(Stats.xpForLevel(level)) == level)
 end
@@ -22,7 +26,10 @@ local allIds = {}
 for _, zoneId in Config.ZoneOrder do
 	local zone = Config.Zones[zoneId]
 	assert(#zone.enemies >= 2)
-	assert(Config.Visuals.zoneTints[zone.theme] and Config.Visuals.zoneAtmosphere[zone.theme], `zone {zoneId} theme needs a tint and haze`)
+	assert(
+		Config.Visuals.zoneTints[zone.theme] and Config.Visuals.zoneAtmosphere[zone.theme],
+		`zone {zoneId} theme needs a tint and haze`
+	)
 	assert(Config.Bosses[zoneId].slam.warning >= 1.2)
 	if zone.gate.boss then
 		assert(zone.gate.boss < zoneId, "A zone cannot require its own boss")
@@ -38,12 +45,16 @@ for _, zoneId in Config.ZoneOrder do
 	for _, id in zone.enemies do
 		local enemy = Config.Enemies[id]
 		assert(enemy and (enemy.spawnWeight or 1) > 0 and enemy.maxHealth > 0)
-		for mineral in enemy.drops do assert(Config.Minerals[mineral]) end
+		for mineral in enemy.drops do
+			assert(Config.Minerals[mineral])
+		end
 	end
 	local sources = { drop = 0, boss = 0, hidden = 0 }
 	for _, id in Config.ArtifactOrder do
 		local artifact = Config.Artifacts[id]
-		if artifact.zone == zoneId then sources[artifact.source] += 1 end
+		if artifact.zone == zoneId then
+			sources[artifact.source] += 1
+		end
 	end
 	assert(sources.drop == 4 and sources.boss == 1 and sources.hidden == 1)
 	assert(zoneId == 1 or not Stats.zoneUnlocked(player, zoneId))
@@ -54,7 +65,9 @@ for _, id in Config.ArtifactOrder do
 end
 for _, branch in Config.SkillBranches do
 	assert(#branch.nodes == 8)
-	for _, id in branch.nodes do assert(Config.Skills[id]) end
+	for _, id in branch.nodes do
+		assert(Config.Skills[id])
+	end
 end
 local lastPower = 0
 for _, id in Config.TierOrder do

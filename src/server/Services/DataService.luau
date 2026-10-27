@@ -38,7 +38,9 @@ end)
 local store: DataStore? = if storeOk then storeOrError else nil
 if not store then
 	warn(`[DataService] DataStores unavailable, progress will NOT save: {storeOrError}`)
-	warn("[DataService] To save in Studio: File > Publish to Roblox, then Game Settings > Security > Enable Studio Access to API Services.")
+	warn(
+		"[DataService] To save in Studio: File > Publish to Roblox, then Game Settings > Security > Enable Studio Access to API Services."
+	)
 end
 
 local profiles: { [Player]: Profile } = {}
@@ -179,9 +181,12 @@ local function save(player: Player, release: boolean?): boolean
 				lostLease = true
 				return nil
 			end
-			data._session = if release then nil else {
-				token = profile.token, expiresAt = os.time() + Config.Data.sessionLeaseSeconds,
-			}
+			data._session = if release
+				then nil
+				else {
+					token = profile.token,
+					expiresAt = os.time() + Config.Data.sessionLeaseSeconds,
+				}
 			return data
 		end)
 		if result == nil then

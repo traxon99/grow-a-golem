@@ -68,8 +68,15 @@ local function placeNode(zoneId: number)
 		local s = math.min(def.size.X, def.size.Z) * (0.35 + math.random() * 0.25)
 		local size = if mineral == "crystal" then Vector3.new(s * 0.5, s * 1.6, s * 0.5) else Vector3.new(s, s, s)
 		local angle = i / count * math.pi * 2
-		local offset = CFrame.new(math.cos(angle) * def.size.X * 0.35, def.size.Y * (math.random() * 0.5 - 0.1), math.sin(angle) * def.size.Z * 0.35)
-			* CFrame.Angles(math.rad(math.random(-35, 35)), math.rad(math.random(0, 359)), math.rad(math.random(-35, 35)))
+		local offset = CFrame.new(
+			math.cos(angle) * def.size.X * 0.35,
+			def.size.Y * (math.random() * 0.5 - 0.1),
+			math.sin(angle) * def.size.Z * 0.35
+		) * CFrame.Angles(
+			math.rad(math.random(-35, 35)),
+			math.rad(math.random(0, 359)),
+			math.rad(math.random(-35, 35))
+		)
 		local chunk = Instance.new("Part")
 		chunk.Name = "Ore"
 		chunk.Anchored = true
@@ -118,7 +125,8 @@ function MiningService.damage(node: Node, amount: number, player: Player)
 		local size = node.def.size * scale
 		local bottom = node.part.Position.Y - node.part.Size.Y / 2
 		node.part.Size = size
-		node.part.CFrame = node.part.CFrame.Rotation + Vector3.new(node.part.Position.X, bottom + size.Y / 2, node.part.Position.Z)
+		node.part.CFrame = node.part.CFrame.Rotation
+			+ Vector3.new(node.part.Position.X, bottom + size.Y / 2, node.part.Position.Z)
 		for _, chunk in node.chunks do
 			chunk.part.Size = chunk.size * scale
 			chunk.part.CFrame = node.part.CFrame * (CFrame.new(chunk.offset.Position * scale) * chunk.offset.Rotation)

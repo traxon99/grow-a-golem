@@ -94,7 +94,8 @@ end
 
 -- Ascension consumes a fixed number of Awakenings and the current run.
 function Stats.canAscend(data: any): boolean
-	return data.awakening.count - (data.ascension and data.ascension.spentAwakenings or 0) >= Config.Ascension.requiredAwakenings
+	return data.awakening.count - (data.ascension and data.ascension.spentAwakenings or 0)
+			>= Config.Ascension.requiredAwakenings
 		and Stats.bossDefeated(data, Config.Ascension.requiredBoss)
 end
 
@@ -510,7 +511,9 @@ function Stats.compute(data: any, ctx: Context): GolemStats
 		miningCooldown = base.miningCooldown,
 		miningRange = base.miningRange * scale,
 		walkSpeed = math.min(speed * pct("speed"), 40),
-		mineralMult = pct("minerals") * (if ctx.passes.doubleMinerals then 2 else 1) * Stats.eventMultiplier(ctx.now, "minerals"),
+		mineralMult = pct("minerals")
+			* (if ctx.passes.doubleMinerals then 2 else 1)
+			* Stats.eventMultiplier(ctx.now, "minerals"),
 		xpMult = pct("xp") * xpBoost * Stats.eventMultiplier(ctx.now, "xp"),
 		luckMult = pct("luck") * luckBoost * Stats.eventMultiplier(ctx.now, "luck"),
 		spellPowerMult = pct("spellPower"),

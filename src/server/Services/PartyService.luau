@@ -175,7 +175,11 @@ function PartyService.start()
 		end
 		invites[target] = invites[target] or {}
 		invites[target][player] = os.clock() + Config.Party.inviteTimeout
-		Remotes.Notify:FireClient(target, "message", `{player.DisplayName} invited you to a party! Open Party to accept.`)
+		Remotes.Notify:FireClient(
+			target,
+			"message",
+			`{player.DisplayName} invited you to a party! Open Party to accept.`
+		)
 		DataService.markChanged(target)
 		return true, `Invite sent to {target.DisplayName}`
 	end)

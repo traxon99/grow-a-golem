@@ -5,13 +5,13 @@ local SessionLease = {}
 
 function SessionLease.canAcquire(record: any, token: string, now: number): boolean
 	local lease = type(record) == "table" and record._session
-	return type(lease) ~= "table" or lease.token == token
+	return type(lease) ~= "table"
+		or lease.token == token
 		or (type(lease.expiresAt) == "number" and lease.expiresAt <= now)
 end
 
 function SessionLease.owns(record: any, token: string): boolean
-	return type(record) == "table" and type(record._session) == "table"
-		and record._session.token == token
+	return type(record) == "table" and type(record._session) == "table" and record._session.token == token
 end
 
 function SessionLease.copy(value: any): any

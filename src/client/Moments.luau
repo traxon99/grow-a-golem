@@ -118,9 +118,13 @@ local function startBossBar(gui: ScreenGui)
 				if chipTween then
 					chipTween:Cancel()
 				end
-				local tween = TweenService:Create(chip, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.In, 0, false, 0.25), {
-					Size = UDim2.fromScale(fraction, 1),
-				})
+				local tween = TweenService:Create(
+					chip,
+					TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.In, 0, false, 0.25),
+					{
+						Size = UDim2.fromScale(fraction, 1),
+					}
+				)
 				tween:Play()
 				chipTween = tween
 			elseif fraction > lastFraction then
@@ -185,7 +189,13 @@ local function startReveal(gui: ScreenGui)
 		line("NEW ARTIFACT!", 14, 22, GOLD)
 		line(artifact.name, 42, 36, Ui.Colors.text)
 		line(Ui.bonusText(artifact.bonus), 84, 20, Ui.Colors.good, Enum.Font.Gotham)
-		line(`{Config.Zones[artifact.zone].name} collection  {found} / {total}`, 116, 18, Ui.Colors.quiet, Enum.Font.Gotham)
+		line(
+			`{Config.Zones[artifact.zone].name} collection  {found} / {total}`,
+			116,
+			18,
+			Ui.Colors.quiet,
+			Enum.Font.Gotham
+		)
 		local back, fill = bar(content, UDim2.new(1, -60, 0, 10), UDim2.fromOffset(30, 140), GOLD)
 		back.ZIndex = 12
 		fill.ZIndex = 13

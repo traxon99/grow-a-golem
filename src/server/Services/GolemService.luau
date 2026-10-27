@@ -101,7 +101,13 @@ local function visualKey(player: Player, data: any, stats: Stats.GolemStats): st
 end
 
 -- Builds the golem standing on `ground`, facing `look`.
-local function buildModel(player: Player, data: any, stats: Stats.GolemStats, ground: Vector3, look: Vector3): (Model, Humanoid, BasePart, Seat, number)
+local function buildModel(
+	player: Player,
+	data: any,
+	stats: Stats.GolemStats,
+	ground: Vector3,
+	look: Vector3
+): (Model, Humanoid, BasePart, Seat, number)
 	local s = stats.scale
 	local model = Instance.new("Model")
 	model.Name = player.Name .. "_Golem"
@@ -129,7 +135,9 @@ local function buildModel(player: Player, data: any, stats: Stats.GolemStats, gr
 	local neon = Enum.Material.Neon
 	local RUNE_COLOR = CosmeticLooks.accent(skinId)
 	local partAssets = {}
-	for name, slot in { LeftLeg = "legs", RightLeg = "legs", Torso = "torso", Head = "core", LeftArm = "armL", RightArm = "armR" } do
+	for name, slot in
+		{ LeftLeg = "legs", RightLeg = "legs", Torso = "torso", Head = "core", LeftArm = "armL", RightArm = "armR" }
+	do
 		local tier = data.golem.parts[slot]
 		if tier then
 			partAssets[name] = { "Golem", tier, name }
@@ -162,10 +170,16 @@ local function buildModel(player: Player, data: any, stats: Stats.GolemStats, gr
 	-- Limbs are Motor6D joints so the client can animate walking and punching.
 	for _, side in { -1, 1 } do
 		local color, material = look("legs")
-		local leg = tag(rig.part(if side < 0 then "LeftLeg" else "RightLeg", V(3, 5, 3), at(side * 2, -5.5, 0), color, material), "legs")
+		local leg = tag(
+			rig.part(if side < 0 then "LeftLeg" else "RightLeg", V(3, 5, 3), at(side * 2, -5.5, 0), color, material),
+			"legs"
+		)
 		rig.joint(root, leg, V(side * 2, -3.2, 0), "Hip", { Kind = "leg", Side = side })
 		local footColor = look("legs", 0.8)
-		rig.weld(leg, tag(rig.part("Foot", V(3.4, 1.2, 3.8), at(side * 2, -7.4, -0.3), footColor, material), "legs", 0.8))
+		rig.weld(
+			leg,
+			tag(rig.part("Foot", V(3.4, 1.2, 3.8), at(side * 2, -7.4, -0.3), footColor, material), "legs", 0.8)
+		)
 	end
 
 	local torsoColor, torsoMaterial = look("torso")
@@ -187,10 +201,16 @@ local function buildModel(player: Player, data: any, stats: Stats.GolemStats, gr
 	for _, side in { -1, 1 } do
 		local slot = if side < 0 then "armL" else "armR"
 		local color, material = look(slot)
-		local arm = tag(rig.part(if side < 0 then "LeftArm" else "RightArm", V(2.5, 7, 2.5), at(side * 5, 0.5, 0), color, material), slot)
+		local arm = tag(
+			rig.part(if side < 0 then "LeftArm" else "RightArm", V(2.5, 7, 2.5), at(side * 5, 0.5, 0), color, material),
+			slot
+		)
 		rig.joint(torso, arm, V(side * 5, 3.5, 0), "Shoulder", { Kind = "arm", Side = side })
 		local capColor = look(slot, 0.85)
-		rig.weld(arm, tag(rig.part("ShoulderCap", V(3.2, 2, 3.2), at(side * 5, 3.6, 0), capColor, material), slot, 0.85))
+		rig.weld(
+			arm,
+			tag(rig.part("ShoulderCap", V(3.2, 2, 3.2), at(side * 5, 3.6, 0), capColor, material), slot, 0.85)
+		)
 		rig.weld(arm, tag(rig.part("Fist", V(3.2, 3, 3.2), at(side * 5, -3.8, -0.2), color, material), slot))
 	end
 	model:SetAttribute("Stride", 7 * s)
@@ -455,7 +475,8 @@ function GolemService.sendToZone(golem: Golem, zoneId: number)
 	golem.zoneId = zoneId
 	golem.humanoid:Move(Vector3.zero)
 	local spread = if zoneId == Config.HubZone then Config.Hub.spread else 10
-	local spawn = WorldService.getSpawnPoint(zoneId) + Vector3.new(math.random(-spread, spread), 0, math.random(-spread, spread))
+	local spawn = WorldService.getSpawnPoint(zoneId)
+		+ Vector3.new(math.random(-spread, spread), 0, math.random(-spread, spread))
 	golem.model:PivotTo(CFrame.new(spawn + Vector3.new(0, golem.groundOffset, 0)))
 	publishHealth(golem)
 end

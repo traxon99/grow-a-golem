@@ -224,7 +224,9 @@ function DECOR.basalt(parent, rng, at, theme)
 			parent,
 			h,
 			d,
-			at * CFrame.new(rng:NextNumber(-3, 3), h / 2 - 0.5, rng:NextNumber(-3, 3)) * CFrame.Angles(rng:NextNumber(-0.08, 0.08), 0, rng:NextNumber(-0.08, 0.08)),
+			at
+				* CFrame.new(rng:NextNumber(-3, 3), h / 2 - 0.5, rng:NextNumber(-3, 3))
+				* CFrame.Angles(rng:NextNumber(-0.08, 0.08), 0, rng:NextNumber(-0.08, 0.08)),
 			Build.vary(theme.rock, rng, 0.05),
 			Enum.Material.Basalt
 		)
@@ -234,7 +236,8 @@ end
 function DECOR.lavaPool(parent, rng, at, theme)
 	local d = rng:NextNumber(10, 20)
 	Build.cylinder(parent, 0.6, d + 3, at * CFrame.new(0, 0.2, 0), theme.rock)
-	local lava = Build.cylinder(parent, 0.6, d, at * CFrame.new(0, 0.35, 0), Color3.fromRGB(255, 120, 40), Enum.Material.Neon)
+	local lava =
+		Build.cylinder(parent, 0.6, d, at * CFrame.new(0, 0.35, 0), Color3.fromRGB(255, 120, 40), Enum.Material.Neon)
 	local light = Instance.new("PointLight")
 	light.Color = Color3.fromRGB(255, 140, 60)
 	light.Range = d
@@ -298,7 +301,9 @@ function DECOR.crystalCluster(parent, rng, at, _theme)
 	for i = 1, rng:NextInteger(3, 6) do
 		local h = rng:NextNumber(3, 9) * (if i == 1 then 1.4 else 1)
 		local w = h * 0.22
-		local tilt = if i == 1 then CFrame.identity else CFrame.Angles(rng:NextNumber(-0.5, 0.5), 0, rng:NextNumber(-0.5, 0.5))
+		local tilt = if i == 1
+			then CFrame.identity
+			else CFrame.Angles(rng:NextNumber(-0.5, 0.5), 0, rng:NextNumber(-0.5, 0.5))
 		local crystal = Build.part(parent, {
 			size = Vector3.new(w, h, w),
 			cframe = at * tilt * CFrame.new(0, h / 2 - 0.5, 0) * CFrame.Angles(0, math.rad(45), 0),
@@ -341,7 +346,10 @@ function DECOR.shardSpike(parent, rng, at, theme)
 	local h = rng:NextNumber(5, 12)
 	Build.part(parent, {
 		size = Vector3.new(h * 0.25, h, h * 0.25),
-		cframe = at * CFrame.Angles(rng:NextNumber(-0.3, 0.3), 0, rng:NextNumber(-0.3, 0.3)) * CFrame.new(0, h / 2 - 1, 0) * CFrame.Angles(0, math.rad(45), 0),
+		cframe = at
+			* CFrame.Angles(rng:NextNumber(-0.3, 0.3), 0, rng:NextNumber(-0.3, 0.3))
+			* CFrame.new(0, h / 2 - 1, 0)
+			* CFrame.Angles(0, math.rad(45), 0),
 		color = Build.vary(theme.rock, rng),
 	})
 end
@@ -369,7 +377,10 @@ function DECOR.stormSpire(parent, rng, at, theme)
 	local streak = Build.part(parent, {
 		size = Vector3.new(0.3, h * 0.7, 0.3),
 		-- On one face of the turned spire, so it shows.
-		cframe = tilt * CFrame.Angles(0, math.rad(45), 0) * CFrame.new(w / 2 + 0.1, h * 0.45, 0) * CFrame.Angles(0, 0, math.rad(rng:NextNumber(-8, 8))),
+		cframe = tilt
+			* CFrame.Angles(0, math.rad(45), 0)
+			* CFrame.new(w / 2 + 0.1, h * 0.45, 0)
+			* CFrame.Angles(0, 0, math.rad(rng:NextNumber(-8, 8))),
 		color = Color3.fromRGB(120, 210, 255),
 		material = Enum.Material.Neon,
 	})
@@ -399,10 +410,24 @@ function DECOR.pillar(parent, rng, at, theme)
 	local h = rng:NextNumber(4, 14)
 	local stone = Build.vary(theme.rock, rng, 0.05)
 	Build.cylinder(parent, 1, 4.4, at * CFrame.new(0, 0.5, 0), stone)
-	Build.cylinder(parent, h, 3.2, at * CFrame.new(0, h / 2 + 1, 0) * CFrame.Angles(rng:NextNumber(-0.05, 0.05), 0, 0), stone)
+	Build.cylinder(
+		parent,
+		h,
+		3.2,
+		at * CFrame.new(0, h / 2 + 1, 0) * CFrame.Angles(rng:NextNumber(-0.05, 0.05), 0, 0),
+		stone
+	)
 	if rng:NextNumber() < 0.5 then
 		-- The fallen top lies beside the stump.
-		Build.cylinder(parent, rng:NextNumber(3, 6), 3.2, at * CFrame.new(3.5, 1.6, rng:NextNumber(-2, 2)) * CFrame.Angles(0, rng:NextNumber(0, math.pi), math.rad(90)), stone)
+		Build.cylinder(
+			parent,
+			rng:NextNumber(3, 6),
+			3.2,
+			at
+				* CFrame.new(3.5, 1.6, rng:NextNumber(-2, 2))
+				* CFrame.Angles(0, rng:NextNumber(0, math.pi), math.rad(90)),
+			stone
+		)
 	end
 end
 
@@ -412,7 +437,11 @@ function DECOR.archway(parent, rng, at, theme)
 	for _, x in { -5, 5 } do
 		Build.part(parent, { size = Vector3.new(2.4, h, 2.4), cframe = at * CFrame.new(x, h / 2, 0), color = stone })
 	end
-	Build.part(parent, { size = Vector3.new(13, 2.2, 3), cframe = at * CFrame.new(0, h + 1.1, 0) * CFrame.Angles(0, 0, math.rad(rng:NextNumber(-4, 4))), color = stone })
+	Build.part(parent, {
+		size = Vector3.new(13, 2.2, 3),
+		cframe = at * CFrame.new(0, h + 1.1, 0) * CFrame.Angles(0, 0, math.rad(rng:NextNumber(-4, 4))),
+		color = stone,
+	})
 	Build.part(parent, {
 		size = Vector3.new(1.4, 1.4, 0.2),
 		cframe = at * CFrame.new(0, h + 1.1, -1.6) * CFrame.Angles(0, 0, math.rad(45)),
@@ -427,7 +456,9 @@ function DECOR.kelp(parent, rng, at, _theme)
 		local h = rng:NextNumber(4, 9)
 		Build.part(parent, {
 			size = Vector3.new(0.5, h, 0.9),
-			cframe = at * CFrame.new(rng:NextNumber(-1.5, 1.5), h / 2, rng:NextNumber(-1.5, 1.5)) * CFrame.Angles(rng:NextNumber(-0.2, 0.2), rng:NextNumber(0, math.pi), rng:NextNumber(-0.2, 0.2)),
+			cframe = at
+				* CFrame.new(rng:NextNumber(-1.5, 1.5), h / 2, rng:NextNumber(-1.5, 1.5))
+				* CFrame.Angles(rng:NextNumber(-0.2, 0.2), rng:NextNumber(0, math.pi), rng:NextNumber(-0.2, 0.2)),
 			color = Build.vary(green, rng, 0.1),
 		})
 	end
@@ -456,9 +487,22 @@ end
 function DECOR.anvil(parent, rng, at, _theme)
 	local iron = Color3.fromRGB(70, 72, 80)
 	local turn = at * CFrame.Angles(0, rng:NextNumber(0, math.pi), 0)
-	Build.part(parent, { size = Vector3.new(2.4, 2, 2.4), cframe = turn * CFrame.new(0, 1, 0), color = Color3.fromRGB(96, 70, 50) })
-	Build.part(parent, { size = Vector3.new(1.2, 1, 1.2), cframe = turn * CFrame.new(0, 2.5, 0), color = iron, material = Enum.Material.Metal })
-	Build.part(parent, { size = Vector3.new(4, 1, 1.6), cframe = turn * CFrame.new(0.4, 3.4, 0), color = iron, material = Enum.Material.Metal })
+	Build.part(
+		parent,
+		{ size = Vector3.new(2.4, 2, 2.4), cframe = turn * CFrame.new(0, 1, 0), color = Color3.fromRGB(96, 70, 50) }
+	)
+	Build.part(parent, {
+		size = Vector3.new(1.2, 1, 1.2),
+		cframe = turn * CFrame.new(0, 2.5, 0),
+		color = iron,
+		material = Enum.Material.Metal,
+	})
+	Build.part(parent, {
+		size = Vector3.new(4, 1, 1.6),
+		cframe = turn * CFrame.new(0.4, 3.4, 0),
+		color = iron,
+		material = Enum.Material.Metal,
+	})
 	Build.part(parent, {
 		size = Vector3.new(1.2, 0.3, 0.8),
 		cframe = turn * CFrame.new(-0.6, 4.05, 0),
@@ -469,7 +513,12 @@ end
 
 function DECOR.chimney(parent, rng, at, theme)
 	local h = rng:NextNumber(10, 18)
-	Build.part(parent, { size = Vector3.new(4, h, 4), cframe = at * CFrame.new(0, h / 2, 0), color = Build.vary(theme.rock, rng, 0.05), material = Enum.Material.Brick })
+	Build.part(parent, {
+		size = Vector3.new(4, h, 4),
+		cframe = at * CFrame.new(0, h / 2, 0),
+		color = Build.vary(theme.rock, rng, 0.05),
+		material = Enum.Material.Brick,
+	})
 	local mouth = Build.part(parent, {
 		size = Vector3.new(3, 0.4, 3),
 		cframe = at * CFrame.new(0, h + 0.2, 0),
@@ -495,7 +544,13 @@ function DECOR.gear(parent, rng, at, _theme)
 	-- Half buried and standing on edge, so it reads from far away.
 	local hub = at * CFrame.new(0, d * 0.3, 0) * CFrame.Angles(0, rng:NextNumber(0, math.pi), 0)
 	-- A raw cylinder lies along X, which is the edge-on axis we want here.
-	Build.part(parent, { size = Vector3.new(1, d, d), cframe = hub, color = brass, material = Enum.Material.Metal, shape = Enum.PartType.Cylinder })
+	Build.part(parent, {
+		size = Vector3.new(1, d, d),
+		cframe = hub,
+		color = brass,
+		material = Enum.Material.Metal,
+		shape = Enum.PartType.Cylinder,
+	})
 	for i = 0, 5 do
 		local angle = i * math.pi / 3
 		Build.part(parent, {
@@ -515,7 +570,9 @@ local function addCloud(parent: Instance, rng: Random, at: Vector3)
 		local s = rng:NextNumber(10, 22)
 		Build.part(parent, {
 			size = Vector3.new(s, s * 0.6, s),
-			cframe = CFrame.new(at + Vector3.new(rng:NextNumber(-14, 14), rng:NextNumber(-3, 3), rng:NextNumber(-10, 10))),
+			cframe = CFrame.new(
+				at + Vector3.new(rng:NextNumber(-14, 14), rng:NextNumber(-3, 3), rng:NextNumber(-10, 10))
+			),
 			color = white,
 			shape = Enum.PartType.Ball,
 			transparency = 0.1,
@@ -586,8 +643,11 @@ function Islands.decorate(ground: BasePart, options: Options): Model
 				if clear(at.Position) then
 					local placement = at * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
 					local anchor = Build.part(model, {
-						name = "PropAnchor", size = Vector3.new(0.1, 0.1, 0.1), cframe = placement,
-						color = theme.rock, transparency = 1,
+						name = "PropAnchor",
+						size = Vector3.new(0.1, 0.1, 0.1),
+						cframe = placement,
+						color = theme.rock,
+						transparency = 1,
 					})
 					if not Build.attachAsset(model, anchor, { "Props", kind }, rng:NextNumber(0.8, 1.2)) then
 						anchor:Destroy()
@@ -624,7 +684,12 @@ function Islands.decorate(ground: BasePart, options: Options): Model
 	for _ = 1, 5 do
 		local angle = rng:NextNumber(0, math.pi * 2)
 		local r = size.X * rng:NextNumber(0.62, 0.75)
-		addIslet(model, rng, theme, center + Vector3.new(math.cos(angle) * r, rng:NextNumber(-25, 10), math.sin(angle) * r))
+		addIslet(
+			model,
+			rng,
+			theme,
+			center + Vector3.new(math.cos(angle) * r, rng:NextNumber(-25, 10), math.sin(angle) * r)
+		)
 	end
 
 	model.Parent = workspace

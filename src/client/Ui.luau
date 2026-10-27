@@ -112,7 +112,14 @@ local function isTextObject(target: GuiObject): boolean
 	return (target:IsA("TextLabel") or target:IsA("TextButton")) and (target :: any).Text ~= ""
 end
 
-local function detail(target: GuiObject, size: UDim2, position: UDim2, color: Color3, transparency: number, round: boolean): Frame
+local function detail(
+	target: GuiObject,
+	size: UDim2,
+	position: UDim2,
+	color: Color3,
+	transparency: number,
+	round: boolean
+): Frame
 	local d = Instance.new("Frame")
 	d.Name = "Detail"
 	d.Size = size
@@ -141,13 +148,32 @@ local function addDetails(target: GuiObject, material: string, m: Material)
 	elseif material == "metal" then
 		local inset = 5
 		for _, corner in { Vector2.new(0, 0), Vector2.new(1, 0), Vector2.new(0, 1), Vector2.new(1, 1) } do
-			local rivet = detail(target, UDim2.fromOffset(5, 5), UDim2.new(corner.X, if corner.X == 0 then inset else -inset, corner.Y, if corner.Y == 0 then inset else -inset), Color3.fromRGB(200, 208, 220), 0.2, true)
+			local rivet = detail(
+				target,
+				UDim2.fromOffset(5, 5),
+				UDim2.new(
+					corner.X,
+					if corner.X == 0 then inset else -inset,
+					corner.Y,
+					if corner.Y == 0 then inset else -inset
+				),
+				Color3.fromRGB(200, 208, 220),
+				0.2,
+				true
+			)
 			rivet.AnchorPoint = corner
 		end
 	elseif material == "studs" then
 		-- Studs stand up off the top edge, like a toy brick seen from the side.
 		for _, x in { 0.2, 0.5, 0.8 } do
-			local stud = detail(target, UDim2.fromOffset(12, 5), UDim2.new(x, 0, 0, 1), m.color:Lerp(Color3.new(1, 1, 1), 0.18), 0, false)
+			local stud = detail(
+				target,
+				UDim2.fromOffset(12, 5),
+				UDim2.new(x, 0, 0, 1),
+				m.color:Lerp(Color3.new(1, 1, 1), 0.18),
+				0,
+				false
+			)
 			stud.AnchorPoint = Vector2.new(0.5, 1)
 			local c = Instance.new("UICorner")
 			c.CornerRadius = UDim.new(0, 2)
@@ -264,7 +290,14 @@ function Ui.label(parent: Instance, text: string, size: UDim2, position: UDim2, 
 	return l
 end
 
-function Ui.button(parent: Instance, text: string, size: UDim2, position: UDim2, enabled: boolean, onClick: () -> ()): TextButton
+function Ui.button(
+	parent: Instance,
+	text: string,
+	size: UDim2,
+	position: UDim2,
+	enabled: boolean,
+	onClick: () -> ()
+): TextButton
 	local b = Instance.new("TextButton")
 	b.Text = text
 	b.Size = size
@@ -299,7 +332,15 @@ function Ui.button(parent: Instance, text: string, size: UDim2, position: UDim2,
 end
 
 -- A list row: title, a quieter second line, and an optional button on the right.
-function Ui.row(parent: Instance, order: number, title: string, subtitle: string?, buttonText: string?, enabled: boolean?, onClick: (() -> ())?): Frame
+function Ui.row(
+	parent: Instance,
+	order: number,
+	title: string,
+	subtitle: string?,
+	buttonText: string?,
+	enabled: boolean?,
+	onClick: (() -> ())?
+): Frame
 	local frame = Instance.new("Frame")
 	frame.Size = UDim2.new(1, -8, 0, if subtitle then 58 else 40)
 	frame.LayoutOrder = order
@@ -310,12 +351,20 @@ function Ui.row(parent: Instance, order: number, title: string, subtitle: string
 	local textWidth = if buttonText then UDim2.new(1, -140, 0, 22) else UDim2.new(1, -20, 0, 22)
 	Ui.label(frame, title, textWidth, UDim2.fromOffset(10, if subtitle then 6 else 9))
 	if subtitle then
-		local sub = Ui.label(frame, subtitle, UDim2.new(textWidth.X.Scale, textWidth.X.Offset, 0, 18), UDim2.fromOffset(10, 32))
+		local sub =
+			Ui.label(frame, subtitle, UDim2.new(textWidth.X.Scale, textWidth.X.Offset, 0, 18), UDim2.fromOffset(10, 32))
 		sub.Font = Enum.Font.Gotham
 		sub.TextColor3 = Ui.Colors.quiet
 	end
 	if buttonText then
-		local b = Ui.button(frame, buttonText, UDim2.new(0, 120, 1, -12), UDim2.new(1, -126, 0, 6), enabled == true, onClick or function() end)
+		local b = Ui.button(
+			frame,
+			buttonText,
+			UDim2.new(0, 120, 1, -12),
+			UDim2.new(1, -126, 0, 6),
+			enabled == true,
+			onClick or function() end
+		)
 		b.Name = "Action"
 	end
 	return frame

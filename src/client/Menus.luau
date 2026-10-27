@@ -37,9 +37,13 @@ local function oddsText(data: any, zoneId: number, luckMult: number): string
 		local chance, _, unfound = Stats.artifactOdds(data, zoneId, source, luckMult)
 		local spareChance, _, spares = Stats.spareOdds(data, zoneId, source, luckMult)
 		local who = if source == "boss" then "boss" else "enemy"
-		table.insert(parts, if unfound > 0 then `{percent(chance)} per {who}`
-			elseif spares then `{who} artifacts all found, {percent(spareChance)} per {who} for a spare copy`
-			else `{who} artifacts all found`)
+		table.insert(
+			parts,
+			if unfound > 0
+				then `{percent(chance)} per {who}`
+				elseif spares then `{who} artifacts all found, {percent(spareChance)} per {who} for a spare copy`
+				else `{who} artifacts all found`
+		)
 	end
 	return table.concat(parts, ", ")
 end
@@ -60,9 +64,13 @@ local function renderForge(list: ScrollingFrame, snap: any)
 	end
 
 	Ui.heading(list, nextOrder(), "Your golem")
-	Ui.row(list, nextOrder(), `Health {stats.maxHealth}  ·  Damage {math.floor(stats.attackDamage)}`,
+	Ui.row(
+		list,
+		nextOrder(),
+		`Health {stats.maxHealth}  ·  Damage {math.floor(stats.attackDamage)}`,
 		`Mining {math.floor(stats.miningDamage)}  ·  Speed {math.floor(stats.walkSpeed)}`
-			.. (if stats.fullSet then `  ·  Full {Config.Tiers[stats.fullSet].displayName} set bonus!` else ""))
+			.. (if stats.fullSet then `  ·  Full {Config.Tiers[stats.fullSet].displayName} set bonus!` else "")
+	)
 
 	Ui.heading(list, nextOrder(), "Forge parts")
 	for _, slot in Config.SlotOrder do
@@ -71,11 +79,17 @@ local function renderForge(list: ScrollingFrame, snap: any)
 		local nextTier = Config.TierOrder[tierRank(current) + 1]
 		if nextTier then
 			local cost = Stats.partCost(slot, nextTier)
-			Ui.row(list, nextOrder(), `{Config.Slots[slot].displayName}: {currentName}`,
+			Ui.row(
+				list,
+				nextOrder(),
+				`{Config.Slots[slot].displayName}: {currentName}`,
 				`Next: {Config.Tiers[nextTier].displayName} for {Ui.costText(cost)}`,
-				"Forge", Stats.canAfford(data, cost), function()
+				"Forge",
+				Stats.canAfford(data, cost),
+				function()
 					State.request("craftPart", slot, nextTier)
-				end)
+				end
+			)
 		else
 			Ui.row(list, nextOrder(), `{Config.Slots[slot].displayName}: {currentName}`, "Best tier forged")
 		end
@@ -88,10 +102,17 @@ local function renderTravel(list: ScrollingFrame, snap: any)
 	local currentZone = if snap.golem then snap.golem.zoneId else 1
 	Ui.heading(list, 1, "Islands")
 	local inHub = currentZone == Config.HubZone
-	Ui.row(list, 2, Config.Hub.name, if inHub then "You are here" else "A safe island to show off your golem and meet other players",
-		"Travel", not inHub, function()
+	Ui.row(
+		list,
+		2,
+		Config.Hub.name,
+		if inHub then "You are here" else "A safe island to show off your golem and meet other players",
+		"Travel",
+		not inHub,
+		function()
 			State.request("travel", Config.HubZone)
-		end)
+		end
+	)
 	for index, zoneId in Config.ZoneOrder do
 		local zone = Config.Zones[zoneId]
 		local unlocked, reason = Stats.zoneUnlocked(data, zoneId)
@@ -122,32 +143,62 @@ local function renderArtifacts(list: ScrollingFrame, snap: any)
 		order += 1
 		return order
 	end
-	Ui.heading(list, nextOrder(), `Equipped {#data.artifacts.equipped} / {stats.artifactSlots}  ·  Found {Stats.artifactsFound(data)} / {#Config.ArtifactOrder}`)
+	Ui.heading(
+		list,
+		nextOrder(),
+		`Equipped {#data.artifacts.equipped} / {stats.artifactSlots}  ·  Found {Stats.artifactsFound(data)} / {#Config.ArtifactOrder}`
+	)
 	local boostLeft = luckBoostEndsIn(data)
 	if boostLeft > 0 then
-		Ui.row(list, nextOrder(), `2x Luck is on for {Ui.duration(boostLeft)}`, "The odds below already include it and drop back when it ends.")
+		Ui.row(
+			list,
+			nextOrder(),
+			`2x Luck is on for {Ui.duration(boostLeft)}`,
+			"The odds below already include it and drop back when it ends."
+		)
 	end
 
-	local sourceHint = { drop = "Rare drop from enemies", boss = "Dropped by the zone boss", hidden = "A glowing relic hidden on the island" }
+	local sourceHint = {
+		drop = "Rare drop from enemies",
+		boss = "Dropped by the zone boss",
+		hidden = "A glowing relic hidden on the island",
+	}
 	for _, zoneId in Config.ZoneOrder do
 		local complete = Stats.zoneSetComplete(data, zoneId)
 		local found, total = Stats.zoneArtifactCount(data, zoneId)
-		Ui.heading(list, nextOrder(), `{Config.Zones[zoneId].name}  {found} / {total}` .. (if complete then `  (set complete: {Ui.bonusText(Config.ZoneSetBonus)})` else `  ·  complete it for {Ui.bonusText(Config.ZoneSetBonus)}`))
+		Ui.heading(
+			list,
+			nextOrder(),
+			`{Config.Zones[zoneId].name}  {found} / {total}`
+				.. (
+					if complete
+						then `  (set complete: {Ui.bonusText(Config.ZoneSetBonus)})`
+						else `  ·  complete it for {Ui.bonusText(Config.ZoneSetBonus)}`
+				)
+		)
 		-- The real odds, including luck, and how close bad-luck protection is.
 		for _, source in { "drop", "boss" } do
 			local chance, rollsLeft, unfound = Stats.artifactOdds(data, zoneId, source, stats.luckMult)
 			if unfound > 0 then
 				local who = if source == "boss" then "boss defeat" else "enemy defeated"
-				Ui.row(list, nextOrder(), `Odds: {string.format("%.2f", chance * 100)}% per {who}`,
-					`{unfound} left to find. One is guaranteed within {rollsLeft} more.`)
+				Ui.row(
+					list,
+					nextOrder(),
+					`Odds: {string.format("%.2f", chance * 100)}% per {who}`,
+					`{unfound} left to find. One is guaranteed within {rollsLeft} more.`
+				)
 			else
 				-- Everything from this source is found, so the same roll now
 				-- gives spare copies to trade (see the Trade tab).
 				local spareChance, spareLeft, spares = Stats.spareOdds(data, zoneId, source, stats.luckMult)
 				if spares then
 					local who = if source == "boss" then "boss defeat" else "enemy defeated"
-					Ui.row(list, nextOrder(), `Spare copies: {string.format("%.2f", spareChance * 100)}% per {who}`,
-						`All found here. A spare to trade is guaranteed within {spareLeft} more.`)
+					Ui.row(
+						list,
+						nextOrder(),
+						`Spare copies: {string.format("%.2f", spareChance * 100)}% per {who}`,
+						`All found here. A spare to trade is guaranteed within {spareLeft} more.`
+					)
 				end
 			end
 		end
@@ -157,11 +208,20 @@ local function renderArtifacts(list: ScrollingFrame, snap: any)
 				if data.artifacts.found[id] then
 					local equipped = table.find(data.artifacts.equipped, id) ~= nil
 					local spare = (data.artifacts.spares or {})[id] or 0
-					local spareText = if spare > 0 then `  ·  {spare} spare ({Stats.tradableSpares(data, id)} tradable)` else ""
-					Ui.row(list, nextOrder(), artifact.name, Ui.bonusText(artifact.bonus) .. spareText,
-						if equipped then "Unequip" else "Equip", true, function()
+					local spareText = if spare > 0
+						then `  ·  {spare} spare ({Stats.tradableSpares(data, id)} tradable)`
+						else ""
+					Ui.row(
+						list,
+						nextOrder(),
+						artifact.name,
+						Ui.bonusText(artifact.bonus) .. spareText,
+						if equipped then "Unequip" else "Equip",
+						true,
+						function()
 							State.request(if equipped then "unequipArtifact" else "equipArtifact", id)
-						end)
+						end
+					)
 				else
 					Ui.row(list, nextOrder(), "???", sourceHint[artifact.source])
 				end
@@ -177,10 +237,17 @@ local function renderSkills(list: ScrollingFrame, snap: any)
 		order += 1
 		return order
 	end
-	Ui.row(list, nextOrder(), `Skill points: {Stats.skillPointsAvailable(data)}`, "You earn 1 point per level.",
-		"Reset", next(data.skills) ~= nil, function()
+	Ui.row(
+		list,
+		nextOrder(),
+		`Skill points: {Stats.skillPointsAvailable(data)}`,
+		"You earn 1 point per level.",
+		"Reset",
+		next(data.skills) ~= nil,
+		function()
 			State.request("respecSkills")
-		end)
+		end
+	)
 	Ui.row(list, nextOrder(), "Reset cost", Ui.costText(Config.SkillRespecCost))
 	for _, branch in Config.SkillBranches do
 		Ui.heading(list, nextOrder(), branch.displayName)
@@ -198,10 +265,17 @@ local function renderSkills(list: ScrollingFrame, snap: any)
 			end
 			local learned = data.skills[skillId] == true
 			local canLearn = Stats.canLearnSkill(data, skillId)
-			Ui.row(list, nextOrder(), `{skill.name} ({skill.cost} pt)`, table.concat(extra, ", "),
-				if learned then "Learned" else "Learn", canLearn and not learned, function()
+			Ui.row(
+				list,
+				nextOrder(),
+				`{skill.name} ({skill.cost} pt)`,
+				table.concat(extra, ", "),
+				if learned then "Learned" else "Learn",
+				canLearn and not learned,
+				function()
 					State.request("learnSkill", skillId)
-				end)
+				end
+			)
 		end
 	end
 end
@@ -219,10 +293,16 @@ local function renderAwaken(list: ScrollingFrame, snap: any)
 	Ui.heading(list, nextOrder(), `Awakenings: {data.awakening.count}  ·  Shards: {data.awakening.shards}`)
 	local canAwaken = level >= Config.Awakening.minLevel
 	local confirming = os.clock() < confirmAwakenUntil
-	Ui.row(list, nextOrder(),
-		if canAwaken then `Awaken now for {Stats.awakeningShards(level)} shards` else `Reach level {Config.Awakening.minLevel} to Awaken`,
+	Ui.row(
+		list,
+		nextOrder(),
+		if canAwaken
+			then `Awaken now for {Stats.awakeningShards(level)} shards`
+			else `Reach level {Config.Awakening.minLevel} to Awaken`,
 		"Resets level, parts, skills, minerals, and bosses. Keeps artifacts, shards, and upgrades.",
-		if confirming then "Tap to confirm" else "Awaken", canAwaken, function()
+		if confirming then "Tap to confirm" else "Awaken",
+		canAwaken,
+		function()
 			if os.clock() < confirmAwakenUntil then
 				confirmAwakenUntil = 0
 				State.request("awaken")
@@ -231,14 +311,24 @@ local function renderAwaken(list: ScrollingFrame, snap: any)
 				State.toast("Tap Awaken again to confirm")
 				Menus.refresh()
 			end
-		end)
+		end
+	)
 	Ui.row(list, nextOrder(), "Every Awakening", `+{Config.Awakening.mineralBonusPerAwakening}% minerals forever`)
 
 	local ascension = data.ascension or { count = 0, points = 0, upgrades = {} }
-	Ui.heading(list, nextOrder(), `Ascensions: {ascension.count} · Points: {ascension.points} · Unspent Awakenings: {data.awakening.count - (ascension.spentAwakenings or 0)}`)
-	Ui.row(list, nextOrder(), `Requires {Config.Ascension.requiredAwakenings} unspent Awakenings and {Config.Bosses[Config.Ascension.requiredBoss].displayName}`,
+	Ui.heading(
+		list,
+		nextOrder(),
+		`Ascensions: {ascension.count} · Points: {ascension.points} · Unspent Awakenings: {data.awakening.count - (ascension.spentAwakenings or 0)}`
+	)
+	Ui.row(
+		list,
+		nextOrder(),
+		`Requires {Config.Ascension.requiredAwakenings} unspent Awakenings and {Config.Bosses[Config.Ascension.requiredBoss].displayName}`,
 		`Uses {Config.Ascension.requiredAwakenings} unspent Awakenings (keeps their bonuses). Resets level, parts, skills, minerals and bosses. Keeps artifacts, cosmetics, shards and all upgrades. Grants {Config.Ascension.points} point.`,
-		if os.clock() < confirmAscendUntil then "Confirm Ascend" else "Ascend", Stats.canAscend(data), function()
+		if os.clock() < confirmAscendUntil then "Confirm Ascend" else "Ascend",
+		Stats.canAscend(data),
+		function()
 			if os.clock() < confirmAscendUntil then
 				confirmAscendUntil = 0
 				State.request("ascend")
@@ -247,7 +337,8 @@ local function renderAwaken(list: ScrollingFrame, snap: any)
 				State.toast("Read the reset details, then tap Ascend again to confirm")
 				Menus.refresh()
 			end
-		end)
+		end
+	)
 	for _, id in Config.AscendUpgradeOrder do
 		local upgrade = Config.AscendUpgrades[id]
 		local rank = ascension.upgrades[id] or 0
@@ -255,10 +346,17 @@ local function renderAwaken(list: ScrollingFrame, snap: any)
 		for stat, amount in upgrade.bonus do
 			table.insert(bonuses, `+{amount}% {stat}`)
 		end
-		Ui.row(list, nextOrder(), `{upgrade.name} ({rank}/{upgrade.maxRank})`, table.concat(bonuses, ", ") .. " per rank",
-			`{upgrade.cost} point`, rank < upgrade.maxRank and ascension.points >= upgrade.cost, function()
+		Ui.row(
+			list,
+			nextOrder(),
+			`{upgrade.name} ({rank}/{upgrade.maxRank})`,
+			table.concat(bonuses, ", ") .. " per rank",
+			`{upgrade.cost} point`,
+			rank < upgrade.maxRank and ascension.points >= upgrade.cost,
+			function()
 				State.request("buyAscendUpgrade", id)
-			end)
+			end
+		)
 	end
 
 	Ui.heading(list, nextOrder(), "Shard upgrades")
@@ -269,10 +367,17 @@ local function renderAwaken(list: ScrollingFrame, snap: any)
 			Ui.row(list, nextOrder(), `{upgrade.name} (max rank)`, upgrade.description)
 		else
 			local cost = Stats.upgradeCost(id, rank)
-			Ui.row(list, nextOrder(), `{upgrade.name} (rank {rank}/{upgrade.maxRank})`, `{upgrade.description} per rank`,
-				`{cost} shards`, data.awakening.shards >= cost, function()
+			Ui.row(
+				list,
+				nextOrder(),
+				`{upgrade.name} (rank {rank}/{upgrade.maxRank})`,
+				`{upgrade.description} per rank`,
+				`{cost} shards`,
+				data.awakening.shards >= cost,
+				function()
 					State.request("buyUpgrade", id)
-				end)
+				end
+			)
 		end
 	end
 end
@@ -290,32 +395,53 @@ local function renderQuests(list: ScrollingFrame, snap: any)
 
 	Ui.heading(list, nextOrder(), "Daily login")
 	local streakIndex = (rewards.daily.nextStreak - 1) % #Config.DailyRewards + 1
-	Ui.row(list, nextOrder(),
-		if rewards.daily.canClaim then `Day {rewards.daily.nextStreak} reward` else `Streak: {rewards.daily.streak} days`,
-		if rewards.daily.canClaim then Ui.rewardText(Config.DailyRewards[streakIndex]) else "Come back tomorrow for the next reward",
-		"Claim", rewards.daily.canClaim, function()
+	Ui.row(
+		list,
+		nextOrder(),
+		if rewards.daily.canClaim
+			then `Day {rewards.daily.nextStreak} reward`
+			else `Streak: {rewards.daily.streak} days`,
+		if rewards.daily.canClaim
+			then Ui.rewardText(Config.DailyRewards[streakIndex])
+			else "Come back tomorrow for the next reward",
+		"Claim",
+		rewards.daily.canClaim,
+		function()
 			State.request("claimDaily")
-		end)
+		end
+	)
 
 	Ui.heading(list, nextOrder(), "Session gifts")
 	local played = State.serverNow() - (snap.sessionStart or State.serverNow())
 	for index, gift in Config.SessionRewards do
 		local claimed = table.find(rewards.sessionClaimed, index) ~= nil
 		local remaining = gift.minutes * 60 - played
-		Ui.row(list, nextOrder(), `{gift.minutes} minute gift`, Ui.rewardText(gift),
+		Ui.row(
+			list,
+			nextOrder(),
+			`{gift.minutes} minute gift`,
+			Ui.rewardText(gift),
 			if claimed then "Opened" elseif remaining > 0 then Ui.duration(remaining) else "Open",
-			not claimed and remaining <= 0, function()
+			not claimed and remaining <= 0,
+			function()
 				State.request("claimSession", index)
-			end)
+			end
+		)
 	end
 
 	Ui.heading(list, nextOrder(), "Quests")
 	for _, quest in rewards.quests do
-		Ui.row(list, nextOrder(), (if quest.weekly then "Weekly: " else "") .. quest.text,
+		Ui.row(
+			list,
+			nextOrder(),
+			(if quest.weekly then "Weekly: " else "") .. quest.text,
 			`{quest.progress} / {quest.target}  ·  {Ui.rewardText(quest.reward)}`,
-			if quest.claimed then "Claimed" else "Claim", not quest.claimed and quest.progress >= quest.target, function()
+			if quest.claimed then "Claimed" else "Claim",
+			not quest.claimed and quest.progress >= quest.target,
+			function()
 				State.request("claimQuest", quest.id)
-			end)
+			end
+		)
 	end
 
 	if rewards.groupId ~= 0 and not rewards.groupClaimed then
@@ -336,7 +462,11 @@ local function renderParty(list: ScrollingFrame, snap: any)
 		order += 1
 		return order
 	end
-	Ui.heading(list, nextOrder(), `Party ({#party.members}/{Config.Party.maxSize})  ·  Friend bonus +{party.friendBonus}% minerals`)
+	Ui.heading(
+		list,
+		nextOrder(),
+		`Party ({#party.members}/{Config.Party.maxSize})  ·  Friend bonus +{party.friendBonus}% minerals`
+	)
 	for _, member in party.members do
 		local tags = {}
 		if member.leader then
@@ -370,11 +500,24 @@ local function renderParty(list: ScrollingFrame, snap: any)
 		Ui.row(list, nextOrder(), "Nobody else is here yet", "Invite a friend to play together!")
 	end
 	for _, other in party.others do
-		Ui.row(list, nextOrder(), other.name, if other.inParty then "In a party" else nil, "Invite", not other.inParty, function()
-			State.request("partyInvite", other.userId)
-		end)
+		Ui.row(
+			list,
+			nextOrder(),
+			other.name,
+			if other.inParty then "In a party" else nil,
+			"Invite",
+			not other.inParty,
+			function()
+				State.request("partyInvite", other.userId)
+			end
+		)
 	end
-	Ui.row(list, nextOrder(), "How parties work", "Members near a kill share its rewards. Each friend adds +10% minerals.")
+	Ui.row(
+		list,
+		nextOrder(),
+		"How parties work",
+		"Members near a kill share its rewards. Each friend adds +10% minerals."
+	)
 end
 
 -- The code being typed survives re-renders, and the list doesn't re-render
@@ -423,18 +566,29 @@ local function renderShop(list: ScrollingFrame, snap: any)
 	end)
 	Ui.row(list, nextOrder(), "Where to find codes", "New codes come out with updates and on our group wall.")
 
-	Ui.row(list, nextOrder(), "Looking for skins and pets?", "Golem skins, wizard outfits, pets and trails are in the Wardrobe, with a preview.")
+	Ui.row(
+		list,
+		nextOrder(),
+		"Looking for skins and pets?",
+		"Golem skins, wizard outfits, pets and trails are in the Wardrobe, with a preview."
+	)
 
 	Ui.heading(list, nextOrder(), "Game passes (forever)")
 	for _, key in Config.GamePassOrder do
 		local pass = Config.GamePasses[key]
 		local owned = passes[key] == true
-		Ui.row(list, nextOrder(), pass.name, pass.description,
+		Ui.row(
+			list,
+			nextOrder(),
+			pass.name,
+			pass.description,
 			if owned then "Owned" elseif pass.id == 0 then "Coming soon" else `R$ {pass.price}`,
-			not owned and pass.id ~= 0, function()
+			not owned and pass.id ~= 0,
+			function()
 				Remotes.Track:FireServer("purchasePrompted", "pass", key)
 				MarketplaceService:PromptGamePassPurchase(player, pass.id)
-			end)
+			end
+		)
 	end
 
 	Ui.heading(list, nextOrder(), "Packs and boosts")
@@ -458,11 +612,18 @@ local function renderShop(list: ScrollingFrame, snap: any)
 		if activeFor > 0 then
 			subtitle = `Active for {Ui.duration(activeFor)}`
 		end
-		Ui.row(list, nextOrder(), product.name, subtitle,
-			if product.id == 0 then "Coming soon" else `R$ {product.price}`, product.id ~= 0, function()
+		Ui.row(
+			list,
+			nextOrder(),
+			product.name,
+			subtitle,
+			if product.id == 0 then "Coming soon" else `R$ {product.price}`,
+			product.id ~= 0,
+			function()
 				Remotes.Track:FireServer("purchasePrompted", "product", key)
 				MarketplaceService:PromptProductPurchase(player, product.id)
-			end)
+			end
+		)
 		if product.boost == "luck" then
 			-- The player's actual odds on this island right now, from the same
 			-- numbers the server rolls with, and what the boost changes them to.
@@ -470,11 +631,19 @@ local function renderShop(list: ScrollingFrame, snap: any)
 			local luckMult = Stats.compute(data, State.context()).luckMult
 			local zoneName = Config.Zones[zoneId].name
 			if activeFor > 0 then
-				Ui.row(list, nextOrder(), `Your odds now on {zoneName} (2x Luck on)`,
-					`{oddsText(data, zoneId, luckMult)}. Without it: {oddsText(data, zoneId, luckMult / 2)}.`)
+				Ui.row(
+					list,
+					nextOrder(),
+					`Your odds now on {zoneName} (2x Luck on)`,
+					`{oddsText(data, zoneId, luckMult)}. Without it: {oddsText(data, zoneId, luckMult / 2)}.`
+				)
 			else
-				Ui.row(list, nextOrder(), `Your odds now on {zoneName}`,
-					`{oddsText(data, zoneId, luckMult)}. With 2x Luck: {oddsText(data, zoneId, luckMult * 2)}.`)
+				Ui.row(
+					list,
+					nextOrder(),
+					`Your odds now on {zoneName}`,
+					`{oddsText(data, zoneId, luckMult)}. With 2x Luck: {oddsText(data, zoneId, luckMult * 2)}.`
+				)
 			end
 			local pity = {}
 			for _, source in { "drop", "boss" } do
@@ -488,7 +657,12 @@ local function renderShop(list: ScrollingFrame, snap: any)
 				end
 			end
 			if #pity > 0 then
-				Ui.row(list, nextOrder(), "Bad-luck protection (boost or not)", `One is guaranteed here within {table.concat(pity, " or ")}.`)
+				Ui.row(
+					list,
+					nextOrder(),
+					"Bad-luck protection (boost or not)",
+					`One is guaranteed here within {table.concat(pity, " or ")}.`
+				)
 			end
 			Ui.row(list, nextOrder(), "Trading", "Spare copies found while 2x Luck is on can never be traded.")
 		end
@@ -526,7 +700,12 @@ local function renderEvents(list: ScrollingFrame, snap: any)
 		Ui.heading(list, nextOrder(), event.name)
 		local effects = Ui.modifierText(event.modifiers)
 		if live and endsAt then
-			Ui.row(list, nextOrder(), `Live now! Ends in {Ui.duration(endsAt - now)}`, if effects ~= "" then effects else event.description)
+			Ui.row(
+				list,
+				nextOrder(),
+				`Live now! Ends in {Ui.duration(endsAt - now)}`,
+				if effects ~= "" then effects else event.description
+			)
 		elseif startsAt then
 			Ui.row(list, nextOrder(), `Starts in {Ui.duration(startsAt - now)}`, event.description)
 		else
@@ -554,23 +733,41 @@ local function renderEvents(list: ScrollingFrame, snap: any)
 				table.insert(earn, `{amount} per {EARN_NAMES[eventName] or eventName}`)
 			end
 			table.sort(earn)
-			Ui.row(list, nextOrder(), `{tokens} {track.currency}`,
-				`Earn {table.concat(earn, ", ")} while the event is on.`)
+			Ui.row(
+				list,
+				nextOrder(),
+				`{tokens} {track.currency}`,
+				`Earn {table.concat(earn, ", ")} while the event is on.`
+			)
 			for index, tier in track.tiers do
 				local done = claimed[tostring(index)] == true
 				local ready = not done and tokens >= tier.tokens
-				Ui.row(list, nextOrder(), `{tier.tokens} {track.currency}`, Ui.rewardText(tier.reward),
-					if done then "Claimed" elseif ready then "Claim" else `{math.min(tokens, tier.tokens)} / {tier.tokens}`,
-					ready, function()
+				Ui.row(
+					list,
+					nextOrder(),
+					`{tier.tokens} {track.currency}`,
+					Ui.rewardText(tier.reward),
+					if done
+						then "Claimed"
+						elseif ready then "Claim"
+						else `{math.min(tokens, tier.tokens)} / {tier.tokens}`,
+					ready,
+					function()
 						State.request("claimEventTier", event.id, index)
-					end)
+					end
+				)
 			end
 		end
 	end
 	if shown == 0 then
 		Ui.row(list, nextOrder(), "No events right now", "Check back after the next update!")
 	end
-	Ui.row(list, nextOrder(), "Fair play", "Event rewards are earned only by playing. Progress you don't finish carries over to the next run.")
+	Ui.row(
+		list,
+		nextOrder(),
+		"Fair play",
+		"Event rewards are earned only by playing. Progress you don't finish carries over to the next run."
+	)
 end
 
 local function renderRanks(list: ScrollingFrame, snap: any)
@@ -584,7 +781,12 @@ local function renderRanks(list: ScrollingFrame, snap: any)
 		Ui.heading(list, nextOrder(), board.displayName)
 		local entries = boards[board.id]
 		if not entries or #entries == 0 then
-			Ui.row(list, nextOrder(), "No scores yet", "Leaderboards update every couple of minutes in published games.")
+			Ui.row(
+				list,
+				nextOrder(),
+				"No scores yet",
+				"Leaderboards update every couple of minutes in published games."
+			)
 		else
 			for rank, entry in entries do
 				Ui.row(list, nextOrder(), `#{rank}  {entry.name}`, tostring(entry.value))
@@ -625,44 +827,81 @@ local function renderHub(list: ScrollingFrame, snap: any)
 
 	Ui.heading(list, nextOrder(), `Players in this server ({#hub.others})`)
 	if #hub.others == 0 then
-		Ui.row(list, nextOrder(), "Nobody else is here yet", "Golems in the Golem Hub show off their parts. Open Travel to visit.")
+		Ui.row(
+			list,
+			nextOrder(),
+			"Nobody else is here yet",
+			"Golems in the Golem Hub show off their parts. Open Travel to visit."
+		)
 	end
 	for _, other in hub.others do
 		local shown = inspectedId == other.userId
 		local name = if other.title then `{other.name} · {other.title}` else other.name
-		Ui.row(list, nextOrder(), name, `Level {other.level}  ·  Size {other.size}  ·  {other.awakenings} Awakenings`,
-			if shown then "Hide" else "Inspect", true, function()
+		Ui.row(
+			list,
+			nextOrder(),
+			name,
+			`Level {other.level}  ·  Size {other.size}  ·  {other.awakenings} Awakenings`,
+			if shown then "Hide" else "Inspect",
+			true,
+			function()
 				inspectedId = if shown then nil else other.userId
 				Menus.refresh()
-			end)
+			end
+		)
 		if shown then
 			Ui.row(list, nextOrder(), "Golem parts", table.concat(other.parts, "  ·  "))
-			Ui.row(list, nextOrder(), `Artifacts found {other.artifactsFound} / {#Config.ArtifactOrder}  ·  Zone bosses beaten {other.bosses} / {#Config.ZoneOrder}`,
-				if #other.equipped > 0 then `Wearing: {table.concat(other.equipped, ", ")}` else "No artifacts equipped")
+			Ui.row(
+				list,
+				nextOrder(),
+				`Artifacts found {other.artifactsFound} / {#Config.ArtifactOrder}  ·  Zone bosses beaten {other.bosses} / {#Config.ZoneOrder}`,
+				if #other.equipped > 0 then `Wearing: {table.concat(other.equipped, ", ")}` else "No artifacts equipped"
+			)
 		end
 	end
 
 	Ui.heading(list, nextOrder(), "Titles (shown on your nametag)")
 	local wearing = Stats.equippedTitle(data)
-	Ui.row(list, nextOrder(), "No title", if wearing == nil then "Wearing nothing" else nil, "Remove", wearing ~= nil, function()
-		State.request("setTitle", "")
-	end)
+	Ui.row(
+		list,
+		nextOrder(),
+		"No title",
+		if wearing == nil then "Wearing nothing" else nil,
+		"Remove",
+		wearing ~= nil,
+		function()
+			State.request("setTitle", "")
+		end
+	)
 	for _, title in hub.titles do
 		local def = Config.Titles[title.id]
 		local on = wearing == title.name
-		Ui.row(list, nextOrder(), title.name, if title.earned then "Earned" else unlockText(def.unlock),
-			if on then "Wearing" elseif title.earned then "Wear" else "Locked", title.earned and not on, function()
+		Ui.row(
+			list,
+			nextOrder(),
+			title.name,
+			if title.earned then "Earned" else unlockText(def.unlock),
+			if on then "Wearing" elseif title.earned then "Wear" else "Locked",
+			title.earned and not on,
+			function()
 				State.request("setTitle", title.id)
-			end)
+			end
+		)
 	end
 
 	Ui.heading(list, nextOrder(), "Settings")
 	local announce = data.social == nil or data.social.announce ~= false
-	Ui.row(list, nextOrder(), `Rare-find announcements: {if announce then "On" else "Off"}`,
+	Ui.row(
+		list,
+		nextOrder(),
+		`Rare-find announcements: {if announce then "On" else "Off"}`,
 		"A short message when someone finds a boss or relic artifact.",
-		if announce then "Turn off" else "Turn on", true, function()
+		if announce then "Turn off" else "Turn on",
+		true,
+		function()
 			State.request("setAnnounce", not announce)
-		end)
+		end
+	)
 end
 
 ---------------------------------------------------------------- trade
@@ -700,9 +939,17 @@ local function renderTrade(list: ScrollingFrame, snap: any)
 		end
 		for _, spare in trade.spares do
 			if spare.tradable > 0 and not offered[spare.id] then
-				Ui.row(list, nextOrder(), spare.name, `{spare.tradable} spare to trade`, "Offer", #view.mine < Config.Trading.maxItems, function()
-					State.request("tradeOffer", spare.id)
-				end)
+				Ui.row(
+					list,
+					nextOrder(),
+					spare.name,
+					`{spare.tradable} spare to trade`,
+					"Offer",
+					#view.mine < Config.Trading.maxItems,
+					function()
+						State.request("tradeOffer", spare.id)
+					end
+				)
 			end
 		end
 
@@ -711,31 +958,68 @@ local function renderTrade(list: ScrollingFrame, snap: any)
 			Ui.row(list, nextOrder(), item.name, SOURCE_NAMES[item.source])
 		end
 		if #view.theirs == 0 then
-			Ui.row(list, nextOrder(), "Nothing yet", `{name} hasn't added anything. That's fine if it's a gift, but check.`)
+			Ui.row(
+				list,
+				nextOrder(),
+				"Nothing yet",
+				`{name} hasn't added anything. That's fine if it's a gift, but check.`
+			)
 		end
 
 		if view.lopsided then
-			Ui.row(list, nextOrder(), "Careful: you give much more than you get", "Only go ahead if you really want to. You can't undo a trade.")
+			Ui.row(
+				list,
+				nextOrder(),
+				"Careful: you give much more than you get",
+				"Only go ahead if you really want to. You can't undo a trade."
+			)
 		end
-		Ui.row(list, nextOrder(), `You: {if view.myReady then "Ready" else "Not ready"}  ·  {name}: {if view.theirReady then "Ready" else "Not ready"}`,
-			"Changing anything makes you both Ready again.")
+		Ui.row(
+			list,
+			nextOrder(),
+			`You: {if view.myReady then "Ready" else "Not ready"}  ·  {name}: {if view.theirReady
+				then "Ready"
+				else "Not ready"}`,
+			"Changing anything makes you both Ready again."
+		)
 
 		local bothReady = view.myReady and view.theirReady
 		local remaining = if bothReady and view.confirmAt then view.confirmAt - State.serverNow() else 0
 		if not bothReady then
-			Ui.row(list, nextOrder(), if view.myReady then "Waiting for both of you to be Ready" else "Check the trade, then press Ready",
-				nil, if view.myReady then "Not ready" else "Ready", view.myReady or #view.mine + #view.theirs > 0, function()
+			Ui.row(
+				list,
+				nextOrder(),
+				if view.myReady then "Waiting for both of you to be Ready" else "Check the trade, then press Ready",
+				nil,
+				if view.myReady then "Not ready" else "Ready",
+				view.myReady or #view.mine + #view.theirs > 0,
+				function()
 					State.request("tradeReady", not view.myReady)
-				end)
+				end
+			)
 		elseif remaining > 0 then
-			Ui.row(list, nextOrder(), `Take a moment to check the trade ({remaining})`, "Confirm opens when the timer ends.", "Wait", false)
+			Ui.row(
+				list,
+				nextOrder(),
+				`Take a moment to check the trade ({remaining})`,
+				"Confirm opens when the timer ends.",
+				"Wait",
+				false
+			)
 		elseif view.myConfirmed then
 			Ui.row(list, nextOrder(), `Waiting for {name} to confirm`, nil, "Confirmed", false)
 		else
-			Ui.row(list, nextOrder(), "Both Ready. Confirm to swap.", if view.theirConfirmed then `{name} has confirmed.` else nil,
-				if view.lopsided then "Confirm anyway" else "Confirm", true, function()
+			Ui.row(
+				list,
+				nextOrder(),
+				"Both Ready. Confirm to swap.",
+				if view.theirConfirmed then `{name} has confirmed.` else nil,
+				if view.lopsided then "Confirm anyway" else "Confirm",
+				true,
+				function()
 					State.request("tradeConfirm")
-				end)
+				end
+			)
 		end
 		if bothReady and not view.myConfirmed then
 			Ui.row(list, nextOrder(), "Not sure?", nil, "Not ready", true, function()
@@ -745,7 +1029,12 @@ local function renderTrade(list: ScrollingFrame, snap: any)
 		Ui.row(list, nextOrder(), "Cancel trade", nil, "Cancel", true, function()
 			State.request("tradeCancel")
 		end)
-		Ui.row(list, nextOrder(), "Stay safe", "Only trade with people you know. Never trade because someone asked for Robux or something outside the game.")
+		Ui.row(
+			list,
+			nextOrder(),
+			"Stay safe",
+			"Only trade with people you know. Never trade because someone asked for Robux or something outside the game."
+		)
 		return
 	end
 
@@ -756,9 +1045,17 @@ local function renderTrade(list: ScrollingFrame, snap: any)
 	if #trade.incoming > 0 then
 		Ui.heading(list, nextOrder(), "Requests")
 		for _, request in trade.incoming do
-			local frame = Ui.row(list, nextOrder(), `{request.name} wants to trade`, nil, "Accept", trade.blocked == nil, function()
-				State.request("tradeAccept", request.userId)
-			end)
+			local frame = Ui.row(
+				list,
+				nextOrder(),
+				`{request.name} wants to trade`,
+				nil,
+				"Accept",
+				trade.blocked == nil,
+				function()
+					State.request("tradeAccept", request.userId)
+				end
+			)
 			Ui.button(frame, "No", UDim2.new(0, 60, 1, -12), UDim2.new(1, -194, 0, 6), true, function()
 				State.request("tradeDecline", request.userId)
 			end)
@@ -767,23 +1064,51 @@ local function renderTrade(list: ScrollingFrame, snap: any)
 
 	Ui.heading(list, nextOrder(), "Your spare copies")
 	if #trade.spares == 0 then
-		Ui.row(list, nextOrder(), "No spares yet", "Find every artifact from a source on an island, and the same drops give spare copies.")
+		Ui.row(
+			list,
+			nextOrder(),
+			"No spares yet",
+			"Find every artifact from a source on an island, and the same drops give spare copies."
+		)
 	end
 	for _, spare in trade.spares do
-		Ui.row(list, nextOrder(), spare.name, `{spare.tradable} to trade` .. (if spare.bound > 0 then `  ·  {spare.bound} bound (found with 2x Luck)` else ""))
+		Ui.row(
+			list,
+			nextOrder(),
+			spare.name,
+			`{spare.tradable} to trade`
+				.. (if spare.bound > 0 then `  ·  {spare.bound} bound (found with 2x Luck)` else "")
+		)
 	end
 
 	Ui.heading(list, nextOrder(), "Friends and party members here")
 	if #trade.partners == 0 then
-		Ui.row(list, nextOrder(), "Nobody to trade with yet", "You can trade with Roblox friends and party members. Invite someone from Party.")
+		Ui.row(
+			list,
+			nextOrder(),
+			"Nobody to trade with yet",
+			"You can trade with Roblox friends and party members. Invite someone from Party."
+		)
 	end
 	for _, partner in trade.partners do
-		Ui.row(list, nextOrder(), partner.name, if partner.busy then "Busy trading" else nil, "Trade",
-			trade.blocked == nil and not partner.busy, function()
+		Ui.row(
+			list,
+			nextOrder(),
+			partner.name,
+			if partner.busy then "Busy trading" else nil,
+			"Trade",
+			trade.blocked == nil and not partner.busy,
+			function()
 				State.request("tradeRequest", partner.userId)
-			end)
+			end
+		)
 	end
-	Ui.row(list, nextOrder(), "How trading works", "Only spare artifact copies. Both of you press Ready, wait for the timer, then both Confirm.")
+	Ui.row(
+		list,
+		nextOrder(),
+		"How trading works",
+		"Only spare artifact copies. Both of you press Ready, wait for the timer, then both Confirm."
+	)
 end
 
 local TABS: { { id: string, name: string, render: Render } } = {
@@ -952,7 +1277,17 @@ function Menus.start()
 	task.spawn(function()
 		while true do
 			task.wait(1)
-			if openTab and (TABS[openTab].id == "quests" or TABS[openTab].id == "shop" or TABS[openTab].id == "artifacts" or TABS[openTab].id == "trade" or TABS[openTab].id == "awaken" or TABS[openTab].id == "events") then
+			if
+				openTab
+				and (
+					TABS[openTab].id == "quests"
+					or TABS[openTab].id == "shop"
+					or TABS[openTab].id == "artifacts"
+					or TABS[openTab].id == "trade"
+					or TABS[openTab].id == "awaken"
+					or TABS[openTab].id == "events"
+				)
+			then
 				Menus.refresh()
 			end
 		end

@@ -29,7 +29,14 @@ local function near(position: Vector3): boolean
 end
 
 -- Throws `count` little cubes out from `position`, then shrinks them away.
-local function burst(position: Vector3, color: Color3, material: Enum.Material, count: number, size: number, power: number)
+local function burst(
+	position: Vector3,
+	color: Color3,
+	material: Enum.Material,
+	count: number,
+	size: number,
+	power: number
+)
 	if not near(position) then
 		return
 	end
@@ -196,7 +203,9 @@ local function zoneTint()
 	local atmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
 	local haze = zone and Config.Visuals.zoneAtmosphere[zone.theme or ""]
 	if atmosphere and haze then
-		TweenService:Create(atmosphere, TweenInfo.new(2), { Color = haze.color, Decay = haze.decay, Density = haze.density }):Play()
+		TweenService
+			:Create(atmosphere, TweenInfo.new(2), { Color = haze.color, Decay = haze.decay, Density = haze.density })
+			:Play()
 	end
 end
 
@@ -212,7 +221,14 @@ function Fx.start()
 			if child:IsA("Model") and child.PrimaryPart then
 				local root = child.PrimaryPart
 				local count = if child:GetAttribute("BossZone") then 24 else 9
-				burst(root.Position, bodyColor(child), Enum.Material.SmoothPlastic, count, root.Size.Y * 0.18, root.Size.Y * 1.2)
+				burst(
+					root.Position,
+					bodyColor(child),
+					Enum.Material.SmoothPlastic,
+					count,
+					root.Size.Y * 0.18,
+					root.Size.Y * 1.2
+				)
 			end
 		end)
 	end)
