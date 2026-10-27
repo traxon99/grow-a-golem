@@ -10,6 +10,7 @@ local EVENTS = {
 	"CastSpell", -- client -> server: spell id string
 	"StateUpdate", -- server -> client: full state snapshot
 	"Notify", -- server -> client: (kind, ...) one-off events
+	"Track", -- client -> server: (name, ...) menu moments for analytics
 }
 
 local FUNCTIONS = {
@@ -53,5 +54,6 @@ return {
 	CastSpell = Remotes.CastSpell,
 	StateUpdate = Remotes.StateUpdate,
 	Notify = Remotes.Notify,
+	Track = Remotes.Track,
 	Request = Functions.Request,
 }

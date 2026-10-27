@@ -117,7 +117,7 @@ local function collectRelic(player: Player, zoneId: number)
 		for mineral in zone.offlineMinerals do
 			minerals[mineral] = Config.HiddenRelic.consolationMinerals
 		end
-		EconomyService.grant(player, { minerals = minerals })
+		EconomyService.grant(player, { minerals = minerals }, "relic")
 		Remotes.Notify:FireClient(player, "message", "You found a relic cache full of minerals!")
 	end
 	task.delay(Config.HiddenRelic.respawn, placeRelic, zoneId)

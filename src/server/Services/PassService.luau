@@ -14,6 +14,7 @@ local Remotes = require(Shared:WaitForChild("Remotes"))
 local Stats = require(Shared:WaitForChild("Stats"))
 
 local DataService = require(script.Parent.DataService)
+local Events = require(script.Parent.Events)
 
 local MAX_RECEIPTS_KEPT = 50
 
@@ -66,19 +67,23 @@ end
 
 local function grantProduct(player: Player, key: string)
 	local product = Config.Products[key]
-	DataService.update(player, function(data)
-		if product.boost then
+	local data = DataService.get(player)
+	if product.boost then
+		DataService.update(player, function(d)
 			local now = os.time()
-			local current = math.max(data.boosts[product.boost] or 0, now)
-			data.boosts[product.boost] = current + product.minutes * 60
-		elseif product.packMinutes then
-			-- A mineral pack is worth a few hours of mining in your best zone.
-			local zone = Config.Zones[Stats.highestZone(data)]
-			for mineral, perMinute in zone.offlineMinerals do
-				data.minerals[mineral] = (data.minerals[mineral] or 0) + perMinute * product.packMinutes * 3
-			end
+			local current = math.max(d.boosts[product.boost] or 0, now)
+			d.boosts[product.boost] = current + product.minutes * 60
+		end)
+	elseif product.packMinutes and data then
+		-- A mineral pack is worth a few hours of mining in your best zone.
+		local zone = Config.Zones[Stats.highestZone(data)]
+		local minerals = {}
+		for mineral, perMinute in zone.offlineMinerals do
+			minerals[mineral] = perMinute * product.packMinutes * 3
 		end
-	end)
+		DataService.addMinerals(player, minerals, "purchase")
+	end
+	Events.fire("purchased", player, "product", key)
 	Remotes.Notify:FireClient(player, "message", `Thanks! {product.name} added.`)
 end
 
@@ -127,6 +132,7 @@ function PassService.start()
 		if purchased and key and owned[player] then
 			owned[player][key] = true
 			DataService.markChanged(player)
+			Events.fire("purchased", player, "pass", key)
 			Remotes.Notify:FireClient(player, "message", `Thanks! {Config.GamePasses[key].name} is active.`)
 		end
 	end)

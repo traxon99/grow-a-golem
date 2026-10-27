@@ -224,7 +224,7 @@ local function rewardKill(enemy: Enemy, killer: Player)
 	end
 
 	for _, player in recipients do
-		local given = EconomyService.grant(player, { minerals = enemy.def.drops, xp = enemy.def.xp })
+		local given = EconomyService.grant(player, { minerals = enemy.def.drops, xp = enemy.def.xp }, if enemy.isBoss then "boss" else "enemy")
 		if enemy.isBoss then
 			local firstTime = false
 			DataService.update(player, function(data)
@@ -250,6 +250,9 @@ end
 function EnemyService.damage(enemy: Enemy, amount: number, player: Player)
 	if enemies[enemy.model] == nil then
 		return -- already defeated this tick
+	end
+	if enemy.isBoss and not enemy.contributors[player] then
+		Events.fire("bossEngaged", player, enemy.zoneId)
 	end
 	enemy.contributors[player] = true
 	enemy.hp -= amount

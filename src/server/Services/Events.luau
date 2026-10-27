@@ -9,6 +9,15 @@
 --   spellCast     (player, spellId)
 --   partCrafted   (player, slot, tier)
 --   artifactFound (player, artifactId)
+--   bossEngaged   (player, zoneId)         first hit on a boss
+--   zoneEntered   (player, zoneId)         travelled to an island
+--   awakened      (player, count)
+--   mineralsGained(player, minerals, source)
+--   mineralsSpent (player, minerals, sink)
+--   purchased     (player, "pass" | "product", key)
+--   partyJoined   (player, partySize)
+--   codeRedeemed  (player, code)
+--   eventRewardClaimed (player, eventId, tierIndex)
 
 local Events = {}
 

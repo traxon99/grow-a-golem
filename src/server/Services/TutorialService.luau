@@ -4,7 +4,6 @@
 -- game events, so it never changes how the game itself plays. Steps are
 -- listed in Config.Tutorial.
 
-local AnalyticsService = game:GetService("AnalyticsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -14,6 +13,7 @@ local Remotes = require(Shared:WaitForChild("Remotes"))
 local Stats = require(Shared:WaitForChild("Stats"))
 
 local ActionService = require(script.Parent.ActionService)
+local AnalyticsService = require(script.Parent.AnalyticsService)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
 local Events = require(script.Parent.Events)
@@ -26,10 +26,9 @@ local TutorialService = {}
 local steered: { [Player]: number } = {} -- seconds of steering in the first step
 
 local function logStep(player: Player, step: number, name: string)
-	-- Shows up in the Creator Dashboard's onboarding funnel.
-	pcall(function()
-		AnalyticsService:LogOnboardingFunnelStepEvent(player, step, name)
-	end)
+	-- Shows up in the Creator Dashboard's onboarding funnel. Steps after the
+	-- tutorial (first boss) are logged by AnalyticsService.
+	AnalyticsService.onboardingStep(player, step, name)
 end
 
 local function currentStep(player: Player): (any?, number)
@@ -55,7 +54,7 @@ local function enterStep(player: Player, index: number)
 		end
 		local missing = cheapest - (data.minerals.stone or 0)
 		if missing > 0 then
-			EconomyService.grantFlat(player, { minerals = { stone = missing } })
+			EconomyService.grantFlat(player, { minerals = { stone = missing } }, "tutorial")
 		end
 	end
 end
@@ -78,7 +77,7 @@ local function complete(player: Player, id: string)
 		return
 	end
 	if step.reward then
-		EconomyService.grantFlat(player, step.reward)
+		EconomyService.grantFlat(player, step.reward, "tutorial")
 	end
 	Remotes.Notify:FireClient(player, "tutorialStep", index)
 	if index >= #Config.Tutorial.steps then

@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
+local Remotes = require(Shared:WaitForChild("Remotes"))
 local Stats = require(Shared:WaitForChild("Stats"))
 
 local State = require(script.Parent:WaitForChild("State"))
@@ -358,6 +359,7 @@ local function renderShop(list: ScrollingFrame, snap: any)
 		Ui.row(list, nextOrder(), pass.name, pass.description,
 			if owned then "Owned" elseif pass.id == 0 then "Coming soon" else `R$ {pass.price}`,
 			not owned and pass.id ~= 0, function()
+				Remotes.Track:FireServer("purchasePrompted", "pass", key)
 				MarketplaceService:PromptGamePassPurchase(player, pass.id)
 			end)
 	end
@@ -375,6 +377,7 @@ local function renderShop(list: ScrollingFrame, snap: any)
 		end
 		Ui.row(list, nextOrder(), product.name, subtitle,
 			if product.id == 0 then "Coming soon" else `R$ {product.price}`, product.id ~= 0, function()
+				Remotes.Track:FireServer("purchasePrompted", "product", key)
 				MarketplaceService:PromptProductPurchase(player, product.id)
 			end)
 	end
@@ -526,6 +529,9 @@ end
 local function open(index: number?)
 	openTab = if openTab == index then nil else index
 	window.Visible = openTab ~= nil
+	if openTab and TABS[openTab].id == "shop" then
+		Remotes.Track:FireServer("shopOpened") -- the Shop funnel in analytics
+	end
 	Menus.refresh()
 end
 

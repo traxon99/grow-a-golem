@@ -128,7 +128,7 @@ function MiningService.damage(node: Node, amount: number, player: Player)
 		return
 	end
 
-	local given = EconomyService.grant(player, { minerals = { [node.mineral] = node.def.yield } })
+	local given = EconomyService.grant(player, { minerals = { [node.mineral] = node.def.yield } }, "mining")
 	DataService.update(player, function(data)
 		data.totals.nodes += 1
 	end)

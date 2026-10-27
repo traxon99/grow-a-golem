@@ -30,7 +30,8 @@ function EconomyService.mineralMultiplier(player: Player): number
 end
 
 -- Grants a reward with multipliers. Returns what was actually given.
-function EconomyService.grant(player: Player, reward: Reward): Reward
+-- `source` tags the minerals for analytics ("enemy", "mining"...).
+function EconomyService.grant(player: Player, reward: Reward, source: string): Reward
 	local given: Reward = {}
 	if reward.minerals then
 		local mult = EconomyService.mineralMultiplier(player)
@@ -38,7 +39,7 @@ function EconomyService.grant(player: Player, reward: Reward): Reward
 		for id, amount in reward.minerals do
 			minerals[id] = math.max(math.floor(amount * mult), 1)
 		end
-		DataService.addMinerals(player, minerals)
+		DataService.addMinerals(player, minerals, source)
 		given.minerals = minerals
 	end
 	if reward.xp then
@@ -51,9 +52,9 @@ function EconomyService.grant(player: Player, reward: Reward): Reward
 end
 
 -- Grants a fixed reward with no multipliers (daily gifts, quests, packs).
-function EconomyService.grantFlat(player: Player, reward: Reward)
+function EconomyService.grantFlat(player: Player, reward: Reward, source: string)
 	if reward.minerals then
-		DataService.addMinerals(player, reward.minerals)
+		DataService.addMinerals(player, reward.minerals, source)
 	end
 	if reward.xp then
 		DataService.addXp(player, reward.xp)

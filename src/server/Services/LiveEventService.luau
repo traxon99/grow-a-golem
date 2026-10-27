@@ -87,7 +87,8 @@ local function claimTier(player: Player, eventId: any, index: any): (boolean, st
 	DataService.update(player, function()
 		state.claimed[key] = true
 	end)
-	EconomyService.grantFlat(player, tier.reward)
+	EconomyService.grantFlat(player, tier.reward, "event")
+	Events.fire("eventRewardClaimed", player, event.id, index)
 	return true, "Event reward claimed!"
 end
 

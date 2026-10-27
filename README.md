@@ -44,6 +44,7 @@ Let go of the controls and the golem plays itself: it fights enemies nearby, and
 | Redeemable codes (Codes box in the Shop) | `CodeService`, `Config.Codes` |
 | Limited-time events, event reward tracks, HUD event banner, Events menu | `LiveEventService`, `Config.Events` |
 | Game passes, developer products, receipts | `PassService` |
+| Roblox Analytics: onboarding, zone and shop funnels, economy, progression | `AnalyticsService` |
 | First-time tutorial (5 steps with pointers, skippable, onboarding funnel) | `TutorialService`, client `Tutorial`, `Config.Tutorial` |
 | HUD, next-goal tracker with progress bar, menus | `src/client` |
 | Boss health bar, artifact reveal card, level-up banner | `src/client/Moments.luau` |
@@ -97,6 +98,29 @@ Events live in `Config.Events`. They switch on and off by themselves on server t
 - A `track` gives an event currency earned only by playing while the event is on (`earn` lists how much per enemy, node and boss) and reward tiers to claim. There is no paid way to earn it.
 - Unfinished track progress carries over to the next run of the same event, and players can claim earned tiers after it ends, so missing an event isn't punishing.
 - Keep it kid-safe: no countdowns on purchases and no "today only" Robux offers.
+
+## Reading the analytics
+
+Everything is logged through Roblox's own `AnalyticsService`, so no data leaves Roblox and nothing personal is sent (no chat, no names). Results show up in the [Creator Dashboard](https://create.roblox.com/dashboard/creations) under the experience's **Analytics** section, usually a few hours after people play. Events don't log from an unpublished Studio place; turn on `Config.Analytics.debug` to print any errors.
+
+| Dashboard view | What it shows |
+| --- | --- |
+| Onboarding funnel | The 5 tutorial steps, tutorial done, first boss fought, first boss beaten |
+| Funnels → Zones | Per island: unlocked, entered, boss fought, boss beaten |
+| Funnels → Shop | Shop opened → purchase prompted → purchase completed (per item) |
+| Progression | Golem level reached and Awakenings |
+| Economy | Each mineral by source (mining, enemy, boss, relic, quest, daily, session, offline, event, code, group, tutorial, purchase) and sink (forge, respec, awaken) |
+| Custom events | SpellsCast, ArtifactFound, PartyJoined, CodeRedeemed, EventRewardClaimed |
+
+Mineral income and spell casts are added up and sent once a minute per player to stay inside Roblox's rate limits.
+
+**What to check each week**
+
+1. **D1 and D7 retention** and **average session length** (Overview / Retention). Compare the week before and after each update.
+2. **Onboarding funnel**: the biggest drop between two steps is the next thing to fix.
+3. **Zones funnel**: where players stall (for example lots of "boss fought" but few "boss beaten" means the boss is too hard).
+4. **Economy**: sources versus sinks for each mineral. If a mineral piles up with nothing to spend it on, add a sink; if forge spending is near zero, costs may be too high.
+5. **Shop funnel**: items that get prompted but rarely bought may be priced wrong or described badly.
 
 ## Code layout
 
