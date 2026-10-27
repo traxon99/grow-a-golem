@@ -377,6 +377,7 @@ function GolemService.damage(golem: Golem, amount: number)
 		return
 	end
 	golem.hp = math.max(golem.hp - amount, 0)
+	golem.model:SetAttribute("Hit", ((golem.model:GetAttribute("Hit") :: number?) or 0) + 1)
 	if golem.hp <= 0 then
 		-- Knocked out: carried back to the zone spawn to recover.
 		golem.downedUntil = os.clock() + Config.Golem.respawnTime

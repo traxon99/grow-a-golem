@@ -434,6 +434,12 @@ Config.Visuals = {
 	cloudSeaBaseplate = true,
 	-- Adds trees, rocks and a rocky underside to placeholder islands.
 	decorateIslands = true,
+	-- Color grading tint on each island, by zone theme (needs controlLighting).
+	zoneTints = {
+		meadow = Color3.fromRGB(255, 252, 240),
+		ember = Color3.fromRGB(255, 232, 214),
+		crystal = Color3.fromRGB(232, 242, 255),
+	},
 }
 
 -- Sound ids for the big moments (artifact reveal, level up, growing a size).

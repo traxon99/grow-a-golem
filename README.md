@@ -44,6 +44,11 @@ Let go of the controls and the golem plays itself: it fights enemies nearby, and
 | Game passes, developer products, receipts | `PassService` |
 | HUD, next-goal tracker with progress bar, menus | `src/client` |
 | Boss health bar, artifact reveal card, level-up banner | `src/client/Moments.luau` |
+| Island scenery, lighting | `WorldService`, `src/server/Models/Islands.luau` |
+| Enemy and boss models | `src/server/Models/EnemyModels.luau` |
+| Walk, punch and slam animation | `src/client/Animator.luau` |
+| Sound effects | `src/client/Sfx.luau`, `Config.SoundEffects` |
+| Hit flashes, damage numbers, debris | `src/client/Fx.luau` |
 
 Every balance number and all content (zones, enemies, bosses, artifacts, skills, quests, prices) is in `src/shared/Config.luau`.
 
@@ -66,6 +71,7 @@ src/
   server/            ServerScriptService.Server
     init.server.luau   requires and starts every service
     Services/          one module per system (see the table above)
+    Models/            golem, enemy and island models built from parts in code
   client/            StarterPlayerScripts.Client
     State.luau         latest server snapshot and menu requests
     Controls.luau      steering and spell input
@@ -73,10 +79,21 @@ src/
     Moments.luau       boss health bar, artifact reveal, level-up banner
     Menus.luau         Forge, Travel, Artifacts, Skills, Awaken, Quests, Party, Shop, Ranks
     Ui.luau            UI building helpers
+    Animator.luau      procedural walk, punch and slam animation
+    Sfx.luau           sound effects
+    Fx.luau            hit flashes, damage numbers, debris, island tint
 ```
+
+## Art and sound
+
+Every model is built from plain parts in code, and every limb is a Motor6D joint with a `Kind` attribute (`leg`, `arm`, `body`, `head`, `jaw`, `spin`, `float`). The client animates those joints from how fast the model moves, so no animation assets need uploading. To restyle an enemy, edit its design in `EnemyModels.luau`.
+
+Sounds use audio that ships inside every Roblox client, re-pitched in `Config.SoundEffects`. To use a Creator Store sound instead, right-click it in Studio's Toolbox, choose **Copy Asset ID**, and paste the number as that effect's `id`.
+
+`Config.Visuals` switches off the lighting setup (do this once you tune Lighting by hand), the cloud recolor of the Baseplate, and the island scenery.
 
 The server decides every result (damage, drops, costs, cooldowns, unlocks). The client only says what the player wants to do, and the server checks it.
 
 ## Building your own islands
 
-Make an anchored part named `Zone1` (and `Zone2`, `Zone3`) in Workspace. Its top surface becomes that island's playable area, and the game uses it instead of the placeholder.
+Make an anchored part named `Zone1` (and `Zone2`, `Zone3`) in Workspace. Its top surface becomes that island's playable area, and the game uses it instead of the placeholder. Your own islands don't get the generated scenery, so decorate them however you like. Keep decorations non-colliding (or low), because golems and enemies walk in straight lines and can get stuck on tall solid parts.

@@ -253,6 +253,9 @@ function EnemyService.damage(enemy: Enemy, amount: number, player: Player)
 	end
 	enemy.contributors[player] = true
 	enemy.hp -= amount
+	-- Clients flash the enemy and show the number (see the client Fx).
+	enemy.model:SetAttribute("HitDamage", math.floor(amount + 0.5))
+	enemy.model:SetAttribute("Hit", ((enemy.model:GetAttribute("Hit") :: number?) or 0) + 1)
 	if enemy.hp > 0 then
 		enemy.humanoid.Health = enemy.hp
 		return
