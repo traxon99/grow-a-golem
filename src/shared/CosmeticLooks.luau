@@ -419,7 +419,7 @@ function CosmeticLooks.dress(character: Model, id: string?)
 		old:Destroy()
 	end
 	for _, child in character:GetChildren() do
-		local handle = child:IsA("Accessory") and child:FindFirstChild("Handle")
+		local handle = if child:IsA("Accessory") then child:FindFirstChild("Handle") else nil
 		if handle and handle:IsA("BasePart") then
 			local saved = handle:GetAttribute(HIDDEN_ATTRIBUTE)
 			if type(saved) == "number" then

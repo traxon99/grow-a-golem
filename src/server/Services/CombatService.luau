@@ -153,12 +153,18 @@ function CombatService.start()
 			last = now
 
 			for player, golem in GolemService.all() do
-				local ok, err = pcall(updateGolem, player, golem, dt)
+				local ok, err = pcall(function(): any
+					updateGolem(player, golem, dt)
+					return nil
+				end)
 				if not ok then
 					warn(`[CombatService] golem update failed for {player.Name}: {err}`)
 				end
 			end
-			local ok, err = pcall(EnemyService.update)
+			local ok, err = pcall(function(): any
+				EnemyService.update()
+				return nil
+			end)
 			if not ok then
 				warn(`[CombatService] enemy update failed: {err}`)
 			end

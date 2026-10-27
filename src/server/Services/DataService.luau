@@ -192,6 +192,7 @@ local function save(player: Player, release: boolean?): boolean
 		if result == nil then
 			lostLease = true
 		end
+		return nil
 	end)
 	profile.saving = false
 	if lostLease then
@@ -254,6 +255,7 @@ local function load(player: Player)
 					current._session = nil
 					return current
 				end)
+				return nil
 			end)
 		end
 		return

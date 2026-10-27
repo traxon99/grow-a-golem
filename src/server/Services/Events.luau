@@ -29,7 +29,7 @@ function Events.connect(name: string, callback: (...any) -> ())
 end
 
 function Events.fire(name: string, ...: any)
-	for _, callback in listeners[name] or {} do
+	for _, callback in listeners[name] or ({} :: any) do
 		task.spawn(callback, ...)
 	end
 end

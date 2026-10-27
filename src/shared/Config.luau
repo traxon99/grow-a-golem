@@ -2,7 +2,10 @@
 -- All balance numbers and content live here so tuning never means touching
 -- game logic. Names are placeholders we can rename freely.
 
-local Config = {}
+-- Typed as a map of anything: tables here have entries of different shapes
+-- (quests, rewards, tutorial steps) and gain keys after they're defined (the
+-- #15 expansion below), which strict mode would otherwise reject.
+local Config: { [string]: any } = {}
 
 Config.TickRate = 10 -- server game-logic updates per second
 

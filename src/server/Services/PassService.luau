@@ -51,7 +51,7 @@ function PassService.passes(player: Player): { [string]: boolean }
 end
 
 local function checkPasses(player: Player)
-	local passes = {}
+	local passes: { [string]: boolean } = {}
 	for key, pass in Config.GamePasses do
 		if pass.id > 0 then
 			local ok, has = pcall(function()

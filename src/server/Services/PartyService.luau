@@ -37,7 +37,7 @@ local function isFriend(a: Player, b: Player): boolean
 	end
 	if cache[b.UserId] == nil then
 		local ok, result = pcall(function()
-			return a:IsFriendsWith(b.UserId)
+			return a:IsFriendsWithAsync(b.UserId)
 		end)
 		cache[b.UserId] = ok and result == true
 	end
@@ -148,7 +148,7 @@ local function snapshot(player: Player): any
 	end
 	local pending = {}
 	local now = os.clock()
-	for inviter, expiry in invites[player] or {} do
+	for inviter, expiry in invites[player] or ({} :: any) do
 		if expiry > now and inviter.Parent then
 			table.insert(pending, { userId = inviter.UserId, name = inviter.DisplayName })
 		end

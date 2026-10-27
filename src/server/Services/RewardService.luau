@@ -230,7 +230,7 @@ local function checkGroup(player: Player): (boolean, string?)
 		return false, "Already claimed"
 	end
 	local ok, inGroup = pcall(function()
-		return player:IsInGroup(Config.Group.id)
+		return player:IsInGroupAsync(Config.Group.id)
 	end)
 	if not ok or not inGroup then
 		return false, "Join the group first, then try again"
@@ -268,7 +268,7 @@ local function snapshot(player: Player): any
 	local canClaimDaily, nextStreak = dailyState(data)
 	-- Sent as a list: sparse number keys don't survive the trip to the client.
 	local claimedGifts = {}
-	for index in sessionClaims[player] or {} do
+	for index in sessionClaims[player] or ({} :: any) do
 		table.insert(claimedGifts, index)
 	end
 	return {

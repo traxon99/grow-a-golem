@@ -567,7 +567,7 @@ local function snapshot(player: Player): any
 	end
 	local incoming = {}
 	local now = os.clock()
-	for requester, expiry in requests[player] or {} do
+	for requester, expiry in requests[player] or ({} :: any) do
 		if expiry > now and requester.Parent then
 			table.insert(incoming, { userId = requester.UserId, name = requester.DisplayName })
 		end

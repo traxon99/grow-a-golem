@@ -5,7 +5,8 @@
 local Services = script:WaitForChild("Services")
 
 local function load(name: string): any
-	return require(Services:WaitForChild(name) :: ModuleScript)
+	-- Through any: the checker can't follow a require by a name chosen at run time.
+	return (require :: any)(Services:WaitForChild(name))
 end
 
 local WorldService = load("WorldService")

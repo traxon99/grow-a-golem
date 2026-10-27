@@ -1282,7 +1282,10 @@ function Menus.refresh()
 	end
 	local tab = TABS[openTab]
 	titleLabel.Text = tab.name
-	local ok, err = pcall(tab.render, list, State.snapshot)
+	local ok, err = pcall(function(): any
+		tab.render(list, State.snapshot)
+		return nil
+	end)
 	if not ok then
 		warn(`[Menus] {tab.name} failed to render: {err}`)
 	end

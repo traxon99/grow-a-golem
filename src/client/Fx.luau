@@ -219,11 +219,12 @@ function Fx.start()
 		-- Defeated enemies are removed by the server; burst where they stood.
 		enemies.ChildRemoved:Connect(function(child)
 			if child:IsA("Model") and child.PrimaryPart then
-				local root = child.PrimaryPart
-				local count = if child:GetAttribute("BossZone") then 24 else 9
+				local model = child :: Model
+				local root = model.PrimaryPart :: BasePart
+				local count = if model:GetAttribute("BossZone") then 24 else 9
 				burst(
 					root.Position,
-					bodyColor(child),
+					bodyColor(model),
 					Enum.Material.SmoothPlastic,
 					count,
 					root.Size.Y * 0.18,
