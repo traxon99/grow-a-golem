@@ -153,14 +153,53 @@ do
 	end
 
 	---------------------------------------------------------------- friendBonus
+	-- isFriend's cache locks in a pair's answer on its first lookup and never
+	-- re-queries it (the real source only clears a player's slot on
+	-- PlayerRemoving), so each case below uses its own fresh players and
+	-- calls makeFriends before anything -- friendBonus, areFriends, or
+	-- friendNow -- ever looks that pair up; flipping friendsOf afterwards
+	-- wouldn't be seen.
 	do
-		assert(party.friendBonus(p1) == 0, "no friends yet: no bonus")
-		makeFriends(p1, p2)
-		assert(party.friendBonus(p1) == Config.Party.friendBonusPerFriend, "one friend: one increment")
-		makeFriends(p1, p3)
-		makeFriends(p1, p4)
+		local solo = join()
+		assert(party.friendBonus(solo) == 0, "a party of one has no one to be friends with")
+	end
+
+	do
+		local leader, m2, m3, m4 = join(), join(), join(), join()
+		invite(leader, m2.UserId)
+		accept(m2, leader.UserId)
+		invite(leader, m3.UserId)
+		accept(m3, leader.UserId)
+		invite(leader, m4.UserId)
+		accept(m4, leader.UserId)
+		assert(party.friendBonus(leader) == 0, "no friends yet: no bonus")
+	end
+
+	do
+		local leader, friend, m2, m3 = join(), join(), join(), join()
+		makeFriends(leader, friend)
+		invite(leader, friend.UserId)
+		accept(friend, leader.UserId)
+		invite(leader, m2.UserId)
+		accept(m2, leader.UserId)
+		invite(leader, m3.UserId)
+		accept(m3, leader.UserId)
+		assert(party.friendBonus(leader) == Config.Party.friendBonusPerFriend, "one friend: one increment")
+	end
+
+	do
+		local leader, f1, f2, f3 = join(), join(), join(), join()
+		makeFriends(leader, f1)
+		makeFriends(leader, f2)
+		makeFriends(leader, f3)
+		invite(leader, f1.UserId)
+		accept(f1, leader.UserId)
+		invite(leader, f2.UserId)
+		accept(f2, leader.UserId)
+		invite(leader, f3.UserId)
+		accept(f3, leader.UserId)
 		assert(
-			party.friendBonus(p1) == 3 * Config.Party.friendBonusPerFriend,
+			party.friendBonus(leader) == 3 * Config.Party.friendBonusPerFriend,
 			"three friends in a full party of four"
 		)
 
@@ -169,19 +208,18 @@ do
 		-- cap of 30 without ever needing to clamp).
 		local savedCap = Config.Party.maxFriendBonus
 		Config.Party.maxFriendBonus = 15
-		assert(party.friendBonus(p1) == 15, "the bonus clamps to the cap even when friends would earn more")
+		assert(party.friendBonus(leader) == 15, "the bonus clamps to the cap even when friends would earn more")
 		Config.Party.maxFriendBonus = savedCap
-
-		local solo = join()
-		assert(party.friendBonus(solo) == 0, "a party of one has no one to be friends with")
 	end
 
 	---------------------------------------------------------------- areFriends caching
 	do
+		local a, b = join(), join()
 		local before = #friendCalls
-		assert(party.areFriends(p1, p2) == true and #friendCalls == before + 1, "the first lookup calls the API")
+		local answer = party.areFriends(a, b)
+		assert(answer == false and #friendCalls == before + 1, "the first lookup calls the API")
 		local againBefore = #friendCalls
-		assert(party.areFriends(p1, p2) == true, "still friends")
+		assert(party.areFriends(a, b) == answer, "a cached lookup still gives the same answer")
 		assert(#friendCalls == againBefore, "a cached lookup doesn't call it again")
 	end
 
