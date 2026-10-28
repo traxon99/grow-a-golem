@@ -16,6 +16,7 @@ local DataService = require(script.Parent.DataService)
 local PassService = require(script.Parent.PassService)
 local WorldService = require(script.Parent.WorldService)
 local Build = require(script.Parent.Parent.Models.Build)
+local GolemMeshes = require(script.Parent.Parent.Models.GolemMeshes)
 
 export type Golem = {
 	player: Player,
@@ -147,18 +148,35 @@ local function buildModel(
 	-- The Wardrobe preview recolors a copy of this model for other skins, so
 	-- each body part says which slot it belongs to and its shade, and the
 	-- glowing runes say they're runes.
+	-- Art pieces inside a part keep their own role: glowing ones follow the
+	-- rune colour, and trim (ArtShade) is a darker shade of the slot's look.
 	local function tag(part: Part, slot: string, shade: number?): Part
 		part:SetAttribute("LookSlot", slot)
 		part:SetAttribute("LookShade", shade)
 		for _, child in part:GetDescendants() do
 			if child:IsA("BasePart") then
+				if child:GetAttribute("LookAccent") then
+					child.Color = RUNE_COLOR
+					continue
+				end
+				local artShade = child:GetAttribute("ArtShade") :: number?
+				local childShade = if artShade then (shade or 1) * artShade else shade
 				child:SetAttribute("LookSlot", slot)
-				child:SetAttribute("LookShade", shade)
+				child:SetAttribute("LookShade", childShade)
 				if skinId then
-					child.Color = part.Color
-					child.Material = part.Material
+					child.Color, child.Material = look(slot, childShade)
 				end
 			end
+		end
+		return part
+	end
+	-- Mesh art brings its own feet, fists, chest and eyes; the block extras
+	-- welded to a part with mesh art are dropped at the end of the build.
+	local extras: { BasePart } = {}
+	local function extra(owner: BasePart, part: Part): Part
+		local art = owner:FindFirstChildWhichIsA("Model")
+		if art and art:GetAttribute("ReplacesExtras") then
+			table.insert(extras, part)
 		end
 		return part
 	end
@@ -178,7 +196,10 @@ local function buildModel(
 		local footColor = look("legs", 0.8)
 		rig.weld(
 			leg,
-			tag(rig.part("Foot", V(3.4, 1.2, 3.8), at(side * 2, -7.4, -0.3), footColor, material), "legs", 0.8)
+			extra(
+				leg,
+				tag(rig.part("Foot", V(3.4, 1.2, 3.8), at(side * 2, -7.4, -0.3), footColor, material), "legs", 0.8)
+			)
 		)
 	end
 
@@ -186,17 +207,29 @@ local function buildModel(
 	local torso = tag(rig.part("Torso", V(7, 7, 4.5), at(0, 1, 0), torsoColor, torsoMaterial), "torso")
 	rig.joint(root, torso, V(0, -2.5, 0), "Body", { Kind = "body" })
 	local chestColor = look("torso", 0.85)
-	rig.weld(torso, tag(rig.part("Chest", V(5, 3.6, 0.6), at(0, 2.2, -2.45), chestColor, torsoMaterial), "torso", 0.85))
-	rig.weld(torso, rig.part("Belt", V(7.4, 1, 4.9), at(0, -2, 0), Color3.fromRGB(72, 64, 58), Enum.Material.Slate))
-	rig.weld(torso, accent(rig.part("Rune", V(1.6, 1.6, 0.2), at(0, 2.2, -2.8), RUNE_COLOR, neon)))
+	rig.weld(
+		torso,
+		extra(
+			torso,
+			tag(rig.part("Chest", V(5, 3.6, 0.6), at(0, 2.2, -2.45), chestColor, torsoMaterial), "torso", 0.85)
+		)
+	)
+	rig.weld(
+		torso,
+		extra(torso, rig.part("Belt", V(7.4, 1, 4.9), at(0, -2, 0), Color3.fromRGB(72, 64, 58), Enum.Material.Slate))
+	)
+	rig.weld(torso, extra(torso, accent(rig.part("Rune", V(1.6, 1.6, 0.2), at(0, 2.2, -2.8), RUNE_COLOR, neon))))
 
 	local headColor, headMaterial = look("core")
 	local head = tag(rig.part("Head", V(4, 3, 3.5), at(0, 6, 0), headColor, headMaterial), "core")
 	rig.joint(torso, head, V(0, 4.5, 0), "Neck", { Kind = "head" })
 	local browColor = look("core", 0.8)
-	rig.weld(head, tag(rig.part("Brow", V(4.4, 0.8, 1), at(0, 7, -1.5), browColor, headMaterial), "core", 0.8))
-	rig.weld(head, accent(rig.part("EyeL", V(0.8, 0.5, 0.2), at(-0.9, 6.3, -1.8), RUNE_COLOR, neon)))
-	rig.weld(head, accent(rig.part("EyeR", V(0.8, 0.5, 0.2), at(0.9, 6.3, -1.8), RUNE_COLOR, neon)))
+	rig.weld(
+		head,
+		extra(head, tag(rig.part("Brow", V(4.4, 0.8, 1), at(0, 7, -1.5), browColor, headMaterial), "core", 0.8))
+	)
+	rig.weld(head, extra(head, accent(rig.part("EyeL", V(0.8, 0.5, 0.2), at(-0.9, 6.3, -1.8), RUNE_COLOR, neon))))
+	rig.weld(head, extra(head, accent(rig.part("EyeR", V(0.8, 0.5, 0.2), at(0.9, 6.3, -1.8), RUNE_COLOR, neon))))
 
 	for _, side in { -1, 1 } do
 		local slot = if side < 0 then "armL" else "armR"
@@ -209,11 +242,23 @@ local function buildModel(
 		local capColor = look(slot, 0.85)
 		rig.weld(
 			arm,
-			tag(rig.part("ShoulderCap", V(3.2, 2, 3.2), at(side * 5, 3.6, 0), capColor, material), slot, 0.85)
+			extra(
+				arm,
+				tag(rig.part("ShoulderCap", V(3.2, 2, 3.2), at(side * 5, 3.6, 0), capColor, material), slot, 0.85)
+			)
 		)
-		rig.weld(arm, tag(rig.part("Fist", V(3.2, 3, 3.2), at(side * 5, -3.8, -0.2), color, material), slot))
+		rig.weld(
+			arm,
+			extra(arm, tag(rig.part("Fist", V(3.2, 3, 3.2), at(side * 5, -3.8, -0.2), color, material), slot))
+		)
 	end
-	model:SetAttribute("Stride", 7 * s)
+	for _, part in extras do
+		part:Destroy()
+	end
+	-- A longer stride than the old 7 gives a slower, heavier stomp. LegLength
+	-- is hip to sole, which the animator uses to plant the feet.
+	model:SetAttribute("Stride", 9 * s)
+	model:SetAttribute("LegLength", 4.8 * s)
 
 	-- Pet: floats beside the golem on a "pet" joint the client animates
 	-- (bobbing, and a hop when the golem defeats something).
@@ -536,6 +581,14 @@ function GolemService.start()
 	DataService.ProfileLoaded:Connect(spawnGolem)
 	DataService.Changed:Connect(GolemService.refresh)
 	Remotes.MoveGolem.OnServerEvent:Connect(onSteer)
+	-- Uploaded mesh art loads in the background; rebuild golems that were
+	-- built with the fallback art before it arrived.
+	GolemMeshes.install(function()
+		for player, golem in golems do
+			golem.visualKey = ""
+			GolemService.refresh(player)
+		end
+	end)
 	Players.PlayerRemoving:Connect(function(player)
 		local golem = golems[player]
 		if golem then
