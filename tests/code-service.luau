@@ -85,6 +85,10 @@ do
 	-- Exercised indirectly through redeem, since normalize() isn't exported:
 	-- case, whitespace and punctuation are all handled before the lookup.
 	do
+		-- Every player's first-ever attempt starts with state.last = 0, so the
+		-- clock must already be past the cooldown or that first call is itself
+		-- read as "too soon after last=0".
+		clockNow += Config.CodeLimits.cooldown + 1
 		local p = join()
 		local ok1 = redeem(p, "golem100")
 		assert(ok1 == true, "lower-case matches the upper-cased key")
