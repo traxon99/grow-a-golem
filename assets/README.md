@@ -75,3 +75,8 @@ python3 scripts/create_assets.py
 # otherwise Playwright's Chromium through node.
 python3 scripts/create_keyart.py
 ```
+
+## Mystical UI icons (#83)
+
+See [ui-icons/README.md](ui-icons/README.md) for the 37 original icons, editable
+SVGs, individual PNGs, color/grayscale sprite sheets and upload instructions.

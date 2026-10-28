@@ -1,0 +1,696 @@
+{
+  "version": 1,
+  "sourceIssue": 83,
+  "sheet": "mystical.png",
+  "tintableSheet": "mystical-mono.png",
+  "sheetSize": [
+    1024,
+    640
+  ],
+  "cellSize": 128,
+  "columns": 8,
+  "icons": [
+    {
+      "id": "forge",
+      "label": "Forge",
+      "category": "menu",
+      "offset": [
+        0,
+        0
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "F",
+      "issues": [
+        83,
+        84,
+        86
+      ]
+    },
+    {
+      "id": "travel",
+      "label": "Travel",
+      "category": "menu",
+      "offset": [
+        128,
+        0
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "T",
+      "issues": [
+        83,
+        84,
+        87
+      ]
+    },
+    {
+      "id": "artifacts",
+      "label": "Artifacts",
+      "category": "menu",
+      "offset": [
+        256,
+        0
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "A",
+      "issues": [
+        83,
+        84,
+        88,
+        97
+      ]
+    },
+    {
+      "id": "skills",
+      "label": "Skills",
+      "category": "menu",
+      "offset": [
+        384,
+        0
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "S",
+      "issues": [
+        83,
+        84,
+        92
+      ]
+    },
+    {
+      "id": "awaken",
+      "label": "Awaken",
+      "category": "menu",
+      "offset": [
+        512,
+        0
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "Aw",
+      "issues": [
+        83,
+        84,
+        92
+      ]
+    },
+    {
+      "id": "quests",
+      "label": "Quests",
+      "category": "menu",
+      "offset": [
+        640,
+        0
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "Q",
+      "issues": [
+        83,
+        84,
+        91
+      ]
+    },
+    {
+      "id": "events",
+      "label": "Events",
+      "category": "menu",
+      "offset": [
+        768,
+        0
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "E",
+      "issues": [
+        83,
+        84,
+        93
+      ]
+    },
+    {
+      "id": "party",
+      "label": "Party",
+      "category": "menu",
+      "offset": [
+        896,
+        0
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "P",
+      "issues": [
+        83,
+        84,
+        95
+      ]
+    },
+    {
+      "id": "hub",
+      "label": "Hub",
+      "category": "menu",
+      "offset": [
+        0,
+        128
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "H",
+      "issues": [
+        83,
+        84,
+        94
+      ]
+    },
+    {
+      "id": "trade",
+      "label": "Trade",
+      "category": "menu",
+      "offset": [
+        128,
+        128
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "Tr",
+      "issues": [
+        83,
+        84,
+        94
+      ]
+    },
+    {
+      "id": "wardrobe",
+      "label": "Wardrobe",
+      "category": "menu",
+      "offset": [
+        256,
+        128
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "W",
+      "issues": [
+        83,
+        84,
+        90
+      ]
+    },
+    {
+      "id": "shop",
+      "label": "Shop",
+      "category": "menu",
+      "offset": [
+        384,
+        128
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "Sh",
+      "issues": [
+        83,
+        84,
+        89
+      ]
+    },
+    {
+      "id": "ranks",
+      "label": "Ranks",
+      "category": "menu",
+      "offset": [
+        512,
+        128
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "R",
+      "issues": [
+        83,
+        84,
+        95
+      ]
+    },
+    {
+      "id": "stone",
+      "label": "Stone",
+      "category": "mineral",
+      "offset": [
+        640,
+        128
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "St",
+      "issues": [
+        83
+      ]
+    },
+    {
+      "id": "copper",
+      "label": "Copper",
+      "category": "mineral",
+      "offset": [
+        768,
+        128
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "Cu",
+      "issues": [
+        83
+      ]
+    },
+    {
+      "id": "iron",
+      "label": "Iron",
+      "category": "mineral",
+      "offset": [
+        896,
+        128
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "Fe",
+      "issues": [
+        83
+      ]
+    },
+    {
+      "id": "crystal",
+      "label": "Crystal",
+      "category": "mineral",
+      "offset": [
+        0,
+        256
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "Cr",
+      "issues": [
+        83
+      ]
+    },
+    {
+      "id": "stormglass",
+      "label": "Stormglass",
+      "category": "mineral",
+      "offset": [
+        128,
+        256
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "Sg",
+      "issues": [
+        83
+      ]
+    },
+    {
+      "id": "abyssite",
+      "label": "Abyssite",
+      "category": "mineral",
+      "offset": [
+        256,
+        256
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "Ab",
+      "issues": [
+        83
+      ]
+    },
+    {
+      "id": "sunsteel",
+      "label": "Sunsteel",
+      "category": "mineral",
+      "offset": [
+        384,
+        256
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "Ss",
+      "issues": [
+        83
+      ]
+    },
+    {
+      "id": "aether",
+      "label": "Aether",
+      "category": "mineral",
+      "offset": [
+        512,
+        256
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "Ae",
+      "issues": [
+        83
+      ]
+    },
+    {
+      "id": "xp",
+      "label": "XP",
+      "category": "currency",
+      "offset": [
+        640,
+        256
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "XP",
+      "issues": [
+        83,
+        85,
+        92,
+        97
+      ]
+    },
+    {
+      "id": "eventPoints",
+      "label": "Event points",
+      "category": "currency",
+      "offset": [
+        768,
+        256
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "EP",
+      "issues": [
+        83,
+        93
+      ]
+    },
+    {
+      "id": "quake",
+      "label": "Quake",
+      "category": "spell",
+      "offset": [
+        896,
+        256
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "Q",
+      "issues": [
+        83,
+        96
+      ]
+    },
+    {
+      "id": "mend",
+      "label": "Mend",
+      "category": "spell",
+      "offset": [
+        0,
+        384
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "E",
+      "issues": [
+        83,
+        96
+      ]
+    },
+    {
+      "id": "magnet",
+      "label": "Magnet",
+      "category": "spell",
+      "offset": [
+        128,
+        384
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "R",
+      "issues": [
+        83,
+        96
+      ]
+    },
+    {
+      "id": "common",
+      "label": "Common",
+      "category": "rarity",
+      "offset": [
+        256,
+        384
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "1",
+      "issues": [
+        83,
+        82,
+        88
+      ]
+    },
+    {
+      "id": "uncommon",
+      "label": "Uncommon",
+      "category": "rarity",
+      "offset": [
+        384,
+        384
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "2",
+      "issues": [
+        83,
+        82,
+        88
+      ]
+    },
+    {
+      "id": "rare",
+      "label": "Rare",
+      "category": "rarity",
+      "offset": [
+        512,
+        384
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "3",
+      "issues": [
+        83,
+        82,
+        88
+      ]
+    },
+    {
+      "id": "epic",
+      "label": "Epic",
+      "category": "rarity",
+      "offset": [
+        640,
+        384
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "4",
+      "issues": [
+        83,
+        82,
+        88
+      ]
+    },
+    {
+      "id": "legendary",
+      "label": "Legendary",
+      "category": "rarity",
+      "offset": [
+        768,
+        384
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "5",
+      "issues": [
+        83,
+        82,
+        88
+      ]
+    },
+    {
+      "id": "mythic",
+      "label": "Mythic",
+      "category": "rarity",
+      "offset": [
+        896,
+        384
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "6",
+      "issues": [
+        83,
+        82,
+        88
+      ]
+    },
+    {
+      "id": "tick",
+      "label": "Complete",
+      "category": "status",
+      "offset": [
+        0,
+        512
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "OK",
+      "issues": [
+        83,
+        85,
+        91,
+        94
+      ]
+    },
+    {
+      "id": "lock",
+      "label": "Locked",
+      "category": "status",
+      "offset": [
+        128,
+        512
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "L",
+      "issues": [
+        83,
+        87
+      ]
+    },
+    {
+      "id": "alert",
+      "label": "Attention",
+      "category": "status",
+      "offset": [
+        256,
+        512
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "!",
+      "issues": [
+        83,
+        84
+      ]
+    },
+    {
+      "id": "close",
+      "label": "Close",
+      "category": "status",
+      "offset": [
+        384,
+        512
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "X",
+      "issues": [
+        83,
+        84
+      ]
+    },
+    {
+      "id": "guide",
+      "label": "Wizard guide",
+      "category": "portrait",
+      "offset": [
+        512,
+        512
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "fallback": "G",
+      "issues": [
+        83,
+        87
+      ]
+    }
+  ]
+}

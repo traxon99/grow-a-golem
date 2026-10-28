@@ -35,6 +35,8 @@ Last updated: 2026-10-27. See also [ui-ux.md](ui-ux.md), [art-audio.md](art-audi
 
 ## Grow A Golem today
 
+- #83 supplies 37 original mystical UI icons in `assets/ui-icons/`, with editable SVGs, color and grayscale sprite sheets, and a [128/32 px preview](images/ui-icons.png). `Config.UiIcons` holds zero upload IDs and cell coordinates; `Icons.create` provides text fallbacks. Uploads, the shared rarity mapping (#82), and per-menu wiring (#84–#97) remain pending. This asset pass changes no UI surface colors or glows; the existing contrast measurements remain applicable.
+
 - `Ui.Materials` in `src/client/Ui.luau` defines wood, stone, metal, studs and crystal (base color, edge, grain, rotation, tile size, image strength). `Ui.surface` applies one and returns its edge stroke for recoloring (the spell runestones' rune rim, the gold rim on the tutorial sign and artifact card). `Ui.fill` glosses bar fills.
 - Where each is used: HUD stats (stone + bevel), health/XP/goal bars (metal + gloss fills), spell buttons (stone with rune rim), event banner (wood with seams), menu window (wood with seams), tab buttons (studs, with three studs on top), list rows and the Wardrobe preview (studs), action buttons (crystal), disabled buttons and the Skip button (stone), close button (metal), code box (stone), boss bar (stone frame, metal bar), artifact card (dark crystal, gold rim), tutorial callout (wood, gold rim).
 - Textures: `assets/ui-textures/{wood,stone,metal,studs,crystal}.png`, 256x256 grayscale, seamless, 45-100% brightness. `Config.UiTextures` ids are all `0`, so the game currently shows the code-only look (top row of the image above).
