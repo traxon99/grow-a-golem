@@ -18,11 +18,13 @@ local Stats = require(Shared:WaitForChild("Stats"))
 local State = require(script.Parent:WaitForChild("State"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
 
+local Icons = require(script.Parent:WaitForChild("Icons"))
+
 local Wardrobe = {}
 
 local player = Players.LocalPlayer
 
-local PREVIEW_HEIGHT = 200
+local PREVIEW_HEIGHT = 240
 local SPIN_SPEED = 0.6 -- radians per second
 
 local previewId: string? = nil
@@ -142,7 +144,7 @@ local function ensureViewport(): ViewportFrame
 	vp.Name = "Preview"
 	vp.Size = UDim2.new(1, -12, 1, -12)
 	vp.Position = UDim2.fromOffset(6, 6)
-	vp.BackgroundColor3 = Color3.fromRGB(52, 62, 78)
+	vp.BackgroundColor3 = Color3.fromRGB(44, 52, 76)
 	vp.Ambient = Color3.fromRGB(150, 150, 160)
 	vp.LightColor = Color3.fromRGB(255, 245, 230)
 	vp.LightDirection = Vector3.new(-1, -2, -1)
@@ -219,6 +221,91 @@ local function howToEarn(unlock: any): string
 	return "Earn it by playing"
 end
 
+-- Which kind of cosmetic the card grid shows.
+local shownSlot = Config.CosmeticSlots[1].id
+
+local function cosmeticCard(grid: Instance, data: any, id: string, order: number, showPreview: (string?) -> ())
+	local cosmetic = Config.Cosmetics[id]
+	local owned = Stats.ownsCosmetic(data, id)
+	local wearing = Stats.equippedCosmetic(data, cosmetic.slot) == id
+	local isPreviewed = previewId == id
+	local look: Ui.Action = {
+		text = "Look",
+		style = "secondary",
+		onClick = function()
+			showPreview(id)
+		end,
+	}
+	local line: string
+	local stat = cosmetic.description
+	local buttons: { Ui.Action }
+	if owned then
+		line = if wearing then "Wearing" else "Yours"
+		buttons = {
+			{
+				text = if wearing then "Remove" else "Wear",
+				style = if wearing then "secondary" else "primary",
+				onClick = function()
+					if wearing then
+						State.request("unequipCosmetic", cosmetic.slot)
+					else
+						State.request("equipCosmetic", id)
+					end
+				end,
+			},
+		}
+		if not isPreviewed then
+			table.insert(buttons, 1, look)
+		end
+	elseif cosmetic.unlock then
+		local current, needed = Stats.cosmeticProgress(data, id)
+		line = "Free to earn"
+		stat = howToEarn(cosmetic.unlock) .. (if needed > 1 then ` ({current} / {needed})` else "")
+		buttons = { look }
+	elseif (cosmetic.passId or 0) > 0 then
+		-- Preview first, then the Buy button for that same item.
+		line = "Looks only"
+		buttons = {
+			{
+				text = tostring(cosmetic.price),
+				style = "robux",
+				onClick = function()
+					if previewId == id then
+						Remotes.Track:FireServer("purchasePrompted", "cosmetic", id)
+						MarketplaceService:PromptGamePassPurchase(player, cosmetic.passId)
+					else
+						State.toast(`Here's {cosmetic.name}. Tap the price again to buy it.`)
+						showPreview(id)
+					end
+				end,
+			},
+		}
+		if not isPreviewed then
+			table.insert(buttons, 1, look)
+		end
+	else
+		line = "Coming soon"
+		buttons = { look }
+	end
+	local card = Ui.card(grid, {
+		title = cosmetic.name,
+		line = line,
+		icon = "wardrobe",
+		stat = stat,
+		statColor = if owned then Ui.Colors.good else Ui.Colors.quiet,
+		color = if isPreviewed then Ui.Colors.gold elseif owned then Ui.Styles.primary else Ui.Headers.wardrobe,
+		dark = Ui.Colors.card,
+		ticked = wearing,
+		order = order,
+		buttons = buttons,
+	})
+	-- A lock on items you haven't got yet (they stay readable).
+	if not owned then
+		local lock = Icons.create(card, "lock", 28, UDim2.fromOffset(6, 6))
+		lock.ZIndex = card.ZIndex + 4
+	end
+end
+
 function Wardrobe.render(list: ScrollingFrame, snap: any, nextOrder: () -> number, refresh: () -> ())
 	local data = snap.data
 
@@ -230,14 +317,16 @@ function Wardrobe.render(list: ScrollingFrame, snap: any, nextOrder: () -> numbe
 		refresh()
 	end
 
-	-- The preview, at the top.
+	-- The preview, at the top, in a framed panel.
 	local holder = Instance.new("Frame")
 	holder.Name = "PreviewHolder"
 	holder.Size = UDim2.new(1, -8, 0, PREVIEW_HEIGHT)
 	holder.LayoutOrder = nextOrder()
 	holder.Parent = list
-	Ui.corner(holder, 8)
-	Ui.surface(holder, "studs")
+	Ui.corner(holder, 14)
+	local rim = Ui.surface(holder, "studs", { tint = Ui.Colors.card })
+	rim.Color = Ui.Colors.gold
+	rim.Thickness = 4
 	local vp = ensureViewport()
 	vp.Parent = holder
 	local source = if previewId and Config.Cosmetics[previewId].slot == "outfit" then player.Character else golemModel()
@@ -249,91 +338,53 @@ function Wardrobe.render(list: ScrollingFrame, snap: any, nextOrder: () -> numbe
 	local previewing = previewId and Config.Cosmetics[previewId]
 	Ui.label(
 		holder,
-		if previewing then `Preview: {previewing.name}` else "Your golem",
-		UDim2.new(1, -110, 0, 24),
-		UDim2.fromOffset(14, 10),
-		{ ZIndex = 2 }
+		if previewing then previewing.name else "Your golem",
+		UDim2.new(1, -120, 0, 30),
+		UDim2.fromOffset(16, 12),
+		{ ZIndex = 2, Title = true, TextSize = Ui.TextSize.big }
 	)
 	if previewing then
-		local back = Ui.button(holder, "Back", UDim2.fromOffset(80, 30), UDim2.new(1, -92, 0, 10), true, function()
+		local back = Ui.button(holder, "Back", UDim2.fromOffset(96, 48), UDim2.new(1, -106, 0, 10), true, function()
 			showPreview(nil)
-		end)
+		end, "secondary")
 		back.ZIndex = 2
 	end
 
+	local options = {}
 	for _, entry in Config.CosmeticSlots do
+		table.insert(options, { id = entry.id, text = (string.gsub(entry.name, "^Golem ", "")) })
+	end
+	Ui.toggles(list, nextOrder(), options, shownSlot, function(id: string)
+		shownSlot = id
+		refresh()
+	end)
+
+	for _, entry in Config.CosmeticSlots do
+		if entry.id ~= shownSlot then
+			continue
+		end
 		local worn = Stats.equippedCosmetic(data, entry.id)
-		Ui.heading(
-			list,
-			nextOrder(),
-			entry.name .. (if worn then `  ·  wearing {Config.Cosmetics[worn].name}` else "")
-		)
+		Ui.heading(list, nextOrder(), entry.name, "wardrobe")
+		if worn then
+			Ui.item(list, nextOrder(), {
+				title = `Wearing {Config.Cosmetics[worn].name}`,
+				icon = "tick",
+			})
+		end
+		local grid = Ui.grid(list, nextOrder(), Ui.CardSize)
+		local index = 0
 		for _, id in Config.CosmeticOrder do
-			local cosmetic = Config.Cosmetics[id]
-			if cosmetic.slot ~= entry.id then
-				continue
-			end
-			local owned = Stats.ownsCosmetic(data, id)
-			local wearing = worn == id
-			local isPreviewed = previewId == id
-			local subtitle = cosmetic.description
-			local buttonText: string
-			local enabled = true
-			local onClick: () -> ()
-			if owned then
-				buttonText = if wearing then "Take off" else "Wear"
-				onClick = function()
-					if wearing then
-						State.request("unequipCosmetic", entry.id)
-					else
-						State.request("equipCosmetic", id)
-					end
-				end
-			elseif cosmetic.unlock then
-				local current, needed = Stats.cosmeticProgress(data, id)
-				subtitle = howToEarn(cosmetic.unlock)
-					.. (if needed > 1 then `  ({current} / {needed})` else "")
-					.. ". Free!"
-				buttonText = "Locked"
-				enabled = false
-				onClick = function() end
-			elseif (cosmetic.passId or 0) > 0 then
-				-- Preview first, then the Buy button for that same item.
-				buttonText = if isPreviewed then `Buy R$ {cosmetic.price}` else `R$ {cosmetic.price}`
-				onClick = function()
-					if previewId == id then
-						Remotes.Track:FireServer("purchasePrompted", "cosmetic", id)
-						MarketplaceService:PromptGamePassPurchase(player, cosmetic.passId)
-					else
-						State.toast(`Here's {cosmetic.name}. Tap Buy if you want it.`)
-						showPreview(id)
-					end
-				end
-			else
-				buttonText = "Coming soon"
-				enabled = false
-				onClick = function() end
-			end
-			local title = cosmetic.name .. (if wearing then "  (wearing)" elseif owned then "  (owned)" else "")
-			local row = Ui.row(list, nextOrder(), title, subtitle, buttonText, enabled, onClick)
-			if not isPreviewed then
-				Ui.button(row, "Look", UDim2.new(0, 60, 1, -12), UDim2.new(1, -194, 0, 6), true, function()
-					showPreview(id)
-				end)
-				for _, child in row:GetChildren() do
-					if child:IsA("TextLabel") then
-						child.Size = UDim2.new(1, -210, child.Size.Y.Scale, child.Size.Y.Offset)
-					end
-				end
+			if Config.Cosmetics[id].slot == entry.id then
+				index += 1
+				cosmeticCard(grid, data, id, index, showPreview)
 			end
 		end
 	end
-	Ui.row(
-		list,
-		nextOrder(),
-		"Fair play",
-		"Looks never change stats. Paid items are exactly what you preview: no random boxes."
-	)
+	Ui.item(list, nextOrder(), {
+		title = "Fair play",
+		subtitle = "Looks never change stats. You buy exactly what you preview, never a random box.",
+		icon = "guide",
+	})
 end
 
 return Wardrobe

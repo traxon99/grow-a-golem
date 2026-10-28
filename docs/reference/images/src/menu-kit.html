@@ -1,0 +1,84 @@
+<link rel="stylesheet" href="common.css">
+<style>
+.plate { position:absolute; background:#1e2232; border:4px solid #0a0a12; border-radius:16px;
+  background-image: radial-gradient(circle, rgba(255,255,255,.07) 6px, transparent 7px); background-size: 46px 46px; }
+.hdr { position:absolute; left:6px; right:6px; top:6px; height:60px; border:3px solid #0e0c14; border-radius:12px;
+  background-image: linear-gradient(rgba(255,255,255,.18) 0 42%, rgba(0,0,0,.12) 42% 100%); }
+.hdr .t { position:absolute; left:66px; top:12px; font-size:30px; }
+.hdr .ic { position:absolute; left:14px; top:8px; width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,.25); border:3px solid #0e0c14; }
+.x { position:absolute; right:6px; top:3px; width:48px; height:48px; border-radius:10px; background:#c43034; border:3px solid #0e0c14; font-size:28px; display:flex; align-items:center; justify-content:center; }
+.k { position:absolute; height:48px; border:3px solid #0e0c14; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px;
+  background-image: linear-gradient(rgba(255,255,255,.18) 0 42%, rgba(0,0,0,.12) 42% 100%); }
+.row { position:absolute; background:#2e364a; border:2px solid #1e222a; border-radius:12px; }
+.lbl { position:absolute; font-size:18px; }
+.q { color:#c4cad6; font:700 18px Arial,sans-serif; position:absolute; }
+.bar { position:absolute; height:28px; background:#141620; border:3px solid #0e0c14; border-radius:10px; overflow:hidden; }
+.fill { position:absolute; left:0; top:0; bottom:0; border-radius:8px; background:linear-gradient(#5ac8ff, #3d88ad); }
+.card { position:absolute; width:150px; height:210px; border-radius:14px; border:4px solid; }
+.card .n { position:absolute; left:0; right:0; top:10px; text-align:center; font-size:18px; }
+.card .r { position:absolute; left:10px; top:40px; font:700 16px Arial,sans-serif; }
+.card .p { position:absolute; left:43px; top:66px; width:56px; height:56px; border-radius:50%; }
+.card .s { position:absolute; left:0; right:0; top:130px; text-align:center; font-size:20px; color:#6ed264; }
+.card .b { left:10px; right:10px; bottom:8px; height:40px; font-size:18px; }
+.bub { position:absolute; background:#fff4d6; color:#281e18; border:3px solid #0e0c14; border-radius:14px; font:700 19px/1.3 Arial,sans-serif; padding:10px 12px; }
+.dot { position:absolute; width:24px; height:24px; border-radius:50%; border:2px solid #a6acba; }
+</style>
+<div class="screen" style="background:#141822">
+<!-- window -->
+<div class="plate" style="left:30px;top:30px;width:560px;height:620px">
+  <div class="hdr" style="background-color:#ac5410"><div class="ic"></div><div class="t outlined">FORGE</div><div class="x outlined">X</div></div>
+  <div class="row" style="left:14px;top:84px;width:524px;height:56px"><div class="lbl outlined" style="left:14px;top:14px;font-size:24px">Health 240 &nbsp; Damage 31 &nbsp; Mining 18</div></div>
+  <div class="row" style="left:14px;top:150px;width:524px;height:146px;border-left:8px solid #b86c3c">
+    <div class="lbl outlined" style="left:14px;top:8px;font-size:20px">Left Arm: +7 Damage +3 Mining</div>
+    <div class="k outlined" style="left:14px;top:36px;height:28px;width:80px;border-radius:14px;background-color:#5c3618;font-size:16px">Copper</div>
+    <div class="k outlined" style="left:100px;top:36px;height:28px;width:110px;border-radius:14px;background-color:#4b4e53;font-size:16px">Next: Iron</div>
+    <div class="q" style="left:14px;top:70px">Need 12 more Iron.</div>
+    <div class="lbl outlined" style="left:14px;top:94px;font-size:16px">IRON</div><div class="lbl outlined" style="left:250px;top:94px;font-size:16px;color:#ffd65a">12 TO GO</div>
+    <div class="bar" style="left:14px;top:116px;width:330px;height:22px"><div class="fill" style="width:60%;background:linear-gradient(#aab0ba,#70757d)"></div><div class="lbl outlined" style="left:135px;top:0;font-size:16px">18 / 30</div></div>
+    <div class="k outlined" style="right:10px;top:8px;width:110px;background-color:#42464e;color:#c4cad6">Forge</div>
+  </div>
+  <div class="row" style="left:14px;top:306px;width:524px;height:70px;border:3px solid #ffd65a">
+    <div class="lbl outlined" style="left:14px;top:10px;font-size:20px">Torso: +60 Health</div>
+    <div class="q" style="left:14px;top:38px">Forge Iron for 60 Iron, 80 Copper.</div>
+    <div class="k outlined" style="right:10px;top:10px;width:110px;background-color:#1c7e36">Forge</div>
+  </div>
+  <div class="row" style="left:14px;top:386px;width:524px;height:110px;background:#283040">
+    <div class="lbl outlined" style="left:0;right:0;top:22px;text-align:center;font-size:24px">No artifacts yet.</div>
+    <div class="q" style="left:0;right:0;top:62px;text-align:center">Beat monsters to find your first one!</div>
+  </div>
+  <div class="lbl outlined" style="left:14px;top:510px;font-size:16px;color:#c4cad6">Buttons:</div>
+  <div class="k outlined" style="left:14px;top:540px;width:110px;background-color:#1c7e36">Claim</div>
+  <div class="k outlined" style="left:132px;top:540px;width:110px;background-color:#545c6e">Look</div>
+  <div class="k outlined" style="left:250px;top:540px;width:110px;background-color:#aa5a00">R$ 199</div>
+  <div class="k outlined" style="left:368px;top:540px;width:80px;background-color:#c43034">Leave</div>
+  <div class="k" style="left:456px;top:540px;width:80px;background-color:#424650;color:#c4cad6">Soon</div>
+</div>
+<!-- cards -->
+<div class="card" style="left:620px;top:30px;background:#163f73;border-color:#4aa3ff"><div class="n outlined">Pebble Charm</div><div class="r" style="color:#9ccbff">&#9670; Rare</div><div class="p" style="background:rgba(74,163,255,.4)"></div><div class="s outlined">+5% health</div><div class="k b outlined" style="position:absolute;background-color:#1c7e36">Equip</div></div>
+<div class="card" style="left:780px;top:30px;background:#3b2073;border-color:#a46bff"><div class="n outlined">Rockjaw's Tooth</div><div class="r" style="color:#cdb0ff">&#10022; Epic</div><div class="p" style="background:rgba(164,107,255,.4)"></div><div class="s outlined">+8% damage</div><div class="k b outlined" style="position:absolute;background-color:#545c6e">Unequip</div>
+  <div style="position:absolute;right:-12px;top:-12px;width:30px;height:30px;border-radius:50%;background:#1c7e36;border:3px solid #0e0c14;color:#fff;font:900 18px Arial;display:flex;align-items:center;justify-content:center">&#10003;</div></div>
+<div class="card" style="left:940px;top:30px;background:#1e222e;border-color:#5a6070"><div class="n outlined">???</div><div class="r" style="color:#c4cad6;left:0;right:0;text-align:center">Hidden on the island</div><div class="p" style="background:rgba(90,96,112,.3);font:900 40px Arial;color:#c4cad6;text-align:center;line-height:56px">?</div><div class="s outlined" style="color:#c4cad6">Mossy Quarry</div></div>
+<!-- side button with badge -->
+<div class="k outlined" style="left:1110px;top:30px;width:150px;height:56px;background-color:#207c3a;justify-content:flex-start;padding-left:54px">Quests<div class="badge">!</div></div>
+<div class="k outlined" style="left:1110px;top:96px;width:150px;height:56px;background-color:#7440be;justify-content:flex-start;padding-left:54px">Artifacts</div>
+<!-- goal card with checklist -->
+<div class="plate" style="left:620px;top:262px;width:300px;height:222px">
+  <div class="hdr" style="height:32px;background-color:#207c3a;top:6px"><div class="t outlined" style="left:38px;top:4px;font-size:18px">GOAL</div></div>
+  <div class="lbl outlined" style="left:14px;top:48px;font-size:20px;color:#ffd65a">Build your first golem part</div>
+  <div class="dot" style="left:14px;top:82px;background:#1c7e36;border-color:#a6acba"></div><div class="q" style="left:46px;top:84px">Mine 20 stone</div>
+  <div class="dot" style="left:14px;top:112px;background:#ffd65a;border-color:#0e0c14"></div><div class="lbl outlined" style="left:46px;top:114px">Open Forge</div>
+  <div class="dot" style="left:14px;top:142px;background:#2e364a"></div><div class="q" style="left:46px;top:144px;color:#a6acba">Forge a part</div>
+  <div class="bar" style="left:14px;top:178px;width:270px;height:26px"><div class="fill" style="width:100%;background:linear-gradient(#6ed264,#4a8c43)"></div><div class="lbl outlined" style="left:105px;top:1px">20 / 20</div></div>
+</div>
+<!-- dialog -->
+<div class="plate" style="left:940px;top:262px;width:320px;height:300px">
+  <div class="hdr" style="background-color:#0e7678"><div class="ic"></div><div class="t outlined" style="font-size:24px;top:14px">GUIDE</div><div class="x outlined">X</div></div>
+  <div style="position:absolute;left:14px;top:84px;width:64px;height:64px;border-radius:50%;background:#282e40;border:3px solid #ffd65a"></div>
+  <div class="k outlined" style="left:8px;top:152px;width:76px;height:26px;border-radius:13px;background-color:#0e7678;font-size:15px">Guide</div>
+  <div class="bub" style="left:94px;top:80px;width:206px">Glasswood is locked. Grow your golem to size 3 to get in!</div>
+  <div class="bar" style="left:14px;top:196px;width:288px"><div class="fill" style="width:58%"></div><div class="lbl outlined" style="left:110px;top:2px">7 / 12</div></div>
+  <div class="k outlined" style="left:152px;top:236px;width:150px;background-color:#1c7e36">Got it!</div>
+</div>
+<div class="note" style="left:620px;top:580px;width:640px">Original wireframe of the #82 menu kit (not taken from any game). Dark stud plate, a header color per menu, thick-outlined text, one green main action, rarity cards that always name the rarity, "N TO GO" bars, a 3-step checklist, a friendly empty state and a speech-bubble dialog. Buttons are at least 48 x 48 px.</div>
+<div class="title">Menu kit (original wireframe)</div>
+</div>

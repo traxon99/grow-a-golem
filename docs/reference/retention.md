@@ -49,7 +49,7 @@ Feature coverage is already broad:
 - Group join reward (group id not set yet).
 - Redeemable codes, rate-limited.
 - Limited-time events with free event-currency reward tracks; weekly Double Minerals Weekend; progress carries over.
-- Next-goal tracker under the golem health bar (short-term goal visible).
+- Goal card at the top right with checklist steps and a "to go" bar (short-term goal visible, #85). Red "!" badges on Quests, Events and Artifacts when something is ready (#84).
 - Missing: analytics to measure any of it (#11), no playtest yet (#9), no season-pass-style long track, no "welcome back" summary confirmed.
 
 ## Gaps worth closing

@@ -7,7 +7,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
@@ -18,24 +17,36 @@ local Sfx = require(script.Parent:WaitForChild("Sfx"))
 local State = require(script.Parent:WaitForChild("State"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
 
+local Icons = require(script.Parent:WaitForChild("Icons"))
+
 local Moments = {}
 
 local player = Players.LocalPlayer
 
 local GOLD = Color3.fromRGB(255, 214, 90)
 
+-- Waits out a tween without missing one that already finished (with
+-- Reduced Motion on, tweens end at once).
+local function waitFor(tween: Tween)
+	while tween.PlaybackState == Enum.PlaybackState.Begin or tween.PlaybackState == Enum.PlaybackState.Playing do
+		task.wait()
+	end
+end
+
 local function bar(parent: Instance, size: UDim2, position: UDim2, color: Color3): (Frame, Frame)
 	local back = Instance.new("Frame")
 	back.Size = size
 	back.Position = position
 	back.Parent = parent
-	Ui.corner(back, 6)
-	Ui.surface(back, "metal", { tint = Ui.Colors.row })
+	Ui.corner(back, 10)
+	local rim = Ui.surface(back, "metal", { tint = Color3.fromRGB(20, 22, 32) })
+	rim.Color = Ui.Colors.outline
+	rim.Thickness = 3
 	local fill = Instance.new("Frame")
 	fill.Size = UDim2.fromScale(0, 1)
 	fill.ZIndex = 3
 	fill.Parent = back
-	Ui.corner(fill, 6)
+	Ui.corner(fill, 10)
 	Ui.fill(fill, color)
 	return back, fill
 end
@@ -46,28 +57,42 @@ local function startBossBar(gui: ScreenGui)
 	local frame = Instance.new("Frame")
 	frame.Name = "BossBar"
 	frame.AnchorPoint = Vector2.new(0.5, 0)
-	frame.Size = UDim2.fromOffset(420, 52)
-	frame.Position = UDim2.new(0.5, 0, 0, 82)
-	frame.BackgroundTransparency = 0.1
+	frame.Size = UDim2.fromOffset(440, 82)
+	frame.Position = UDim2.new(0.5, 0, 0, 50)
+	frame.BackgroundTransparency = 1
 	frame.Visible = false
 	frame.Parent = gui
-	Ui.corner(frame, 10)
-	Ui.surface(frame, "stone", { details = true })
 
-	local title = Ui.label(frame, "", UDim2.new(1, -20, 0, 18), UDim2.fromOffset(10, 4), {
+	-- The boss's name on a red header plate, the bar under it.
+	local plate = Instance.new("Frame")
+	plate.Name = "NamePlate"
+	plate.AnchorPoint = Vector2.new(0.5, 0)
+	plate.Position = UDim2.fromScale(0.5, 0)
+	plate.Size = UDim2.new(0.8, 0, 0, 36)
+	plate.Parent = frame
+	Ui.corner(plate, 10)
+	Ui.surface(plate, "gem", { tint = Ui.Styles.danger, details = true })
+	local title = Ui.label(plate, "", UDim2.new(1, -40, 1, 0), UDim2.fromOffset(20, 0), {
+		Title = true,
+		TextSize = 22,
 		TextXAlignment = Enum.TextXAlignment.Center,
+		TextWrapped = false,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		ZIndex = 2,
 	})
-	local back, fill = bar(frame, UDim2.new(1, -20, 0, 20), UDim2.fromOffset(10, 26), Color3.fromRGB(220, 60, 50))
+	local back, fill = bar(frame, UDim2.new(1, 0, 0, 36), UDim2.fromOffset(0, 42), Color3.fromRGB(220, 60, 50))
 	-- A pale "chip" bar trails behind the real one so each hit visibly lands.
 	local chip = Instance.new("Frame")
 	chip.Size = UDim2.fromScale(1, 1)
 	chip.BackgroundColor3 = Color3.fromRGB(255, 235, 200)
 	chip.ZIndex = 2
 	chip.Parent = back
-	Ui.corner(chip, 6)
-	local numbers = Ui.label(back, "", UDim2.new(1, -10, 1, -4), UDim2.fromOffset(5, 2), {
+	Ui.corner(chip, 10)
+	local numbers = Ui.label(back, "", UDim2.fromScale(1, 1), UDim2.new(), {
+		Title = true,
+		TextSize = 20,
 		TextXAlignment = Enum.TextXAlignment.Center,
-		TextStrokeTransparency = 0.3,
+		TextWrapped = false,
 		ZIndex = 4,
 	})
 
@@ -110,23 +135,19 @@ local function startBossBar(gui: ScreenGui)
 			end
 			frame.Visible = true
 			fill.Size = UDim2.fromScale(fraction, 1)
-			numbers.Text = `{math.ceil(h.Health)} / {math.floor(h.MaxHealth)}`
+			numbers.Text = `{Ui.short(math.ceil(h.Health))} / {Ui.short(h.MaxHealth)}`
 			-- The bar is the real health, so "almost there" is only ever true.
 			title.Text = if fraction <= 0.25 then `{h.DisplayName}  ·  Almost there!` else h.DisplayName
-			title.TextColor3 = if fraction <= 0.25 then Ui.Colors.warn else Ui.Colors.text
+			title.TextColor3 = if fraction <= 0.25 then Ui.Colors.gold else Ui.Colors.text
 			if fraction < lastFraction then
 				if chipTween then
 					chipTween:Cancel()
 				end
-				local tween = TweenService:Create(
+				chipTween = Ui.tween(
 					chip,
 					TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.In, 0, false, 0.25),
-					{
-						Size = UDim2.fromScale(fraction, 1),
-					}
+					{ Size = UDim2.fromScale(fraction, 1) }
 				)
-				tween:Play()
-				chipTween = tween
 			elseif fraction > lastFraction then
 				chip.Size = UDim2.fromScale(fraction, 1) -- healing back up
 			end
@@ -154,6 +175,9 @@ local function startReveal(gui: ScreenGui)
 		end
 		local complete = found >= total
 
+		-- The card takes the artifact's rarity from the shared table: its
+		-- color, symbol and name. It shows exactly what the server granted.
+		local rarity = Ui.rarity(Config.ArtifactSourceRarity[artifact.source])
 		local card = Instance.new("TextButton")
 		card.Name = "ArtifactReveal"
 		card.AutoButtonColor = false
@@ -163,11 +187,10 @@ local function startReveal(gui: ScreenGui)
 		card.Size = UDim2.fromOffset(0, 0)
 		card.ZIndex = 10
 		card.Parent = gui
-		Ui.corner(card, 16)
-		-- A dark faceted crystal with a gold rim.
-		local stroke = Ui.surface(card, "crystal", { tint = Color3.fromRGB(46, 40, 70) })
-		stroke.Color = GOLD
-		stroke.Thickness = 4
+		Ui.corner(card, 18)
+		local stroke = Ui.surface(card, "crystal", { tint = rarity.dark })
+		stroke.Color = rarity.color
+		stroke.Thickness = 5
 		-- Ui.surface adds the "Grain" gradient that the glow below spins.
 		local gradient = card:FindFirstChild("Grain") :: UIGradient
 
@@ -178,49 +201,82 @@ local function startReveal(gui: ScreenGui)
 		content.ZIndex = 11
 		content.Parent = card
 
-		local function line(text: string, y: number, height: number, color: Color3, font: Enum.Font?)
-			Ui.label(content, text, UDim2.new(1, -30, 0, height), UDim2.fromOffset(15, y), {
+		local function line(text: string, y: number, height: number, color: Color3, size: number)
+			return Ui.label(content, text, UDim2.new(1, -30, 0, height), UDim2.fromOffset(15, y), {
+				Title = true,
+				TextSize = size,
 				TextXAlignment = Enum.TextXAlignment.Center,
 				TextColor3 = color,
-				Font = font or Enum.Font.GothamBold,
 				ZIndex = 12,
 			})
 		end
-		line("NEW ARTIFACT!", 14, 22, GOLD)
-		line(artifact.name, 42, 36, Ui.Colors.text)
-		line(Ui.bonusText(artifact.bonus), 84, 20, Ui.Colors.good, Enum.Font.Gotham)
-		line(
-			`{Config.Zones[artifact.zone].name} collection  {found} / {total}`,
-			116,
-			18,
-			Ui.Colors.quiet,
-			Enum.Font.Gotham
-		)
-		local back, fill = bar(content, UDim2.new(1, -60, 0, 10), UDim2.fromOffset(30, 140), GOLD)
+		line("NEW ARTIFACT!", 14, 28, GOLD, 24)
+		local symbol = Icons.create(content, rarity.icon, 30, UDim2.new(0.5, -60, 0, 48), rarity.color)
+		symbol.ZIndex = 12
+		local rarityLabel = line(rarity.name, 48, 30, rarity.color:Lerp(Color3.new(1, 1, 1), 0.4), 22)
+		rarityLabel.Position = UDim2.new(0.5, -24, 0, 48)
+		rarityLabel.Size = UDim2.fromOffset(140, 30)
+		rarityLabel.TextXAlignment = Enum.TextXAlignment.Left
+		line(artifact.name, 82, 40, Ui.Colors.text, 30)
+		line(Ui.bonusText(artifact.bonus), 126, 30, Ui.Colors.good, 24)
+		line(`{Config.Zones[artifact.zone].name}: {found} / {total} found`, 160, 24, Ui.Colors.quiet, 18)
+		local back, fill = bar(content, UDim2.new(1, -60, 0, 14), UDim2.fromOffset(30, 190), GOLD)
 		back.ZIndex = 12
 		fill.ZIndex = 13
 		fill.Size = UDim2.fromScale((found - 1) / total, 1)
 		if complete then
-			line(`Set complete! {Ui.bonusText(Config.ZoneSetBonus)}`, 158, 20, Ui.Colors.warn)
-		else
-			line("Tap to continue", 160, 16, Ui.Colors.quiet, Enum.Font.Gotham)
+			line(`Set complete! {Ui.bonusText(Config.ZoneSetBonus)}`, 210, 24, GOLD, 20)
+		end
+
+		local closeCard: () -> () = function() end
+		local nice = Ui.button(
+			content,
+			"Nice!",
+			UDim2.fromOffset(150, 48),
+			UDim2.new(0.5, -75, 1, -60),
+			true,
+			function()
+				closeCard()
+			end
+		)
+		nice.ZIndex = 12
+		-- Equip right away when there's a free slot.
+		local stats = State.stats()
+		if stats and #snap.data.artifacts.equipped < stats.artifactSlots then
+			nice.Position = UDim2.new(0.5, -158, 1, -60)
+			local equip = Ui.button(
+				content,
+				"Equip",
+				UDim2.fromOffset(150, 48),
+				UDim2.new(0.5, 8, 1, -60),
+				true,
+				function()
+					State.request("equipArtifact", artifactId)
+					closeCard()
+				end,
+				"secondary"
+			)
+			equip.ZIndex = 12
 		end
 
 		Sfx.moment("artifact")
-		local pop = TweenService:Create(card, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Size = UDim2.fromOffset(360, 190),
+		local pop = Ui.tween(card, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			Size = UDim2.fromOffset(380, 300),
 		})
-		pop:Play()
-		pop.Completed:Wait()
+		waitFor(pop)
 		content.Visible = true
-		TweenService:Create(fill, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, false, 0.2), {
+		Ui.tween(fill, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, false, 0.2), {
 			Size = UDim2.fromScale(found / total, 1),
-		}):Play()
+		})
 
-		-- The card's glow sweeps and pulses while it is up.
+		-- The card's glow sweeps and pulses while it is up (not with Reduced Motion).
+		local still = Ui.reducedMotion()
 		local spin = RunService.RenderStepped:Connect(function(dt: number)
+			if still then
+				return
+			end
 			gradient.Rotation = (gradient.Rotation + dt * 90) % 360
-			stroke.Thickness = 3 + math.sin(os.clock() * 6)
+			stroke.Thickness = 4 + math.sin(os.clock() * 6)
 		end)
 
 		local closed = false
@@ -231,16 +287,18 @@ local function startReveal(gui: ScreenGui)
 			closed = true
 			spin:Disconnect()
 			content.Visible = false
-			local shrink = TweenService:Create(card, TweenInfo.new(0.2), { Size = UDim2.fromOffset(0, 0) })
-			shrink:Play()
-			shrink.Completed:Wait()
+			local shrink = Ui.tween(card, TweenInfo.new(0.2), { Size = UDim2.fromOffset(0, 0) })
+			waitFor(shrink)
 			card:Destroy()
+		end
+		closeCard = function()
+			task.spawn(close)
 		end
 		card.Activated:Connect(function()
 			task.spawn(close)
 		end)
 		local started = os.clock()
-		while not closed and os.clock() - started < 4.5 do
+		while not closed and os.clock() - started < 6 do
 			task.wait(0.1)
 		end
 		close()
@@ -267,32 +325,39 @@ end
 ---------------------------------------------------------------- level up
 
 local function startLevelUp(gui: ScreenGui)
-	local banner = Ui.label(gui, "", UDim2.fromOffset(0, 0), UDim2.fromScale(0.5, 0.3), {
+	local banner = Ui.label(gui, "", UDim2.fromOffset(460, 70), UDim2.fromScale(0.5, 0.3), {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		TextXAlignment = Enum.TextXAlignment.Center,
-		TextColor3 = Ui.Colors.rune,
-		TextStrokeTransparency = 0.2,
+		TextColor3 = Ui.Colors.gold,
+		Title = true,
+		TextSize = 60,
+		TextWrapped = false,
 		Visible = false,
 	})
-	local sub = Ui.label(gui, "", UDim2.fromOffset(460, 26), UDim2.fromScale(0.5, 0.3), {
+	Ui.outline(banner, 4)
+	local pop = Instance.new("UIScale")
+	pop.Parent = banner
+	-- What it unlocked, in one line.
+	local sub = Ui.label(gui, "", UDim2.fromOffset(560, 34), UDim2.fromScale(0.5, 0.3), {
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0.3, 36),
+		Position = UDim2.new(0.5, 0, 0.3, 40),
 		TextXAlignment = Enum.TextXAlignment.Center,
-		TextColor3 = Ui.Colors.warn,
-		TextStrokeTransparency = 0.3,
+		TextColor3 = Ui.Colors.text,
+		Title = true,
+		TextSize = 26,
+		TextWrapped = false,
 		Visible = false,
 	})
+	Ui.outline(sub, 3)
 
 	local token = 0
 	local function celebrate(level: number, grew: boolean, unlocked: string?)
 		token += 1
 		local mine = token
 		banner.Text = `LEVEL {level}!`
-		banner.Size = UDim2.fromOffset(120, 20)
 		banner.Visible = true
-		TweenService:Create(banner, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Size = UDim2.fromOffset(360, 60),
-		}):Play()
+		pop.Scale = if Ui.reducedMotion() then 1 else 0.4
+		Ui.tween(pop, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
 		local extra = {}
 		if grew then
 			table.insert(extra, `Your golem grew to size {Stats.sizeForLevel(level)}!`)

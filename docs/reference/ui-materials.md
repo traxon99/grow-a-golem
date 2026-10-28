@@ -1,6 +1,6 @@
 # UI textures and materials
 
-Last updated: 2026-10-27. See also [ui-ux.md](ui-ux.md), [art-audio.md](art-audio.md) and [performance-mobile.md](performance-mobile.md).
+Last updated: 2026-10-28. See also [ui-ux.md](ui-ux.md), [art-audio.md](art-audio.md) and [performance-mobile.md](performance-mobile.md).
 
 ![UI materials](images/ui-materials.png)
 
@@ -10,15 +10,20 @@ Last updated: 2026-10-27. See also [ui-ux.md](ui-ux.md), [art-audio.md](art-audi
 2. **Match the material to the job,** so the same thing always looks the same:
    | Material | Use it for | Feel |
    |---|---|---|
-   | wood | Menu windows, the tutorial sign, the event notice board | Workshop, "things you read" |
-   | stone | HUD stats slab, spell runestones, boss bar, text inputs, disabled buttons | Solid, golem body |
-   | metal | Bar frames (health, XP, goal, boss), close button | Iron fittings |
-   | studs | Menu tabs and list rows | Classic Roblox brick, "things you pick" |
-   | crystal | Live action buttons, the artifact reveal card | Rune magic, "press me" |
+   | plate | Menu windows, dialogs, the HUD stats slab and goal card | Dark night-blue brick, "a place to read" |
+   | gem | Header bars and every kit button (always tinted with a style or header color) | Chunky glossy plastic, "press me" |
+   | studs | List rows, cards, summaries, empty states | Classic Roblox brick, "things you pick" |
+   | wood | The tutorial sign, the event notice board | Workshop, "a message for you" |
+   | stone | Spell runestones, the code box | Solid, golem body |
+   | metal | Bar frames (health, XP, goal, boss, progress) | Iron fittings |
+   | crystal | The artifact reveal card | Rune magic |
    Bar fills use `Ui.fill(frame, color)` (a glossy top and darker base), not a material.
 3. **Text contrast is checked against the brightest point of the surface (its base color).** Textures and grain only darken it. Body text needs at least 4.5:1 and large text 3:1 ([WCAG 2.1, 1.4.3](https://www.w3.org/TR/WCAG21/#contrast-minimum)). If you add a material or change a base color, re-run the numbers (table below) and keep white text at 4.5:1 or better.
-4. **On metal and crystal, use white text only.** Quiet gray, gold and rune blue fall under 4.5:1 there.
-5. **Labels and buttons keep their dark text outline** (`TextStrokeTransparency` about 0.3-0.55). It is what keeps text readable over grain on small phone screens.
+4. **On metal, crystal, gem buttons and header bars, use white text only.** Quiet gray, gold and rune blue fall under 4.5:1 there.
+5. **Every label keeps its thick dark outline**: `Ui.label` adds a `UIStroke` named `Outline` in `Contextual` mode (2 px, 3 px from 24 px up). It is what keeps text readable over grain on small phone screens. Dark text on cream (the speech bubble, key caps) is the one place without it.
+13. **Buttons come from `Ui.button(..., style)`**, never hand-tinted: `primary` (green, the main action), `secondary` (gray), `robux` (gold-orange, always the Robux icon and price), `danger` (red: close, cancel, leave), and disabled (dull gray, quiet text). Every kit button is at least 48 x 48 px. The old all-blue crystal button is retired.
+14. **Header colors come from `Ui.Headers`**, one per menu: orange Forge, teal Travel, purple Artifacts, blue Skills/Party/Hub/Trade, amethyst Awaken, green Quests, gold Events/Ranks, lilac Shop/Wardrobe.
+15. **Rarity colors come from `Config.Rarities`** (via `Ui.rarity`), with the symbol icon and the name always beside the color.
 6. **A UIGradient on a TextLabel or TextButton also tints its text** (Roblox lists text objects among what a gradient applies to; it never reaches child objects) ([UIGradient](https://create.roblox.com/docs/reference/engine/classes/UIGradient.md)). So `Ui.surface` clamps grain on text objects to 82% or brighter and never lays an image over them. Put heavy texture on a Frame behind the text instead.
 7. **Keep each grain to 6 color stops or fewer,** as Roblox advises for UIGradient ([UIGradient](https://create.roblox.com/docs/reference/engine/classes/UIGradient.md)).
 8. **Code-drawn details (`details = true`: plank seams, rivets, studs, bevel line) go only on frames built once.** List rows rebuild every second on some tabs, so they get grain and edge only (performance, see [performance-mobile.md](performance-mobile.md)).
@@ -35,23 +40,35 @@ Last updated: 2026-10-27. See also [ui-ux.md](ui-ux.md), [art-audio.md](art-audi
 
 ## Grow A Golem today
 
-- #109: The existing HUD and menus now consume `Icons.create`: XP/minerals/spells, all 13 tabs, the current window header, close, travel guide/locks, quests and event points/reward status. Icons retain adjacent words and zero-ID text fallbacks. No new animation, remote, rarity assignment or purchase behavior is added. Approved sprite uploads still require the owner (#83); broader menu restyles remain separate.
+- **#82 menu kit (2026-10-28).** `src/client/Ui.luau` now builds every screen from shared pieces: `Ui.window` (plate body, gem header bar with icon, 30 px title, red 48 px X), `Ui.button` styles, `Ui.item` rows that grow to fit their text, `Ui.card` (rarity cards, 180 x 252), `Ui.progress` ("N TO GO" bars), `Ui.checklist`, `Ui.empty`, `Ui.dialog` (portrait, name tag, cream speech bubble), `Ui.summary`, `Ui.chip`, `Ui.badge`, `Ui.toggles`, `Ui.grid` and `Ui.short` (1.2K, 3.4M). Text uses Builder Sans ExtraBold for titles and buttons and Builder Sans Bold for body text, at fixed sizes (body 18, headings 28, titles 30) instead of `TextScaled`. `Ui.surface` scales panel transparency by `GuiService.PreferredTransparency`, and `Ui.tween` snaps when `ReducedMotionEnabled` is on. See [the kit wireframe](images/menu-kit.png).
+- Where each material is used: menu windows, dialogs, the stats slab and the goal card (plate, studs on frames built once), header bars and buttons (gem), rows, cards, summaries and empty states (studs), bars (metal with gloss fills), the tutorial sign and event board (wood), spell runestones and the code box (stone), the artifact reveal card (crystal tinted with its rarity).
+- #109 and #83: the menus and HUD use `Icons.create` for tabs, minerals, spells, rarity symbols, status and the guide portrait, with word labels beside them and text fallbacks while `Config.UiIcons` ids are 0.
+- Textures: `assets/ui-textures/{wood,stone,metal,studs,crystal}.png`, 256x256 grayscale, seamless, 45-100% brightness. Plate reuses the studs texture and gem reuses the crystal texture, tinted. `Config.UiTextures` ids are all `0`, so the game shows the code-only look until they're uploaded.
+- Measured contrast at each base color (the worst case; grain and textures only darken):
 
-- #83 supplies 37 original mystical UI icons in `assets/ui-icons/`, with editable SVGs, color and grayscale sprite sheets, and a [128/32 px preview](images/ui-icons.png). `Config.UiIcons` holds zero upload IDs and cell coordinates; `Icons.create` provides text fallbacks. Uploads and the shared rarity mapping (#82) remain pending. Existing-screen wiring is complete in #109; full restyles remain in #84–#97. This asset pass changes no UI surface colors or glows; the existing contrast measurements remain applicable.
-
-- `Ui.Materials` in `src/client/Ui.luau` defines wood, stone, metal, studs and crystal (base color, edge, grain, rotation, tile size, image strength). `Ui.surface` applies one and returns its edge stroke for recoloring (the spell runestones' rune rim, the gold rim on the tutorial sign and artifact card). `Ui.fill` glosses bar fills.
-- Where each is used: HUD stats (stone + bevel), health/XP/goal bars (metal + gloss fills), spell buttons (stone with rune rim), event banner (wood with seams), menu window (wood with seams), tab buttons (studs, with three studs on top), list rows and the Wardrobe preview (studs), action buttons (crystal), disabled buttons and the Skip button (stone), close button (metal), code box (stone), boss bar (stone frame, metal bar), artifact card (dark crystal, gold rim), tutorial callout (wood, gold rim).
-- Textures: `assets/ui-textures/{wood,stone,metal,studs,crystal}.png`, 256x256 grayscale, seamless, 45-100% brightness. `Config.UiTextures` ids are all `0`, so the game currently shows the code-only look (top row of the image above).
-- Measured contrast at each base color (the worst case):
-
-  | Surface | White text | Quiet gray (186,192,202) | Gold (240,190,70) | Rune blue (90,200,255) |
+  | Surface | White text | Quiet gray (196,202,214) | Gold (255,214,90) | Dimmed step (166,172,186) |
   |---|---|---|---|---|
-  | wood (96,64,42) | 8.1 | 5.1 | 5.4 | 4.9 |
-  | stone (66,70,78) | 8.3 | 5.2 | 5.5 | 5.0 |
-  | studs (58,66,80) | 8.9 | 5.5 | 5.9 | 5.4 |
-  | metal (92,102,116) | 5.1 | 3.2 | 3.4 | 3.1 |
-  | crystal (48,98,178) | 5.2 | 3.3 | 3.5 | 3.2 |
-  | disabled stone (70,74,80) | 7.8 | 4.9 | 5.2 | 4.7 |
+  | plate (30,34,50) | 15.8 | 9.6 | 11.3 | 6.9 |
+  | row (46,54,74) | 12.1 | 7.3 | 8.6 | 5.3 |
+  | card (40,46,64) | 13.5 | 8.2 | 9.7 | 5.9 |
+  | primary green (28,126,54) | 5.1 | - | - | - |
+  | secondary gray (84,92,110) | 6.7 | 4.1 | - | - |
+  | robux gold-orange (170,90,0) | 5.0 | - | - | - |
+  | danger red (196,48,52) | 5.5 | - | - | - |
+  | disabled (66,70,80) | 9.4 | 5.7 | - | - |
+  | header orange (172,84,16) | 5.2 | - | - | - |
+  | header teal (14,118,120) | 5.4 | - | - | - |
+  | header purple (116,64,190) | 6.5 | - | - | - |
+  | header blue (40,96,184) | 6.1 | - | - | - |
+  | header amethyst (96,60,160) | 7.9 | - | - | - |
+  | header green (32,124,58) | 5.2 | - | - | - |
+  | header gold (146,100,0) | 5.2 | - | - | - |
+  | header lilac (132,84,176) | 5.4 | - | - | - |
+  | rarity cards (darkest to lightest: common 74,79,87 to rare 22,63,115) | 8.2 to 12.8 | - | - | - |
+  | wood (96,64,42) | 8.1 | 5.1 | 5.4 | - |
+  | stone (66,70,78) | 8.3 | 5.2 | 5.5 | - |
+
+  Dark text (40,32,24) on the cream speech bubble (255,244,214) measures 14.6.
 
 ## Uploading the textures (Jackson)
 
@@ -64,7 +81,7 @@ These steps are from memory of Studio's menus, not a cited source; the labels ma
 
 ## Gaps worth closing
 
-1. **P1:** Multiply panel transparency by `GuiService.PreferredTransparency` inside `Ui.surface`, so the accessibility setting covers every surface at once ([ui-ux.md](ui-ux.md) rule 6).
+1. **Done (#82):** `Ui.surface` multiplies panel transparency by `GuiService.PreferredTransparency`. It reads the setting when a surface is built, so a change takes effect when a menu next refreshes.
 2. **P1:** Check the look on a low-end phone in a published test (#9): grain, edge and detail frames are cheap, but count draw calls if many rows are open.
 3. **P2 (#16):** Studio-designed 9-slice frames (carved stone border, wooden sign edge) if the art pass wants hand-made borders.
 4. **P2:** Per-zone tints (meadow green wood, ember red stone, crystal blue metal) using `options.tint`.
