@@ -19,6 +19,7 @@ do
 	local addedHandlers = {}
 	local removingHandlers = {}
 	local friendsOf = {} -- player -> set of userIds it's friends with
+	local profiles = {} -- explicit everyone default preserves older party scenarios
 	local friendCalls = {}
 	local deferredTasks = {}
 	local deferFriends = false
@@ -43,6 +44,7 @@ do
 			return (friendsOf[self] or {})[otherUserId] == true
 		end
 		table.insert(playersList, player)
+		profiles[player] = { social = { partyInvites = "everyone" } }
 		return player
 	end
 
@@ -61,6 +63,14 @@ do
 			end,
 		},
 		DataService = {
+			get = function(player)
+				return profiles[player]
+			end,
+			update = function(player, fn)
+				fn(profiles[player])
+				table.insert(changed, player)
+				return true
+			end,
 			markChanged = function(player)
 				table.insert(changed, player)
 			end,
@@ -124,7 +134,8 @@ do
 	local accept = handlers.partyAccept
 	local decline = handlers.partyDecline
 	local leave = handlers.partyLeave
-	assert(invite and accept and decline and leave, "all four party actions are registered")
+	local setInvites = handlers.setPartyInvites
+	assert(invite and accept and decline and leave and setInvites, "all party actions are registered")
 
 	---------------------------------------------------------------- building a party
 	local p1, p2, p3, p4 = join(), join(), join(), join()
@@ -156,6 +167,72 @@ do
 		local p5 = join()
 		local okFull, msgFull = invite(p1, p5.UserId)
 		assert(okFull == false and msgFull == "Your party is full", "the party is already at Config.Party.maxSize")
+	end
+
+
+	---------------------------------------------------------------- invite privacy settings
+	do
+		local inviter, target = join(), join()
+		assert(setInvites(target, "friends") == true)
+		local ok, msg = invite(inviter, target.UserId)
+		assert(ok == false and string.find(msg, "only accepts invites from friends") ~= nil)
+		assert(#providers.party(target).invites == 0, "strangers cannot leave a pending invite")
+		assert(setInvites(target, "off") == true)
+		assert(invite(inviter, target.UserId) == false, "off blocks even previously checked players")
+		assert(setInvites(target, "everyone") == true)
+		assert(invite(inviter, target.UserId) == true, "everyone allows non-friends")
+		assert(setInvites(target, "invalid") == false, "unknown privacy mode is rejected")
+		assert(profiles[target].social.partyInvites == "everyone", "invalid mode does not change the setting")
+	end
+	do
+		local inviter, target = join(), join()
+		makeFriends(inviter, target)
+		assert(setInvites(target, "friends") == true)
+		assert(invite(inviter, target.UserId) == true, "Roblox friends can invite in friends-only mode")
+	end
+
+	---------------------------------------------------------------- duplicate invites, cooldown and outgoing cap
+	do
+		local inviter, target = join(), join()
+		local before = #notified
+		assert(invite(inviter, target.UserId) == true)
+		assert(#notified == before + 1)
+		clockNow += 1
+		assert(invite(inviter, target.UserId) == true, "an existing invite can be refreshed")
+		assert(#notified == before + 1, "refreshing a pending invite sends no second toast")
+		assert(decline(target, inviter.UserId) == true)
+		local ok, msg = invite(inviter, target.UserId)
+		assert(ok == false and string.find(msg, "Wait before inviting") ~= nil, "decline does not bypass cooldown")
+		clockNow += Config.Party.inviteCooldown
+		assert(invite(inviter, target.UserId) == true, "a new invite is allowed after cooldown")
+		assert(#notified == before + 2)
+	end
+	do
+		local inviter = join()
+		for _ = 1, Config.Party.maxOutgoingInvites do
+			local target = join()
+			assert(invite(inviter, target.UserId) == true)
+		end
+		local overflow = join()
+		local ok, msg = invite(inviter, overflow.UserId)
+		assert(ok == false and msg == "Too many open party invites")
+	end
+
+	---------------------------------------------------------------- full-party acceptance must not abandon the current party
+	do
+		local leaderA, switcher, leaderB = join(), join(), join()
+		local b2, b3, b4 = join(), join(), join()
+		assert(invite(leaderA, switcher.UserId) == true)
+		assert(invite(leaderB, switcher.UserId) == true)
+		assert(accept(switcher, leaderA.UserId) == true)
+		for _, member in { b2, b3, b4 } do
+			assert(invite(leaderB, member.UserId) == true)
+			assert(accept(member, leaderB.UserId) == true)
+		end
+		local ok, msg = accept(switcher, leaderB.UserId)
+		assert(ok == false and msg == "That party is full")
+		assert(party.sameParty(leaderA, switcher), "a full destination must not eject the player")
+		assert(#party.members(leaderA) == 2, "the original party remains intact")
 	end
 
 	---------------------------------------------------------------- friendBonus
