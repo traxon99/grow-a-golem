@@ -33,7 +33,9 @@ local function meshPart(tier: string, role: string, mesh: GolemMeshData.Mesh): M
 	end
 	part.Name = role
 	part.Size = mesh.size
-	part.CFrame = CFrame.new(mesh.offset)
+	-- Studio's importer stores the meshes facing +Z (half a turn from the
+	-- golem's -Z front), so turn each one back.
+	part.CFrame = CFrame.new(mesh.offset) * CFrame.Angles(0, math.pi, 0)
 	part.Anchored = true
 	part.CanCollide = false
 	part.CanTouch = false

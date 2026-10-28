@@ -101,6 +101,15 @@ local function visualKey(player: Player, data: any, stats: Stats.GolemStats): st
 	return key
 end
 
+-- Whether a tier's slot has uploaded mesh art (see GolemMeshes).
+local function hasMeshArt(tier: string, slotName: string): boolean
+	local assets = ReplicatedStorage:FindFirstChild("Assets")
+	local golem = assets and assets:FindFirstChild("Golem")
+	local folder = golem and golem:FindFirstChild(tier)
+	local template = folder and folder:FindFirstChild(slotName)
+	return template ~= nil and template:GetAttribute("ReplacesExtras") == true
+end
+
 -- Builds the golem standing on `ground`, facing `facing`.
 local function buildModel(
 	player: Player,
@@ -142,6 +151,9 @@ local function buildModel(
 		local tier = data.golem.parts[slot]
 		if tier then
 			partAssets[name] = { "Golem", tier, name }
+		elseif hasMeshArt("stone", name) then
+			-- An unforged slot wears the stone starter's mesh in the bare colour.
+			partAssets[name] = { "Golem", "stone", name }
 		end
 	end
 	local rig = Build.rig(model, root, s, partAssets)
@@ -163,7 +175,7 @@ local function buildModel(
 				local childShade = if artShade then (shade or 1) * artShade else shade
 				child:SetAttribute("LookSlot", slot)
 				child:SetAttribute("LookShade", childShade)
-				if skinId then
+				if skinId or not data.golem.parts[slot] then
 					child.Color, child.Material = look(slot, childShade)
 				end
 			end

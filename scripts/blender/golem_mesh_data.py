@@ -46,9 +46,14 @@ def main():
             for role in sorted(roles):
                 m = roles[role]
                 mesh_id = int(ids[f"{tier}/{slot}_{role}"])
-                slots.append(
-                    f"\t\t\t{role} = {{ id = {mesh_id}, offset = {vec(m['offset'])}, size = {vec(m['size'])} }},"
-                )
+                # One field per line, as StyLua formats it.
+                slots += [
+                    f"\t\t\t{role} = {{",
+                    f"\t\t\t\tid = {mesh_id},",
+                    f"\t\t\t\toffset = {vec(m['offset'])},",
+                    f"\t\t\t\tsize = {vec(m['size'])},",
+                    "\t\t\t},",
+                ]
             slots.append("\t\t},")
         if slots:
             lines += [f"\t{tier} = {{", *slots, "\t},"]
