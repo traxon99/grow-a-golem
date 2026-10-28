@@ -859,6 +859,25 @@ Config.Visuals = {
 -- color, grain gradient, edge and details, all drawn in code.
 Config.UiTextures = { wood = 0, stone = 0, metal = 0, studs = 0, crystal = 0 }
 
+-- The one rarity table (#82), shared by item cards, the artifact reveal and
+-- the Shop. Matches docs/reference/images/rarity-colors.png: `color` is the
+-- border and symbol, `dark` the card background (white text 8:1 or better).
+-- The symbol icon has the same key in Config.UiIcons, and the name always
+-- shows beside it, so rarity is never told by color alone.
+Config.RarityOrder = { "common", "uncommon", "rare", "epic", "legendary", "mythic" }
+Config.Rarities = {
+	common = { name = "Common", color = Color3.fromRGB(185, 190, 198), dark = Color3.fromRGB(74, 79, 87) },
+	uncommon = { name = "Uncommon", color = Color3.fromRGB(95, 211, 106), dark = Color3.fromRGB(31, 90, 38) },
+	rare = { name = "Rare", color = Color3.fromRGB(74, 163, 255), dark = Color3.fromRGB(22, 63, 115) },
+	epic = { name = "Epic", color = Color3.fromRGB(164, 107, 255), dark = Color3.fromRGB(59, 32, 115) },
+	legendary = { name = "Legendary", color = Color3.fromRGB(255, 176, 46), dark = Color3.fromRGB(107, 67, 0) },
+	mythic = { name = "Mythic", color = Color3.fromRGB(255, 79, 139), dark = Color3.fromRGB(107, 16, 51) },
+}
+-- An artifact's rarity follows how hard it is to get: enemy drops are Rare,
+-- boss drops Epic, and hidden relics Legendary. This is a label only; the
+-- real odds come from Stats.artifactOdds and are shown in the menu.
+Config.ArtifactSourceRarity = { drop = "rare", boss = "epic", hidden = "legendary" }
+
 -- Sound ids for the big moments (artifact reveal, level up, growing a size).
 -- 0 = silent. Paste rbxassetid numbers from the Creator Store.
 Config.Sounds = { artifact = 0, levelUp = 0, grow = 0 }
@@ -901,31 +920,39 @@ Config.SoundEffects = {
 -- `pointer` is what the client points at: "node" (nearest stone node), "forge"
 -- (the Forge tab), "spell" (a spell button), or nil. `reward` is granted
 -- flat when the step completes. `touchText` / `gamepadText` replace `text` on
--- those devices.
+-- those devices. `key` / `touchKey` / `gamepadKey` is the input shown as a
+-- key cap beside the words. Keep each step to about 10 words.
 -- A typed local, so entries of different shapes are accepted (see the top).
 local tutorialSteps: { any } = {
 	{
 		id = "steer",
-		text = "Your golem fights on its own. Steer it with WASD or the stick!",
-		touchText = "Your golem fights on its own. Steer it with the stick!",
+		text = "Steer your golem with WASD. It fights by itself!",
+		touchText = "Steer your golem with the stick. It fights by itself!",
+		gamepadText = "Steer your golem with the left stick!",
+		key = "WASD",
+		touchKey = "Stick",
+		gamepadKey = "L",
 	},
-	{ id = "mine", text = "Walk to the glowing rock. Your golem mines it!", pointer = "node" },
-	{ id = "forge", text = "Open Forge and build your first part!", pointer = "forge", topUpStone = true },
+	{ id = "mine", text = "Walk to the glowing rock to mine it!", pointer = "node" },
+	{ id = "forge", text = "Open Forge and build your first part!", pointer = "forge", topUpStone = true, touchKey = "Tap" },
 	{
 		id = "quake",
 		text = "Press Q to smash enemies with Quake!",
 		touchText = "Tap Quake to smash enemies!",
 		gamepadText = "Press X to smash enemies with Quake!",
+		key = "Q",
+		touchKey = "Tap",
+		gamepadKey = "X",
 		pointer = "spell",
 		spell = "quake",
 		reward = { xp = 20 },
 	},
-	{ id = "level", text = "Defeat enemies to reach level 2!" },
+	{ id = "level", text = "Beat enemies to reach level 2!" },
 }
 local tutorial: { [any]: any } = {
 	steerSeconds = 2, -- seconds of steering that finish the first step
 	steps = tutorialSteps,
-	doneText = "You're ready! Follow the Next goal at the top to grow your golem.",
+	doneText = "You're ready! Follow your Goal card to grow your golem.",
 }
 Config.Tutorial = tutorial
 

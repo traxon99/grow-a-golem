@@ -7,7 +7,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -44,6 +43,16 @@ local function stepText(step: any): string
 		return step.touchText
 	end
 	return step.text
+end
+
+-- The input this step uses, for the key cap, on the device in hand.
+local function stepKey(step: any): string?
+	if isGamepad() then
+		return step.gamepadKey
+	elseif isTouch() then
+		return step.touchKey
+	end
+	return step.key
 end
 
 local function myGolemRoot(): BasePart?
@@ -87,16 +96,19 @@ function Tutorial.start()
 
 	local panel = Instance.new("Frame")
 	panel.Name = "Callout"
-	-- Sits where the next-goal line is, which the HUD hides during the tutorial.
+	-- Sits at the top, where the goal card would be; the HUD hides that
+	-- during the tutorial.
 	panel.AnchorPoint = Vector2.new(0.5, 0)
-	panel.Position = UDim2.new(0.5, 0, 0, 46)
-	panel.Size = UDim2.new(0.62, 0, 0, 78)
+	panel.Position = UDim2.new(0.5, 0, 0, 50)
+	panel.Size = UDim2.new(0.62, 0, 0, 0)
+	panel.AutomaticSize = Enum.AutomaticSize.Y
 	panel.BackgroundTransparency = 0.05
 	panel.Visible = false
 	panel.Parent = gui
 	Ui.corner(panel, 14)
 	local sizeLimit = Instance.new("UISizeConstraint")
-	sizeLimit.MaxSize = Vector2.new(620, 78)
+	sizeLimit.MinSize = Vector2.new(300, 0)
+	sizeLimit.MaxSize = Vector2.new(640, math.huge)
 	sizeLimit.Parent = panel
 	local scale = Instance.new("UIScale")
 	scale.Parent = panel
@@ -104,36 +116,97 @@ function Tutorial.start()
 	local stroke = Ui.surface(panel, "wood", { details = true })
 	stroke.Color = GOLD
 	stroke.Thickness = 3
+	local panelPadding = Instance.new("UIPadding")
+	panelPadding.PaddingTop = UDim.new(0, 8)
+	panelPadding.PaddingBottom = UDim.new(0, 10)
+	panelPadding.PaddingLeft = UDim.new(0, 12)
+	panelPadding.PaddingRight = UDim.new(0, 12)
+	panelPadding.Parent = panel
 
-	local counter = Ui.label(panel, "", UDim2.fromOffset(60, 18), UDim2.fromOffset(14, 6), {
+	-- "STEP 2 OF 5" with a small bar, and the Skip button on the right.
+	local counter = Ui.label(panel, "", UDim2.new(1, -120, 0, 24), UDim2.new(), {
+		Title = true,
+		TextSize = Ui.TextSize.body,
 		TextColor3 = GOLD,
+		TextWrapped = false,
 	})
-	local text = Ui.label(panel, "", UDim2.new(1, -28, 0, 44), UDim2.fromOffset(14, 26), {
-		TextXAlignment = Enum.TextXAlignment.Center,
-		TextWrapped = true,
+	local stepBack = Instance.new("Frame")
+	stepBack.Size = UDim2.new(1, -120, 0, 10)
+	stepBack.Position = UDim2.fromOffset(0, 28)
+	stepBack.Parent = panel
+	Ui.corner(stepBack, 5)
+	Ui.surface(stepBack, "metal", { tint = Color3.fromRGB(20, 22, 32) })
+	local stepFill = Instance.new("Frame")
+	stepFill.Size = UDim2.fromScale(0, 1)
+	stepFill.Parent = stepBack
+	Ui.corner(stepFill, 5)
+	Ui.fill(stepFill, GOLD)
+
+	-- The input to use, as a key cap: "Q", "WASD", "Tap", "X".
+	local keyCap = Instance.new("Frame")
+	keyCap.Name = "KeyCap"
+	keyCap.Position = UDim2.fromOffset(0, 48)
+	keyCap.Size = UDim2.fromOffset(0, 44)
+	keyCap.AutomaticSize = Enum.AutomaticSize.X
+	keyCap.BackgroundColor3 = Ui.Colors.bubble
+	keyCap.Visible = false
+	keyCap.Parent = panel
+	Ui.corner(keyCap, 8)
+	local keyRim = Instance.new("UIStroke")
+	keyRim.Color = Ui.Colors.outline
+	keyRim.Thickness = 3
+	keyRim.Parent = keyCap
+	local keyPadding = Instance.new("UIPadding")
+	keyPadding.PaddingLeft = UDim.new(0, 10)
+	keyPadding.PaddingRight = UDim.new(0, 10)
+	keyPadding.Parent = keyCap
+	local keyText = Ui.label(keyCap, "", UDim2.fromScale(0, 1), UDim2.new(), {
+		Title = true,
+		TextSize = 22,
+		TextColor3 = Ui.Colors.bubbleText,
+		TextWrapped = false,
+		AutomaticSize = Enum.AutomaticSize.X,
 	})
+	local keyOutline = keyText:FindFirstChild("Outline")
+	if keyOutline then
+		keyOutline:Destroy() -- dark text on cream needs no outline
+	end
+
+	local text = Ui.label(panel, "", UDim2.new(1, 0, 0, 0), UDim2.fromOffset(0, 48), {
+		Title = true,
+		TextSize = 22,
+		AutomaticSize = Enum.AutomaticSize.Y,
+	})
+	local function setKey(key: string?)
+		keyCap.Visible = key ~= nil
+		keyText.Text = key or ""
+		local inset = if key then 16 + math.max(#key * 14, 30) else 0
+		text.Position = UDim2.fromOffset(inset, 52)
+		text.Size = UDim2.new(1, -inset, 0, 0)
+	end
 
 	-- Skip takes two taps, so nobody skips by accident.
 	local skipArmed = false
 	local skip: TextButton
-	skip = Ui.button(panel, "Skip", UDim2.fromOffset(64, 22), UDim2.new(1, -72, 0, 5), true, function()
+	skip = Ui.button(panel, "Skip", UDim2.fromOffset(104, 48), UDim2.new(1, -104, 0, -2), true, function()
 		if not skipArmed then
 			skipArmed = true
-			skip.Text = "Sure?"
+			Ui.setText(skip, "Sure?")
 			task.delay(3, function()
 				skipArmed = false
-				skip.Text = "Skip"
+				Ui.setText(skip, "Skip")
 			end)
 			return
 		end
 		State.request("skipTutorial")
-	end)
-	Ui.surface(skip, "stone")
+	end, "secondary")
 
 	local function pop()
+		if Ui.reducedMotion() then
+			return
+		end
 		scale.Scale = 1.12
-		TweenService:Create(scale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
-			:Play()
+		Ui.tween(scale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
 	end
 
 	---------------------------------------------------------------- pointers
@@ -193,7 +266,7 @@ function Tutorial.start()
 	Ui.label(tag, "Mine this!", UDim2.new(1, 0, 0, 30), UDim2.new(), {
 		TextXAlignment = Enum.TextXAlignment.Center,
 		TextColor3 = GOLD,
-		TextStrokeTransparency = 0.2,
+		Title = true,
 	})
 	local arrow = Instance.new("Frame")
 	arrow.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -211,8 +284,13 @@ function Tutorial.start()
 		TextColor3 = Ui.Colors.panel,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Visible = false,
+		Title = true,
 	})
 	Ui.corner(hint, 15)
+	local hintOutline = hint:FindFirstChild("Outline")
+	if hintOutline then
+		hintOutline:Destroy() -- dark text on gold needs no outline
+	end
 	-- A glowing ring laid over the button (buttons may already have a stroke).
 	local ring = Instance.new("Frame")
 	ring.Name = "TutorialRing"
@@ -239,7 +317,7 @@ function Tutorial.start()
 			ring.Visible = false
 			return
 		end
-		local bob = math.sin(t * 6) * 8
+		local bob = if Ui.reducedMotion() then 0 else math.sin(t * 6) * 8
 		local position, size = button.AbsolutePosition, button.AbsoluteSize
 		local inset = gui.AbsolutePosition -- the top bar inset, if any
 		if side == "right" then
@@ -268,7 +346,7 @@ function Tutorial.start()
 		end
 		beamBetween(root, node)
 		tag.Adornee = node
-		tag.StudsOffset = Vector3.new(0, node.Size.Y / 2 + 4 + math.sin(t * 5) * 0.8, 0)
+		tag.StudsOffset = Vector3.new(0, node.Size.Y / 2 + 4 + (if Ui.reducedMotion() then 0 else math.sin(t * 5) * 0.8), 0)
 		tag.Enabled = true
 	end
 
@@ -308,8 +386,11 @@ function Tutorial.start()
 		end
 		panel.Visible = true
 		skip.Visible = true
-		counter.Text = `{index} / {#Config.Tutorial.steps}`
+		counter.Text = `STEP {index} OF {#Config.Tutorial.steps}`
+		stepBack.Visible = true
+		Ui.tween(stepFill, TweenInfo.new(0.3), { Size = UDim2.fromScale(index / #Config.Tutorial.steps, 1) })
 		text.Text = stepText(step)
+		setKey(stepKey(step))
 		pop()
 	end
 
@@ -320,7 +401,7 @@ function Tutorial.start()
 				stepIndex = 0
 				hidePointers()
 				-- Leave the panel up only while the "you're ready" message shows.
-				if counter.Text ~= "" then
+				if counter.Text ~= "ALL DONE!" then
 					panel.Visible = false
 				end
 			end
@@ -337,7 +418,9 @@ function Tutorial.start()
 			hidePointers()
 			panel.Visible = true
 			skip.Visible = false
-			counter.Text = ""
+			counter.Text = "ALL DONE!"
+			stepFill.Size = UDim2.fromScale(1, 1)
+			setKey(nil)
 			text.Text = Config.Tutorial.doneText
 			pop()
 			task.delay(6, function()

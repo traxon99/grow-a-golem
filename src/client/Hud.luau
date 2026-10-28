@@ -5,7 +5,6 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -14,6 +13,7 @@ local Remotes = require(Shared:WaitForChild("Remotes"))
 local Stats = require(Shared:WaitForChild("Stats"))
 
 local Controls = require(script.Parent:WaitForChild("Controls"))
+local Menus = require(script.Parent:WaitForChild("Menus"))
 local State = require(script.Parent:WaitForChild("State"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
 
@@ -30,59 +30,117 @@ function Hud.getSpellButton(spellId: string): TextButton?
 	return spellButtons[spellId]
 end
 
--- Works out the single most useful next thing to do, and how far along the
--- player is (0 to 1) when that can be measured honestly.
-local function nextGoal(snap: any): (string, number?)
+export type Goal = {
+	title: string,
+	-- Up to three steps, with `current` the one being worked on.
+	steps: { string }?,
+	current: number?,
+	-- A bar with a "to go" number, when the step has one.
+	progress: { label: string, current: number, max: number, icon: string? }?,
+	-- The menu tapping the card opens.
+	tab: string?,
+}
+
+-- Works out the single most useful next thing to do, in short plain words,
+-- and how far along the player is when that can be measured honestly.
+local function nextGoal(snap: any): Goal
 	local data = snap.data
 	local level = Stats.levelForXp(data.golem.xp)
 	local zoneId = if snap.golem then snap.golem.zoneId else 1
 	local run = snap.tower and snap.tower.run
 	if run and run.state ~= "inviting" and Stats.isTowerZone(zoneId) then
 		if run.state == "fighting" then
-			return `{Config.Tower.name}: clear wave {run.wave} of {Config.Tower.waves}`,
-				math.clamp(1 - run.remaining / math.max(run.waveTotal, 1), 0, 1)
+			return {
+				title = `Clear wave {run.wave} of {Config.Tower.waves}`,
+				progress = {
+					label = "Enemies beaten",
+					current = math.max(run.waveTotal - run.remaining, 0),
+					max = math.max(run.waveTotal, 1),
+				},
+			}
 		end
-		return `{Config.Tower.name}: {run.cleared} of {Config.Tower.waves} waves cleared`,
-			run.cleared / Config.Tower.waves
+		return {
+			title = Config.Tower.name,
+			progress = { label = "Waves cleared", current = run.cleared, max = Config.Tower.waves },
+		}
 	end
-	if Stats.isTowerZone(zoneId) then
-		return "Open Travel to head back to an island", nil
-	end
-	if zoneId == Config.HubZone then
-		return "Open Travel to head back to an island", nil
+	if Stats.isTowerZone(zoneId) or zoneId == Config.HubZone then
+		return {
+			title = "Head back to an island",
+			steps = { "Open Travel", "Pick an island" },
+			current = if Menus.isOpen("travel") then 2 else 1,
+			tab = "travel",
+		}
 	end
 
 	if next(data.golem.parts) == nil then
-		local cost = Stats.partCost("armL", "stone")
-		return "Mine stone, then open Forge to build your first part",
-			math.min((data.minerals.stone or 0) / cost.stone, 1)
+		local cost = Stats.partCost("armL", "stone").stone
+		local stone = data.minerals.stone or 0
+		return {
+			title = "Build your first golem part",
+			steps = { `Mine {cost} stone`, "Open Forge", "Forge a part" },
+			current = if stone < cost then 1 elseif not Menus.isOpen("forge") then 2 else 3,
+			progress = if stone < cost then { label = "Stone", current = stone, max = cost, icon = "stone" } else nil,
+			tab = "forge",
+		}
 	end
 	if Config.Bosses[zoneId] and not Stats.bossDefeated(data, zoneId) then
-		return `Defeat {Config.Bosses[zoneId].displayName} in the far corner of the island`, nil
+		return {
+			title = `Beat {Config.Bosses[zoneId].displayName}`,
+			steps = { "Find the boss in the far corner", `Beat {Config.Bosses[zoneId].displayName}` },
+			current = 1,
+		}
 	end
 	for _, id in Config.ZoneOrder do
-		local unlocked, reason = Stats.zoneUnlocked(data, id)
+		local zone = Config.Zones[id]
+		local unlocked = Stats.zoneUnlocked(data, id)
 		if not unlocked then
-			local gate = Config.Zones[id].gate
-			local progress = nil
-			if gate.size and (not gate.boss or Stats.bossDefeated(data, gate.boss)) then
-				progress = data.golem.xp / Stats.xpForLevel(Config.SizeLevels[gate.size])
+			local gate = zone.gate
+			if gate.boss and not Stats.bossDefeated(data, gate.boss) then
+				return { title = `Beat {Config.Bosses[gate.boss].displayName} to open {zone.name}`, tab = "travel" }
 			end
-			return `{reason} to unlock {Config.Zones[id].name}`, progress
+			local needed = Config.SizeLevels[gate.size or 1] or 1
+			return {
+				title = `Grow to size {gate.size} to open {zone.name}`,
+				progress = { label = "Level", current = level, max = needed, icon = "xp" },
+			}
 		end
-		if unlocked and id > zoneId and not Stats.bossDefeated(data, id) then
-			return `{Config.Zones[id].name} is open! Travel there from the Travel menu`, nil
+		if id > zoneId and not Stats.bossDefeated(data, id) then
+			return {
+				title = `{zone.name} is open!`,
+				steps = { "Open Travel", `Travel to {zone.name}` },
+				current = if Menus.isOpen("travel") then 2 else 1,
+				tab = "travel",
+			}
 		end
 	end
 	if level >= Config.Awakening.minLevel then
-		return "You can Awaken! Open Awaken for permanent upgrades", nil
+		return {
+			title = "You can Awaken!",
+			steps = { "Open Awaken", "Press Awaken" },
+			current = if Menus.isOpen("awaken") then 2 else 1,
+			tab = "awaken",
+		}
 	end
 	if not Stats.zoneSetComplete(data, zoneId) then
 		local found, total = Stats.zoneArtifactCount(data, zoneId)
-		return `Find {total - found} more artifacts in {Config.Zones[zoneId].name} ({found} / {total})`, found / total
+		return {
+			title = `Find {total - found} more artifacts here`,
+			progress = { label = "Artifacts", current = found, max = total, icon = "artifacts" },
+			tab = "artifacts",
+		}
 	end
-	return `Reach level {Config.Awakening.minLevel} to Awaken`,
-		data.golem.xp / Stats.xpForLevel(Config.Awakening.minLevel)
+	return {
+		title = `Reach level {Config.Awakening.minLevel} to Awaken`,
+		progress = { label = "Level", current = level, max = Config.Awakening.minLevel, icon = "xp" },
+		tab = "awaken",
+	}
+end
+
+local function overlaps(a: GuiObject, b: GuiObject): boolean
+	local ap, as = a.AbsolutePosition, a.AbsoluteSize
+	local bp, bs = b.AbsolutePosition, b.AbsoluteSize
+	return ap.X < bp.X + bs.X and bp.X < ap.X + as.X and ap.Y < bp.Y + bs.Y and bp.Y < ap.Y + as.Y
 end
 
 function Hud.start()
@@ -94,40 +152,47 @@ function Hud.start()
 
 	---------------------------------------------------------------- minerals + level
 
+	-- Minerals sit in two columns as icon and short number, so the slab stays
+	-- short enough to leave room for the menu buttons under it.
+	local mineralRows = math.ceil(#Config.MineralOrder / 2)
 	local stats = Instance.new("Frame")
 	stats.Name = "Stats"
-	stats.Size = UDim2.fromOffset(210, 26 * #Config.MineralOrder + 58)
+	stats.Size = UDim2.fromOffset(210, 28 * mineralRows + 62)
 	stats.Position = UDim2.fromOffset(12, 12)
 	stats.BackgroundTransparency = 0.1
 	stats.Parent = gui
-	Ui.corner(stats, 10)
-	Ui.surface(stats, "stone", { details = true })
+	Ui.corner(stats, 12)
+	Ui.surface(stats, "plate", { details = true })
 
-	local levelLabel = Ui.label(stats, "Level 1", UDim2.new(1, -46, 0, 22), UDim2.fromOffset(36, 6))
-	Icons.create(stats, "xp", 22, UDim2.fromOffset(8, 6))
+	local levelLabel = Ui.label(stats, "Level 1", UDim2.new(1, -46, 0, 24), UDim2.fromOffset(38, 6), { Title = true })
+	Icons.create(stats, "xp", 26, UDim2.fromOffset(8, 5))
 	local xpBack = Instance.new("Frame")
-	xpBack.Size = UDim2.new(1, -20, 0, 8)
-	xpBack.Position = UDim2.fromOffset(10, 32)
+	xpBack.Size = UDim2.new(1, -20, 0, 10)
+	xpBack.Position = UDim2.fromOffset(10, 34)
 	xpBack.Parent = stats
-	Ui.corner(xpBack, 4)
+	Ui.corner(xpBack, 5)
 	Ui.surface(xpBack, "metal", { tint = Ui.Colors.row })
 	local xpFill = Instance.new("Frame")
 	xpFill.Size = UDim2.fromScale(0, 1)
 	xpFill.Parent = xpBack
-	Ui.corner(xpFill, 4)
+	Ui.corner(xpFill, 5)
 	Ui.fill(xpFill, Ui.Colors.rune)
 
 	local mineralLabels: { [string]: TextLabel } = {}
 	for index, id in Config.MineralOrder do
-		local l = Ui.label(
-			stats,
-			`{Config.Minerals[id].displayName}: 0`,
-			UDim2.new(1, -46, 0, 20),
-			UDim2.fromOffset(36, 48 + (index - 1) * 26)
-		)
-		l.TextColor3 = Config.Minerals[id].color:Lerp(Ui.Colors.text, 0.35)
+		local column = (index - 1) % 2
+		local row = (index - 1) // 2
+		local x = 8 + column * 100
+		local y = 52 + row * 28
+		Icons.create(stats, id, 24, UDim2.fromOffset(x, y))
+		local l = Ui.label(stats, "0", UDim2.fromOffset(68, 24), UDim2.fromOffset(x + 28, y), {
+			Title = true,
+			TextSize = Ui.TextSize.body,
+			TextWrapped = false,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+		})
+		l.TextColor3 = Config.Minerals[id].color:Lerp(Ui.Colors.text, 0.45)
 		mineralLabels[id] = l
-		Icons.create(stats, id, 22, UDim2.fromOffset(8, 47 + (index - 1) * 26))
 	end
 
 	---------------------------------------------------------------- health + goal
@@ -135,53 +200,137 @@ function Hud.start()
 	local healthBack = Instance.new("Frame")
 	healthBack.Name = "GolemHealth"
 	healthBack.AnchorPoint = Vector2.new(0.5, 0)
-	healthBack.Size = UDim2.fromOffset(280, 26)
+	healthBack.Size = UDim2.fromOffset(300, 30)
 	healthBack.Position = UDim2.new(0.5, 0, 0, 12)
 	healthBack.BackgroundTransparency = 0.1
 	healthBack.Parent = gui
-	Ui.corner(healthBack, 8)
-	Ui.surface(healthBack, "metal")
+	Ui.corner(healthBack, 10)
+	local healthRim = Ui.surface(healthBack, "metal", { tint = Color3.fromRGB(20, 22, 32) })
+	healthRim.Color = Ui.Colors.outline
+	healthRim.Thickness = 3
 
 	local healthFill = Instance.new("Frame")
 	healthFill.Size = UDim2.fromScale(1, 1)
 	healthFill.Parent = healthBack
-	Ui.corner(healthFill, 8)
+	Ui.corner(healthFill, 10)
 	Ui.fill(healthFill, Ui.Colors.good)
 
-	local healthText = Ui.label(healthBack, "Golem", UDim2.new(1, -16, 1, -6), UDim2.fromOffset(8, 3), {
+	local healthText = Ui.label(healthBack, "Golem", UDim2.new(1, -16, 1, 0), UDim2.fromOffset(8, 0), {
+		Title = true,
+		TextSize = Ui.TextSize.body,
 		TextXAlignment = Enum.TextXAlignment.Center,
+		TextWrapped = false,
 		ZIndex = 2,
 	})
 
-	local goal = Ui.label(gui, "", UDim2.fromOffset(440, 22), UDim2.new(0.5, 0, 0, 44), {
-		AnchorPoint = Vector2.new(0.5, 0),
-		TextXAlignment = Enum.TextXAlignment.Center,
-		TextColor3 = Ui.Colors.warn,
-		TextStrokeTransparency = 0.4,
+	-- The goal card, top right: a header tab, one short sentence, up to
+	-- three steps and a "to go" bar. Tapping it opens the menu it points to.
+	local goalCard = Instance.new("TextButton")
+	goalCard.Name = "GoalCard"
+	goalCard.Text = ""
+	goalCard.AutoButtonColor = false
+	goalCard.AnchorPoint = Vector2.new(1, 0)
+	goalCard.Position = UDim2.new(1, -12, 0, 12)
+	goalCard.Size = UDim2.fromOffset(290, 0)
+	goalCard.AutomaticSize = Enum.AutomaticSize.Y
+	goalCard.BackgroundTransparency = 0.08
+	goalCard.Visible = false
+	goalCard.Parent = gui
+	Ui.corner(goalCard, 12)
+	Ui.surface(goalCard, "plate")
+	local goalPadding = Instance.new("UIPadding")
+	goalPadding.PaddingTop = UDim.new(0, 6)
+	goalPadding.PaddingBottom = UDim.new(0, 10)
+	goalPadding.PaddingLeft = UDim.new(0, 10)
+	goalPadding.PaddingRight = UDim.new(0, 10)
+	goalPadding.Parent = goalCard
+	Ui.listLayout(goalCard, 6)
+	local goalHeader = Instance.new("Frame")
+	goalHeader.Size = UDim2.new(1, 0, 0, 32)
+	goalHeader.LayoutOrder = 1
+	goalHeader.Parent = goalCard
+	Ui.corner(goalHeader, 8)
+	Ui.surface(goalHeader, "gem", { tint = Ui.Headers.quests, details = true })
+	Icons.create(goalHeader, "quests", 26, UDim2.fromOffset(6, 3))
+	Ui.label(goalHeader, "GOAL", UDim2.new(1, -44, 1, 0), UDim2.fromOffset(38, 0), {
+		Title = true,
+		TextSize = Ui.TextSize.body,
+		TextWrapped = false,
+		ZIndex = 2,
 	})
+	local goalOpen = Ui.label(goalHeader, "", UDim2.new(0, 120, 1, 0), UDim2.new(1, -126, 0, 0), {
+		TextSize = Ui.TextSize.body,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		TextWrapped = false,
+		ZIndex = 2,
+	})
+	local goalBody = Instance.new("Frame")
+	goalBody.Name = "Body"
+	goalBody.BackgroundTransparency = 1
+	goalBody.Size = UDim2.fromScale(1, 0)
+	goalBody.AutomaticSize = Enum.AutomaticSize.Y
+	goalBody.LayoutOrder = 2
+	goalBody.Parent = goalCard
+	Ui.listLayout(goalBody, 6)
+	local goalTab: string? = nil
+	local goalKey = ""
+	goalCard.Activated:Connect(function()
+		if goalTab then
+			Menus.open(goalTab)
+		end
+	end)
 
-	-- A thin bar under the goal shows real progress toward it.
-	local goalBack = Instance.new("Frame")
-	goalBack.Name = "GoalProgress"
-	goalBack.AnchorPoint = Vector2.new(0.5, 0)
-	goalBack.Size = UDim2.fromOffset(240, 6)
-	goalBack.Position = UDim2.new(0.5, 0, 0, 68)
-	goalBack.Visible = false
-	goalBack.Parent = gui
-	Ui.corner(goalBack, 3)
-	Ui.surface(goalBack, "metal", { tint = Ui.Colors.row })
-	local goalFill = Instance.new("Frame")
-	goalFill.Size = UDim2.fromScale(0, 1)
-	goalFill.Parent = goalBack
-	Ui.corner(goalFill, 3)
-	Ui.fill(goalFill, Ui.Colors.warn)
+	local function showGoal(goal: Goal)
+		goalTab = goal.tab
+		local progress = goal.progress
+		local key = `{goal.title}|{goal.current or 0}|{if progress then `{progress.current}/{progress.max}` else ""}`
+		if key == goalKey then
+			return
+		end
+		goalKey = key
+		goalOpen.Text = if goal.tab then "Tap to go" else ""
+		for _, child in goalBody:GetChildren() do
+			if not child:IsA("UIListLayout") then
+				child:Destroy()
+			end
+		end
+		local title = Ui.text(goalBody, goal.title, 20, { Title = true, TextColor3 = Ui.Colors.gold })
+		title.LayoutOrder = 1
+		if goal.steps then
+			Ui.checklist(goalBody, goal.steps, goal.current or 1, 2)
+		end
+		if progress then
+			Ui.progress(goalBody, {
+				label = progress.label,
+				current = progress.current,
+				max = progress.max,
+				icon = progress.icon,
+				order = 3,
+			})
+		end
+	end
+
+	-- The goal card steps aside whenever the boss bar would overlap it.
+	local inTutorial = false
+	task.spawn(function()
+		while true do
+			task.wait(0.25)
+			local moments = player.PlayerGui:FindFirstChild("GolemMoments")
+			local bossBar = moments and moments:FindFirstChild("BossBar")
+			local blocked = bossBar ~= nil
+				and bossBar:IsA("GuiObject")
+				and bossBar.Visible
+				and overlaps(bossBar, goalCard)
+			goalCard.Visible = not inTutorial and State.snapshot ~= nil and not blocked
+		end
+	end)
 
 	local function refreshHealth()
 		local hp = player:GetAttribute("GolemHealth") or 0
 		local maxHp = player:GetAttribute("GolemMaxHealth") or 1
 		local downed = player:GetAttribute("GolemDowned") == true
 		healthFill.Size = UDim2.fromScale(math.clamp(hp / maxHp, 0, 1), 1)
-		healthText.Text = if downed then "Reforming..." else `Golem {hp} / {maxHp}`
+		healthText.Text = if downed then "Reforming..." else `Golem {Ui.short(hp)} / {Ui.short(maxHp)}`
 	end
 	for _, attribute in { "GolemHealth", "GolemMaxHealth", "GolemDowned" } do
 		player:GetAttributeChangedSignal(attribute):Connect(refreshHealth)
@@ -201,11 +350,6 @@ function Hud.start()
 		b.Size = UDim2.fromOffset(84, 84)
 		b.Position = UDim2.new(1, -24 - (index - 1) * 94, 1, -150)
 		b.BackgroundTransparency = 0.05
-		b.TextColor3 = Ui.Colors.rune
-		b.TextStrokeColor3 = Color3.fromRGB(10, 14, 20)
-		b.TextStrokeTransparency = 0.3
-		b.Font = Enum.Font.GothamBold
-		b.TextScaled = true
 		b.Text = ""
 		b.Parent = gui
 		Icons.create(b, spellId, 32, UDim2.fromOffset(26, 5))
@@ -214,7 +358,7 @@ function Hud.start()
 			if isTouch then spell.displayName else `{spell.displayName}\n[{spell.key.Name}]`,
 			UDim2.new(1, -8, 0, 42),
 			UDim2.fromOffset(4, 37),
-			{ TextScaled = false, TextSize = 16, TextXAlignment = Enum.TextXAlignment.Center }
+			{ Title = true, TextSize = Ui.TextSize.body, TextXAlignment = Enum.TextXAlignment.Center }
 		)
 		Ui.corner(b, 42)
 		-- Runestones: a stone disc with a glowing rune rim.
@@ -247,7 +391,7 @@ function Hud.start()
 	-- Shows live events and when they end, right of the stats panel.
 	local banner = Instance.new("Frame")
 	banner.Name = "EventBanner"
-	banner.Size = UDim2.fromOffset(230, 46)
+	banner.Size = UDim2.fromOffset(250, 58)
 	banner.Position = UDim2.fromOffset(232, 12)
 	banner.BackgroundTransparency = 0.05
 	banner.Visible = false
@@ -255,13 +399,19 @@ function Hud.start()
 	Ui.corner(banner, 10)
 	Ui.surface(banner, "wood", { details = true }) -- a notice board
 	local bannerTitle =
-		Ui.label(banner, "", UDim2.new(1, -16, 0, 20), UDim2.fromOffset(8, 4), { TextColor3 = Ui.Colors.warn })
+		Ui.label(banner, "", UDim2.new(1, -16, 0, 24), UDim2.fromOffset(8, 4), {
+			Title = true,
+			TextColor3 = Ui.Colors.gold,
+			TextSize = 20,
+			TextWrapped = false,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+		})
 	local bannerInfo = Ui.label(
 		banner,
 		"",
-		UDim2.new(1, -16, 0, 16),
-		UDim2.fromOffset(8, 26),
-		{ TextColor3 = Ui.Colors.quiet, Font = Enum.Font.Gotham }
+		UDim2.new(1, -16, 0, 22),
+		UDim2.fromOffset(8, 30),
+		{ TextColor3 = Ui.Colors.quiet, TextSize = Ui.TextSize.body, TextWrapped = false, TextTruncate = Enum.TextTruncate.AtEnd }
 	)
 	task.spawn(function()
 		while true do
@@ -273,7 +423,7 @@ function Hud.start()
 				local effects = Ui.modifierText(first.event.modifiers)
 				bannerTitle.Text = if #active > 1 then `{first.event.name} +{#active - 1} more` else first.event.name
 				bannerInfo.Text = (if effects ~= "" then effects .. "  ·  " else "")
-					.. `ends in {Ui.duration(first.endsAt - now)}`
+					.. Ui.timeLeft(first.endsAt - now)
 			end
 			task.wait(1)
 		end
@@ -281,10 +431,12 @@ function Hud.start()
 
 	---------------------------------------------------------------- toasts
 
-	local toast = Ui.label(gui, "", UDim2.fromOffset(520, 30), UDim2.new(0.5, 0, 1, -70), {
+	local toast = Ui.label(gui, "", UDim2.fromOffset(520, 0), UDim2.new(0.5, 0, 1, -70), {
 		AnchorPoint = Vector2.new(0.5, 1),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Title = true,
+		TextSize = Ui.TextSize.big,
 		TextXAlignment = Enum.TextXAlignment.Center,
-		TextStrokeTransparency = 0.4,
 	})
 	local toastToken = 0
 	local function showToast(text: string, seconds: number?)
@@ -306,7 +458,7 @@ function Hud.start()
 		local snap = State.snapshot
 		local data = snap.data
 		for id, l in mineralLabels do
-			l.Text = `{Config.Minerals[id].displayName}: {data.minerals[id] or 0}`
+			l.Text = Ui.short(data.minerals[id] or 0)
 		end
 		local level = Stats.levelForXp(data.golem.xp)
 		local size = Stats.sizeForLevel(level)
@@ -319,15 +471,8 @@ function Hud.start()
 			1
 		)
 		-- The tutorial gives one instruction at a time; the goal takes over after.
-		local inTutorial = data.tutorial and not data.tutorial.done and data.tutorial.step >= 1
-		local goalText, progress = nextGoal(snap)
-		goal.Text = "Next: " .. goalText
-		goal.Visible = not inTutorial
-		goalBack.Visible = progress ~= nil and not inTutorial
-		if progress then
-			TweenService:Create(goalFill, TweenInfo.new(0.3), { Size = UDim2.fromScale(math.clamp(progress, 0, 1), 1) })
-				:Play()
-		end
+		inTutorial = data.tutorial and not data.tutorial.done and data.tutorial.step >= 1
+		showGoal(nextGoal(snap))
 
 		if not hintShown then
 			hintShown = true
