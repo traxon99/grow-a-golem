@@ -135,6 +135,13 @@ bundle += "\nlocal function loadPolicyService(dependencies, game, task)\n"
 bundle += 'local warn = function() end\nlocal script = { Parent = {} }\n'
 bundle += policy_service + "\nend\n"
 bundle += (ROOT / "tests/policy-service.luau").read_text()
+# The real EconomyService with mocked services and a test-controlled os.clock.
+economy_service = (ROOT / "src/server/Services/EconomyService.luau").read_text()
+economy_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', economy_service)
+bundle += "\nlocal function loadEconomyService(dependencies, game, clock)\n"
+bundle += 'local os = { clock = clock }\nlocal script = { Parent = {} }\n'
+bundle += economy_service + "\nend\n"
+bundle += (ROOT / "tests/economy-service.luau").read_text()
 with tempfile.TemporaryDirectory(prefix="golem-check-") as folder:
     path = Path(folder) / "regression.luau"
     path.write_text(bundle)
