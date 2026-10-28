@@ -37,7 +37,9 @@ No session lease can make a two-player trade atomic across two DataStore keys,
 so trades use their own escrow and journal (`src/shared/TradeJournal.luau`,
 DataStore `TradeJournal_v1`): offered spares wait in escrow in both saves, one
 journal write decides the trade, and each save settles from it, on its next
-load if the server died.
+load if the server died. Once both sides' saves are written without the trade,
+the journal record is removed (#68); a trade cut off mid-escrow may leave one
+small record behind.
 
 Before publishing, **drain old servers running the version without leases**.
 Those binaries do not respect ownership tokens and can still overwrite records.

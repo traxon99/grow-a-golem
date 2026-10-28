@@ -12,7 +12,14 @@
 -- If a server dies at any point, a save that still holds `pending` resolves on
 -- its next load by asking the journal, writing "aborted" if nothing was
 -- decided yet. Each side's half lives in one record, so it applies exactly once.
--- Journal records hold only the decision and a time, no user ids.
+--   4. clean up: once a side's save without `pending` is written, it marks its
+--      side ("a" or "b") settled in the journal record. When both sides are
+--      marked, no save can still need the record, so it's removed. (Leases stop
+--      an older copy of a save from bringing `pending` back.) A side whose save
+--      never held the trade, after a crash mid-escrow, never marks, so that
+--      record stays; it's a few bytes.
+-- Journal records hold only the decision, a time and which sides are settled,
+-- no user ids.
 local TradeJournal = {}
 
 type Pending = {
@@ -22,6 +29,7 @@ type Pending = {
 	got: { string }, -- artifact ids this side receives if committed
 	day: number, -- UTC day the trade was made, for the daily limit
 	at: number, -- os.time() the trade was made
+	side: string?, -- "a" or "b", for marking this side settled
 }
 
 local function tradable(data: any, id: string): number
@@ -67,6 +75,7 @@ function TradeJournal.prepare(data: any, pending: Pending): boolean
 		got = copyList(pending.got),
 		day = pending.day,
 		at = pending.at,
+		side = pending.side,
 	}
 	return true
 end
@@ -79,6 +88,28 @@ function TradeJournal.decide(record: any, wanted: string, now: number): any
 		return record
 	end
 	return { status = wanted, at = now }
+end
+
+-- The UpdateAsync transform that marks one side settled. A record with no
+-- decision is left as it is: nothing may settle before the trade is decided.
+function TradeJournal.markSettled(record: any, side: string): any
+	if not TradeJournal.status(record) then
+		return record
+	end
+	local settled = {}
+	for key, value in (type(record.settled) == "table" and record.settled or {}) :: any do
+		settled[key] = value
+	end
+	settled[side] = true
+	return { status = record.status, at = record.at, settled = settled }
+end
+
+-- True when both sides have marked themselves settled.
+function TradeJournal.bothSettled(record: any): boolean
+	return TradeJournal.status(record) ~= nil
+		and type(record.settled) == "table"
+		and record.settled.a == true
+		and record.settled.b == true
 end
 
 -- "committed", "aborted", or nil if the record holds no decision.
