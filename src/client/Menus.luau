@@ -99,12 +99,14 @@ local function partGain(data: any, slot: string, tier: string): string
 	trial.golem.parts[slot] = tier
 	local after = Stats.compute(trial, ctx)
 	local parts = {}
-	for _, stat in {
-		{ "Health", after.maxHealth - before.maxHealth },
-		{ "Damage", after.attackDamage - before.attackDamage },
-		{ "Mining", after.miningDamage - before.miningDamage },
-		{ "Speed", after.walkSpeed - before.walkSpeed },
-	} do
+	for _, stat in
+		{
+			{ "Health", after.maxHealth - before.maxHealth },
+			{ "Damage", after.attackDamage - before.attackDamage },
+			{ "Mining", after.miningDamage - before.miningDamage },
+			{ "Speed", after.walkSpeed - before.walkSpeed },
+		}
+	do
 		local amount = math.floor((stat[2] :: number) + 0.5)
 		if amount > 0 then
 			table.insert(parts, `+{amount} {stat[1]}`)
@@ -318,7 +320,9 @@ local function renderTower(list: ScrollingFrame, snap: any, start: number)
 		return
 	end
 	Ui.item(list, nextOrder(), {
-		title = if tower.partySize > 1 then `Climb with your party of {tower.partySize}` else "Climb solo or with a party",
+		title = if tower.partySize > 1
+			then `Climb with your party of {tower.partySize}`
+			else "Climb solo or with a party",
 		subtitle = `{waves} waves of one island's enemies. Its boss comes on waves {bossWaves}.`,
 	})
 	for _, zoneId in Config.ZoneOrder do
@@ -539,13 +543,19 @@ local function renderArtifacts(list: ScrollingFrame, snap: any)
 	if Stats.artifactsFound(data) == 0 then
 		Ui.empty(list, nextOrder(), "No artifacts yet.", "Beat monsters to find your first one!")
 	end
-	Ui.toggles(list, nextOrder(), {
-		{ id = "island", text = "By island" },
-		{ id = "rarity", text = "By rarity" },
-	}, artifactSort, function(id: string)
-		artifactSort = id
-		Menus.refresh()
-	end)
+	Ui.toggles(
+		list,
+		nextOrder(),
+		{
+			{ id = "island", text = "By island" },
+			{ id = "rarity", text = "By rarity" },
+		},
+		artifactSort,
+		function(id: string)
+			artifactSort = id
+			Menus.refresh()
+		end
+	)
 
 	if artifactSort == "rarity" then
 		Ui.heading(list, nextOrder(), `Your odds on {Config.Zones[zoneHere].name}`)
@@ -807,8 +817,7 @@ local function dailyBoxes(list: ScrollingFrame, order: number, daily: any)
 			TextWrapped = false,
 		})
 		local reward = Config.DailyRewards[day]
-		local mark =
-			Icons.create(box, if claimed then "tick" else Ui.rewardIcon(reward), 34, UDim2.new(0.5, 0, 0, 30))
+		local mark = Icons.create(box, if claimed then "tick" else Ui.rewardIcon(reward), 34, UDim2.new(0.5, 0, 0, 30))
 		mark.AnchorPoint = Vector2.new(0.5, 0)
 	end
 end
@@ -1215,7 +1224,12 @@ end
 
 local EARN_NAMES = { enemyDefeated = "enemy", nodeMined = "rock", bossDefeated = "boss" }
 
-local function eventTrackState(event: any, state: any, live: boolean, startsAt: number?): (number, { [string]: boolean })
+local function eventTrackState(
+	event: any,
+	state: any,
+	live: boolean,
+	startsAt: number?
+): (number, { [string]: boolean })
 	local track = event.track
 	local tokens = if state then state.tokens else 0
 	local claimed = if state then state.claimed else {}
@@ -1295,7 +1309,8 @@ local function renderEvents(list: ScrollingFrame, snap: any)
 				order = nextOrder(),
 				hint = `Earn {table.concat(earn, ", ")} while it's on.`,
 				doneText = "ALL EARNED!",
-			}).Size = UDim2.new(1, -8, 0, 0)
+			}).Size =
+				UDim2.new(1, -8, 0, 0)
 			local grid = Ui.grid(list, nextOrder(), Ui.CardSize)
 			for index, tier in track.tiers do
 				local done = claimed[tostring(index)] == true
@@ -1362,7 +1377,12 @@ local function renderRanks(list: ScrollingFrame, snap: any)
 		local entries = boards[board.id]
 		local mine = nil
 		if not entries or #entries == 0 then
-			Ui.empty(list, nextOrder(), "No scores yet. Be the first!", "Scores update every few minutes in published games.")
+			Ui.empty(
+				list,
+				nextOrder(),
+				"No scores yet. Be the first!",
+				"Scores update every few minutes in published games."
+			)
 		else
 			for rank, entry in entries do
 				if entry.name == player.Name then
@@ -1381,9 +1401,7 @@ local function renderRanks(list: ScrollingFrame, snap: any)
 		local score = if State.snapshot then myScore(snap.data, board.id) else 0
 		Ui.item(list, nextOrder(), {
 			title = `You: {Ui.short(score)}`,
-			subtitle = if mine
-				then `You're #{mine}!`
-				else `Not in the top {Config.Leaderboards.size} yet. Keep going!`,
+			subtitle = if mine then `You're #{mine}!` else `Not in the top {Config.Leaderboards.size} yet. Keep going!`,
 			tint = Ui.Styles.secondary,
 			icon = "ranks",
 		})
@@ -1444,7 +1462,10 @@ local function renderHub(list: ScrollingFrame, snap: any)
 				tint = Ui.Colors.card,
 				ready = true,
 				chips = {
-					{ text = `Artifacts {other.artifactsFound} / {#Config.ArtifactOrder}`, color = Ui.Headers.artifacts },
+					{
+						text = `Artifacts {other.artifactsFound} / {#Config.ArtifactOrder}`,
+						color = Ui.Headers.artifacts,
+					},
 					{ text = `Bosses {other.bosses} / {#Config.ZoneOrder}`, color = CHIP.locked },
 				},
 			})
@@ -1675,13 +1696,19 @@ local function renderTrade(list: ScrollingFrame, snap: any)
 		})
 
 		Ui.heading(list, nextOrder(), "Your spares to offer")
-		Ui.toggles(list, nextOrder(), {
-			{ id = "name", text = "By name" },
-			{ id = "rarity", text = "By rarity" },
-		}, spareSort, function(id: string)
-			spareSort = id
-			Menus.refresh()
-		end)
+		Ui.toggles(
+			list,
+			nextOrder(),
+			{
+				{ id = "name", text = "By name" },
+				{ id = "rarity", text = "By rarity" },
+			},
+			spareSort,
+			function(id: string)
+				spareSort = id
+				Menus.refresh()
+			end
+		)
 		local any = false
 		for _, spare in sortSpares(trade.spares) do
 			if spare.tradable > 0 and not offered[spare.id] then
@@ -1745,13 +1772,19 @@ local function renderTrade(list: ScrollingFrame, snap: any)
 	if #trade.spares == 0 then
 		Ui.empty(list, nextOrder(), "No spares yet.", "Find a second copy of an artifact to trade it.")
 	else
-		Ui.toggles(list, nextOrder(), {
-			{ id = "name", text = "By name" },
-			{ id = "rarity", text = "By rarity" },
-		}, spareSort, function(id: string)
-			spareSort = id
-			Menus.refresh()
-		end)
+		Ui.toggles(
+			list,
+			nextOrder(),
+			{
+				{ id = "name", text = "By name" },
+				{ id = "rarity", text = "By rarity" },
+			},
+			spareSort,
+			function(id: string)
+				spareSort = id
+				Menus.refresh()
+			end
+		)
 	end
 	for _, spare in sortSpares(trade.spares) do
 		local chips = { { text = `{spare.tradable} to trade`, color = CHIP.good } }
@@ -1772,7 +1805,12 @@ local function renderTrade(list: ScrollingFrame, snap: any)
 
 	Ui.heading(list, nextOrder(), "Friends and party members here")
 	if #trade.partners == 0 then
-		Ui.empty(list, nextOrder(), "Nobody to trade with yet.", "Trade with Roblox friends and party members. Invite one from Party.")
+		Ui.empty(
+			list,
+			nextOrder(),
+			"Nobody to trade with yet.",
+			"Trade with Roblox friends and party members. Invite one from Party."
+		)
 	end
 	for _, partner in trade.partners do
 		Ui.item(list, nextOrder(), {

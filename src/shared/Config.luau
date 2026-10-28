@@ -934,7 +934,13 @@ local tutorialSteps: { any } = {
 		gamepadKey = "L",
 	},
 	{ id = "mine", text = "Walk to the glowing rock to mine it!", pointer = "node" },
-	{ id = "forge", text = "Open Forge and build your first part!", pointer = "forge", topUpStone = true, touchKey = "Tap" },
+	{
+		id = "forge",
+		text = "Open Forge and build your first part!",
+		pointer = "forge",
+		topUpStone = true,
+		touchKey = "Tap",
+	},
 	{
 		id = "quake",
 		text = "Press Q to smash enemies with Quake!",

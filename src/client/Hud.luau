@@ -398,20 +398,24 @@ function Hud.start()
 	banner.Parent = gui
 	Ui.corner(banner, 10)
 	Ui.surface(banner, "wood", { details = true }) -- a notice board
-	local bannerTitle =
-		Ui.label(banner, "", UDim2.new(1, -16, 0, 24), UDim2.fromOffset(8, 4), {
-			Title = true,
-			TextColor3 = Ui.Colors.gold,
-			TextSize = 20,
-			TextWrapped = false,
-			TextTruncate = Enum.TextTruncate.AtEnd,
-		})
+	local bannerTitle = Ui.label(banner, "", UDim2.new(1, -16, 0, 24), UDim2.fromOffset(8, 4), {
+		Title = true,
+		TextColor3 = Ui.Colors.gold,
+		TextSize = 20,
+		TextWrapped = false,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+	})
 	local bannerInfo = Ui.label(
 		banner,
 		"",
 		UDim2.new(1, -16, 0, 22),
 		UDim2.fromOffset(8, 30),
-		{ TextColor3 = Ui.Colors.quiet, TextSize = Ui.TextSize.body, TextWrapped = false, TextTruncate = Enum.TextTruncate.AtEnd }
+		{
+			TextColor3 = Ui.Colors.quiet,
+			TextSize = Ui.TextSize.body,
+			TextWrapped = false,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+		}
 	)
 	task.spawn(function()
 		while true do
@@ -422,8 +426,7 @@ function Hud.start()
 				local first = active[1]
 				local effects = Ui.modifierText(first.event.modifiers)
 				bannerTitle.Text = if #active > 1 then `{first.event.name} +{#active - 1} more` else first.event.name
-				bannerInfo.Text = (if effects ~= "" then effects .. "  ·  " else "")
-					.. Ui.timeLeft(first.endsAt - now)
+				bannerInfo.Text = (if effects ~= "" then effects .. "  ·  " else "") .. Ui.timeLeft(first.endsAt - now)
 			end
 			task.wait(1)
 		end

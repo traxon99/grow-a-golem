@@ -229,9 +229,16 @@ local function startReveal(gui: ScreenGui)
 		end
 
 		local closeCard: () -> () = function() end
-		local nice = Ui.button(content, "Nice!", UDim2.fromOffset(150, 48), UDim2.new(0.5, -75, 1, -60), true, function()
-			closeCard()
-		end)
+		local nice = Ui.button(
+			content,
+			"Nice!",
+			UDim2.fromOffset(150, 48),
+			UDim2.new(0.5, -75, 1, -60),
+			true,
+			function()
+				closeCard()
+			end
+		)
 		nice.ZIndex = 12
 		-- Equip right away when there's a free slot.
 		local stats = State.stats()

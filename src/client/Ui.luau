@@ -123,8 +123,7 @@ end
 
 -- A tween that snaps straight to the end when Reduced Motion is on.
 function Ui.tween(instance: Instance, info: TweenInfo, goals: { [string]: any }): Tween
-	local tween =
-		TweenService:Create(instance, if Ui.reducedMotion() then TweenInfo.new(0) else info, goals :: any)
+	local tween = TweenService:Create(instance, if Ui.reducedMotion() then TweenInfo.new(0) else info, goals :: any)
 	tween:Play()
 	return tween
 end
@@ -333,7 +332,8 @@ local function addDetails(target: GuiObject, material: string, m: Material, base
 		end
 	elseif material == "gem" then
 		-- A glossy top half and a carved rune diamond at each end.
-		local gloss = detail(target, UDim2.new(1, -10, 0.42, 0), UDim2.fromOffset(5, 3), Color3.new(1, 1, 1), 0.86, false)
+		local gloss =
+			detail(target, UDim2.new(1, -10, 0.42, 0), UDim2.fromOffset(5, 3), Color3.new(1, 1, 1), 0.86, false)
 		local c = Instance.new("UICorner")
 		c.CornerRadius = UDim.new(0, 6)
 		c.Parent = gloss
@@ -370,7 +370,9 @@ function Ui.surface(target: GuiObject, material: string, options: { tint: Color3
 		end
 	end
 	for _, child in target:GetChildren() do
-		if (child:IsA("UIStroke") and child.Name ~= "Outline") or (child:IsA("UIGradient") and child.Name ~= "Gloss") then
+		if
+			(child:IsA("UIStroke") and child.Name ~= "Outline") or (child:IsA("UIGradient") and child.Name ~= "Gloss")
+		then
 			child:Destroy()
 		end
 	end
@@ -1057,7 +1059,8 @@ function Ui.item(parent: Instance, order: number, opts: ItemOptions): Frame
 	local title = Ui.text(column, opts.title, 20, { Title = true, Name = "Title" })
 	title.LayoutOrder = 1
 	if opts.subtitle and opts.subtitle ~= "" then
-		local sub = Ui.text(column, opts.subtitle, Ui.TextSize.body, { TextColor3 = Ui.Colors.quiet, Name = "Subtitle" })
+		local sub =
+			Ui.text(column, opts.subtitle, Ui.TextSize.body, { TextColor3 = Ui.Colors.quiet, Name = "Subtitle" })
 		sub.LayoutOrder = 2
 	end
 	if opts.chips and #opts.chips > 0 then
@@ -1528,7 +1531,15 @@ function Ui.dialog(opts: DialogOptions): () -> ()
 	)
 	confirm.Name = "Confirm"
 	if opts.cancelText then
-		Ui.button(buttons, opts.cancelText, UDim2.fromOffset(150, 48), UDim2.new(1, -340, 0, 2), true, close, "secondary")
+		Ui.button(
+			buttons,
+			opts.cancelText,
+			UDim2.fromOffset(150, 48),
+			UDim2.new(1, -340, 0, 2),
+			true,
+			close,
+			"secondary"
+		)
 	end
 	pcall(function()
 		GuiService.SelectedObject = confirm

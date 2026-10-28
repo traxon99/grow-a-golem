@@ -346,7 +346,8 @@ function Tutorial.start()
 		end
 		beamBetween(root, node)
 		tag.Adornee = node
-		tag.StudsOffset = Vector3.new(0, node.Size.Y / 2 + 4 + (if Ui.reducedMotion() then 0 else math.sin(t * 5) * 0.8), 0)
+		tag.StudsOffset =
+			Vector3.new(0, node.Size.Y / 2 + 4 + (if Ui.reducedMotion() then 0 else math.sin(t * 5) * 0.8), 0)
 		tag.Enabled = true
 	end
 
