@@ -28,8 +28,10 @@ type Rig = {
 	root: BasePart,
 	joints: { Joint },
 	stride: number,
+	legLength: number?, -- hip to sole; when set, feet are planted (see plantedStep)
 	phase: number,
 	walk: number, -- 0 standing still, 1 full walk
+	speed: number, -- smoothed ground speed, studs per second
 	lastPosition: Vector3,
 	attackAt: number,
 	attackSide: number,
@@ -68,17 +70,26 @@ local function makeRig(model: Model): Rig?
 	if #joints == 0 then
 		return nil
 	end
-	-- With streaming on, parts can arrive after the model; rescan when they do.
-	model.DescendantAdded:Once(function()
-		rigs[model] = nil
+	-- With streaming on, joints can arrive after the model; rescan when one
+	-- does. Only joints count: footstep sounds and effects are parented into
+	-- the model all the time, and rescanning for those restarted the walk
+	-- cycle on every step.
+	local connection: RBXScriptConnection
+	connection = model.DescendantAdded:Connect(function(descendant)
+		if descendant:IsA("Motor6D") then
+			connection:Disconnect()
+			rigs[model] = nil
+		end
 	end)
 	return {
 		model = model,
 		root = root,
 		joints = joints,
 		stride = (model:GetAttribute("Stride") :: number?) or 4,
+		legLength = model:GetAttribute("LegLength") :: number?,
 		phase = 0,
 		walk = 0,
+		speed = 0,
 		lastPosition = root.Position,
 		attackAt = 0,
 		attackSide = 1,
@@ -87,6 +98,30 @@ local function makeRig(model: Model): Rig?
 		lastCheer = (model:GetAttribute("Cheer") :: number?) or 0,
 		idleOffset = math.random() * 10,
 	}
+end
+
+-- One leg of a planted gait, for a leg `legLength` long. `p` runs 0 to 2 pi:
+-- the first half the foot is on the ground and slides back exactly as fast
+-- as the body moves forward, so it doesn't skate; the second half it lifts
+-- and swings forward. Returns the hip angle (positive swings forward) and
+-- how far to raise the leg.
+local function plantedStep(p: number, stride: number, legLength: number): (number, number)
+	local reach = stride / 4 -- the foot travels half a stride under the hip
+	local x, lift
+	if p < math.pi then
+		x = reach * (1 - 2 * p / math.pi)
+		lift = 0
+	else
+		local u = (p - math.pi) / math.pi
+		x = reach * -math.cos(u * math.pi)
+		lift = math.sin(u * math.pi) * legLength * 0.2
+	end
+	return math.asin(math.clamp(x / legLength, -0.9, 0.9)), lift
+end
+
+-- The walk cycle's step number; it changes as a foot lands.
+local function stepIndex(phase: number): number
+	return math.floor(((phase - math.pi / 2) % (math.pi * 2)) / math.pi)
 end
 
 -- Smooth 0 -> 1 -> 0 bump over the attack time.
@@ -103,14 +138,17 @@ local function animate(rig: Rig, dt: number, now: number, serverNow: number)
 	rig.lastPosition = position
 	local speed = if dt > 0 then moved / dt else 0
 	if speed > 200 then
-		speed, moved = 0, 0 -- teleported (travel, respawn)
+		speed = 0 -- teleported (travel, respawn)
 	end
-	local target = math.clamp(speed / 6, 0, 1)
+	-- Replicated positions arrive unevenly, so frame-to-frame speed jitters by
+	-- a third; step from the smoothed speed so the gait doesn't stutter.
+	rig.speed += (speed - rig.speed) * math.min(dt * 10, 1)
+	local target = math.clamp(rig.speed / 6, 0, 1)
 	rig.walk += (target - rig.walk) * math.min(dt * 8, 1)
-	local before = math.floor(rig.phase / math.pi)
-	rig.phase = (rig.phase + moved / rig.stride * math.pi * 2) % (math.pi * 2)
-	-- A foot lands twice per cycle, when the swing passes through the middle.
-	if rig.walk > 0.4 and math.floor(rig.phase / math.pi) ~= before then
+	local before = stepIndex(rig.phase)
+	rig.phase = (rig.phase + rig.speed * dt / rig.stride * math.pi * 2) % (math.pi * 2)
+	-- A foot lands twice per cycle.
+	if rig.walk > 0.4 and stepIndex(rig.phase) ~= before then
 		Sfx.footstep(rig.model, rig.root)
 	end
 
@@ -151,7 +189,17 @@ local function animate(rig: Rig, dt: number, now: number, serverNow: number)
 		local kind = joint.kind
 		local transform = CFrame.identity
 		if kind == "leg" then
-			transform = CFrame.Angles(swing * 0.6 * joint.side * joint.amp, 0, 0)
+			local legLength = rig.legLength
+			if legLength then
+				-- In step with `swing`: the right leg is furthest forward at
+				-- phase pi / 2, as it lands. The left leg is half a cycle behind.
+				local p = (rig.phase - math.pi / 2 + (if joint.side < 0 then math.pi else 0)) % (math.pi * 2)
+				local angle, lift = plantedStep(p, rig.stride, legLength)
+				transform = CFrame.new(0, lift * rig.walk, 0)
+					* CFrame.Angles(angle * rig.walk * joint.amp, 0, joint.side * lift / legLength * 0.5 * rig.walk)
+			else
+				transform = CFrame.Angles(swing * 0.6 * joint.side * joint.amp, 0, 0)
+			end
 			if downed then
 				transform = CFrame.Angles(math.rad(-35), 0, 0)
 			end
@@ -170,8 +218,13 @@ local function animate(rig: Rig, dt: number, now: number, serverNow: number)
 			-- Negative X rotation leans the body forward.
 			local lunge = punch * 0.06 * size
 			local y = bob * 0.04 * size + breathe * 0.01 * size - smash * 0.06 * size
-			transform = CFrame.new(0, y, -lunge)
-				* CFrame.Angles(-punch * 0.12 + raise * 0.15 - smash * 0.25, 0, swing * 0.04)
+			-- Heavy gait: the body rolls over the planted leg and twists with the arms.
+			transform = CFrame.new(-math.cos(rig.phase) * rig.walk * 0.03 * size, y, -lunge)
+				* CFrame.Angles(
+					-punch * 0.12 + raise * 0.15 - smash * 0.25 - rig.walk * 0.06,
+					swing * 0.08,
+					math.cos(rig.phase) * rig.walk * 0.06
+				)
 			if downed then
 				transform = CFrame.new(0, -0.12 * size, 0) * CFrame.Angles(-0.35, 0, 0)
 			end

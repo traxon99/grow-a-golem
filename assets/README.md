@@ -16,7 +16,8 @@ Rojo maps `models/Assets.rbxmx` to `ReplicatedStorage.Assets`:
   LeftLeg and RightLeg. Part pivots are their attachment centres, in golem
   scale-1 studs. The loader decorates invisible gameplay carriers and keeps
   existing Motor6D joints, collision roots and the shoulder seat. Supplemental
-  feet, fists, chest pieces and runes from the fallback remain visible.
+  feet, fists, chest pieces and runes from the fallback remain visible, except
+  on slots that have uploaded mesh art (below).
 - `Enemies/boss1` through `boss6`: normalized to one stud of approximate height;
   the loader scales to `def.size.Y`, centred at the gameplay root. Body/Torso/
   Carapace, Head/Jaw, Fist/Wing, Leg/Foot/CrawlerLeg names create body/head/jaw/
@@ -34,6 +35,29 @@ Wardrobe preview and live skin appearance in Studio.
 
 The three added zone bosses currently have distinct silhouettes built from this
 kit. New regular enemies reuse the older procedural designs and palettes.
+
+## Blender golem meshes
+
+`scripts/blender/build_golems.py` builds one original low-poly golem per tier
+from primitives in Blender (1 unit = 1 stud, facing +Y) and exports
+`models/golems/golem_<tier>.fbx` plus `golem_meshes.json` (each mesh's offset
+and size). Each slot has up to three meshes: `<Slot>_Main` (tier colour),
+`<Slot>_Trim` (darker shade) and `<Slot>_Glow` (neon runes, recoloured by
+skins). `preview.png` shows all eight.
+
+To get them into the game:
+
+1. In Studio, **File > Import 3D** each FBX with **Scale unit: Studs** and
+   upload on. Keep the objects as separate MeshParts.
+2. Record each MeshPart's mesh id in `models/golems/mesh_ids.json` as
+   `{"<tier>/<Slot>_<Role>": <id>}`.
+3. Run `python3 scripts/blender/golem_mesh_data.py`, which writes
+   `src/server/Models/GolemMeshData.luau`.
+
+`GolemMeshes` creates the MeshParts with `AssetService:CreateMeshPartAsync`
+when the server starts and swaps them in for the block templates. A slot is
+used only when all its meshes have ids and load, so a missing upload falls
+back to the block art.
 
 ## Audio upload manifest
 
