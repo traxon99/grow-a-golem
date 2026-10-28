@@ -54,6 +54,7 @@ Let go of the controls and the golem plays itself: it fights enemies nearby, and
 | Roblox Analytics: onboarding, zone and shop funnels, economy, progression | `AnalyticsService` |
 | First-time tutorial (5 steps with pointers, skippable, onboarding funnel) | `TutorialService`, client `Tutorial`, `Config.Tutorial` |
 | HUD, next-goal tracker with progress bar, menus | `src/client` |
+| Mystical UI icons | `src/client/Icons.luau`, `Config.UiIcons`, `assets/ui-icons/`; consumed by HUD and menus |
 | UI materials: wood, stone, metal, studs and crystal surfaces, tiling textures | `Ui.surface` in `src/client/Ui.luau`, `Config.UiTextures`, `assets/ui-textures/` |
 | Boss health bar, artifact reveal card, level-up banner | `src/client/Moments.luau` |
 | Island scenery, lighting | `WorldService`, `src/server/Models/Islands.luau` |
@@ -83,6 +84,14 @@ The tower ships switched off (`Config.Tower.enabled = false`), so players don't 
 ## UI textures
 
 Panels and buttons already have wood, stone, metal, stud and crystal looks drawn in code. For the full textured look, upload the five PNGs in `assets/ui-textures/` to Roblox (Studio's Asset Manager can bulk import images) and paste each image id into `Config.UiTextures`. Details are in `docs/reference/ui-materials.md`.
+
+## UI icons
+
+HUD minerals, XP and spells, menu tabs/header, travel and reward status use the
+icon sheets in `assets/ui-icons/`. Upload `mystical.png` and optional
+`mystical-mono.png`, then set `Config.UiIcons.color` and `.mono` to approved image
+IDs. Keep IDs at zero until uploaded: readable text fallbacks are used. See
+[the icon instructions](assets/ui-icons/README.md) for the full upload contract.
 
 ## Adding a code
 

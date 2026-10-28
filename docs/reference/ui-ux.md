@@ -44,10 +44,12 @@ Sourced points:
 
 ## Grow A Golem today
 
+- #109: The existing HUD and menus now consume `Icons.create`: XP/minerals/spells, all 13 tabs, the current window header, close, travel guide/locks, quests and event points/reward status. Icons retain adjacent words and zero-ID text fallbacks. No new animation, remote, rarity assignment or purchase behavior is added. Approved sprite uploads still require the owner (#83); broader menu restyles remain separate.
+
 - UI built in code with themed materials (wood, stone, metal, studs, crystal) through `Ui.surface`; see [ui-materials.md](ui-materials.md). GothamBold with `TextScaled` and a dark text outline.
 - Layout: stats panel top-left (level, XP bar, mineral counts); golem health bar top-center with next-goal tracker and progress bar under it; menu buttons on the left; spell buttons Q/E/R bottom-right on touch; toasts bottom-center; event banner. This matches the common simulator layout (target wireframe: `images/hud-layout.png`).
 - Moments: boss HP bar, artifact reveal card, level-up banner, damage numbers.
-- **Not found in code:** number abbreviation helper, `ScreenInsets`/`CoreUISafeInsets`, ReducedMotion handling, PreferredTextSize support (TextScaled overrides it), PreferredTransparency, gamepad navigation, notification badges.
+- HUD and menu ScreenGuis now explicitly use `CoreUISafeInsets`. **Still missing elsewhere:** number abbreviation helper, ReducedMotion handling, PreferredTextSize support (TextScaled overrides it), PreferredTransparency, gamepad navigation, notification badges.
 
 ## Gaps worth closing
 

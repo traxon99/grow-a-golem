@@ -31,6 +31,8 @@ Last updated: 2026-10-27. See also [ui-ux.md](ui-ux.md) for touch layout and saf
 
 ## Grow A Golem today
 
+- #109: The existing HUD and menus now consume `Icons.create`: XP/minerals/spells, all 13 tabs, the current window header, close, travel guide/locks, quests and event points/reward status. Icons retain adjacent words and zero-ID text fallbacks. No new animation, remote, rarity assignment or purchase behavior is added. Approved sprite uploads still require the owner (#83); broader menu restyles remain separate.
+
 - Server-authoritative; client sends intents only.
 - Optional original part-based templates in `ReplicatedStorage.Assets` supplement procedural fallbacks (not MeshParts); procedural Motor6D animation; low-poly; built-in materials (e.g. DiamondPlate on iron tier). Part count per golem and per enemy not measured.
 - Hit flashes, damage numbers and debris: pooling and caps not confirmed.
