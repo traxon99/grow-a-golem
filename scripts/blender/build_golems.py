@@ -189,39 +189,39 @@ def base_leg(p, t, side):
 
 
 # ---------------------------------------------------------------- the starter
-# Stone is the first golem players get, so it's cute rather than hulking:
-# chunky faceted stones, a big round head with big eyes, short chubby arms and
-# round stubby feet.
+# Stone is the first golem players get, so it's a friendly lump rather than a
+# hulking brute: one smooth rounded mass, the head a bump at its top front
+# with small eyes, long thick arms whose round fists hang near the ground, and
+# short legs tucked under the body.
 
-def pebble(p, role, at, size, jitter=0.06):
+def pebble(p, role, at, size, jitter=0.04):
     p.rock(role, at, size, jitter=jitter, round=True)
 
 
 def cute_torso(p, t):
-    pebble(p, "Main", (0, 0.8, 0.3), (8.0, 6.4, 6.0))
-    pebble(p, "Main", (0, -3.2, 0.3), (6.6, 3.4, 4.8))  # hips, which the thighs sink into
-    pebble(p, "Glow", (0, 0.9, -2.75), (1.1, 1.1, 0.5), jitter=0.02)  # core
-    for x, y, z, d in ((-2.6, 3.3, 0.6, 1.6), (2.4, 3.5, 1.2, 1.3), (0.4, 3.9, 2.0, 1.4), (-2.9, -0.8, -1.8, 1.1)):
-        pebble(p, "Trim", (x, y, z), (d, d * 0.8, d))
+    pebble(p, "Main", (0, 0.7, 0.4), (8.8, 8.2, 6.6))
+    pebble(p, "Main", (0, -2.6, 0.4), (6.2, 3.0, 4.6))  # hips, which the thighs sink into
+    pebble(p, "Glow", (0, 0.2, -2.85), (0.8, 0.8, 0.4), jitter=0.02)  # core
+    for x, y, z, d in ((-2.4, 3.6, 1.6, 1.5), (2.2, 2.4, 2.6, 1.2), (0.6, 4.4, 2.2, 1.3)):
+        pebble(p, "Trim", (x, y, z), (d, d * 0.6, d))  # flat stones on the back
 
 
 def cute_head(p, t):
-    pebble(p, "Main", (0, -0.9, -1.1), (4.4, 3.8, 4.0), jitter=0.04)
-    pebble(p, "Trim", (0.6, 0.9, -0.9), (1.4, 1.1, 1.3))  # pebble on top
+    pebble(p, "Main", (0.3, -1.4, -1.7), (3.8, 3.2, 3.6))
     for side in (-1, 1):
-        p.box("Glow", (side * 0.95, -0.8, -3.05), (0.85, 1.05, 0.2), bevel=0.12)
+        p.box("Glow", (0.3 + side * 0.7, -1.2, -3.45), (0.45, 0.55, 0.2), bevel=0.08)
 
 
 def cute_arm(p, t, side):
     # Pulled in toward the body so the shoulder sits against it.
-    pebble(p, "Trim", (side * -0.4, 2.6, 0.1), (3.6, 3.2, 3.6))  # shoulder
-    pebble(p, "Main", (side * -0.2, 0.2, 0), (3.0, 4.6, 3.0))
-    pebble(p, "Main", (0, -2.8, -0.3), (3.8, 3.4, 3.8))  # fist
+    pebble(p, "Main", (side * -0.5, 2.6, 0.2), (3.8, 3.6, 3.8))  # shoulder
+    pebble(p, "Main", (side * -0.2, -0.8, 0), (3.5, 6.4, 3.5))
+    pebble(p, "Main", (0, -4.6, -0.3), (4.2, 3.8, 4.2))  # fist
 
 
 def cute_leg(p, t, side):
-    pebble(p, "Main", (side * 0.2, 0.9, 0), (3.9, 5.4, 3.7))
-    pebble(p, "Trim", (0, -1.5, -0.4), (4.0, 2.0, 4.4))  # round foot
+    pebble(p, "Main", (side * 0.1, 0.6, 0), (3.9, 5.4, 3.8))
+    pebble(p, "Trim", (0, -1.6, -0.3), (4.0, 1.9, 4.2))  # foot
 
 
 # ---------------------------------------------------------------- tier styles
