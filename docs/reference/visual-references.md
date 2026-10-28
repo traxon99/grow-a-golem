@@ -82,6 +82,10 @@ Original wireframes drawn for Grow A Golem, stored in `docs/reference/images/`. 
 | [images/rarity-colors.png](images/rarity-colors.png) | Our rarity color ladder with symbols for color-blind players | [art-audio.md](art-audio.md) |
 | [images/ui-materials.png](images/ui-materials.png) | Our five UI materials (wood, stone, metal, studs, crystal), code-only and with textures, with worst-case text samples | [ui-materials.md](ui-materials.md) |
 
+## Grow A Golem today
+
+- [Original mystical icon proof](images/ui-icons.png): 37 symbols at 128 px and 32 px, with grayscale checks, from issue #83. Rebuild from `assets/ui-icons/build.cjs`; the icon inventory maps each asset to its consuming issue. Menu integration and owner uploads remain pending.
+
 ## Sources
 
 All accessed 2026-10. The links in the tables above are the sources.

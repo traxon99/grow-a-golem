@@ -42,6 +42,8 @@ Button scale-bounce about 1.05-1.1x over 0.1 s; click SFX on every button; pop s
 
 ## Grow A Golem today
 
+- #83 supplies 37 original mystical UI icons in `assets/ui-icons/`, with editable SVGs, color and grayscale sprite sheets, and a [128/32 px preview](images/ui-icons.png). `Config.UiIcons` holds zero upload IDs and cell coordinates; `Icons.create` provides text fallbacks. Uploads, the shared rarity mapping (#82), and per-menu wiring (#84–#97) remain pending. This asset pass changes no UI surface colors or glows; the existing contrast measurements remain applicable.
+
 - Original low-poly templates in `assets/models/Assets.rbxmx` now cover eight golem tiers, six bosses and three prop types. `Build.attachAsset` prefers these under `ReplicatedStorage.Assets`, retains gameplay roots and Motor6D animation, strips imported scripts/physics, and falls back to procedural art when absent. Regular enemies and remaining props use procedural models. Studio appearance remains unverified.
 - Server-side lighting setup in `WorldService`; the client blends per-zone color grading and sky haze (`Config.Visuals.zoneTints`, `zoneAtmosphere`, both need `controlLighting`). Technology choice not set in code (check in Studio).
 - Six island scenery themes in `Islands.luau` (meadow, ember, crystal, storm, ruins, forge), one per zone, all decoration-only and non-colliding. Part counts for the new three are about half of the meadow island's; not yet measured on a phone.

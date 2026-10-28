@@ -1324,4 +1324,52 @@ Config.Tower = {
 	rewardRate = 1.25,
 }
 
+-- Original #83 sprite sheets; upload instructions: assets/ui-icons/README.md.
+-- Keep IDs at zero until the owner uploads and verifies the images.
+Config.UiIcons = {
+	color = 0,
+	mono = 0,
+	robux = 0, -- Official Roblox artwork only; never a custom logo.
+	cellSize = 128,
+	entries = {
+		forge = { x = 0, y = 0, fallback = "F" },
+		travel = { x = 128, y = 0, fallback = "T" },
+		artifacts = { x = 256, y = 0, fallback = "A" },
+		skills = { x = 384, y = 0, fallback = "S" },
+		awaken = { x = 512, y = 0, fallback = "Aw" },
+		quests = { x = 640, y = 0, fallback = "Q" },
+		events = { x = 768, y = 0, fallback = "E" },
+		party = { x = 896, y = 0, fallback = "P" },
+		hub = { x = 0, y = 128, fallback = "H" },
+		trade = { x = 128, y = 128, fallback = "Tr" },
+		wardrobe = { x = 256, y = 128, fallback = "W" },
+		shop = { x = 384, y = 128, fallback = "Sh" },
+		ranks = { x = 512, y = 128, fallback = "R" },
+		stone = { x = 640, y = 128, fallback = "St" },
+		copper = { x = 768, y = 128, fallback = "Cu" },
+		iron = { x = 896, y = 128, fallback = "Fe" },
+		crystal = { x = 0, y = 256, fallback = "Cr" },
+		stormglass = { x = 128, y = 256, fallback = "Sg" },
+		abyssite = { x = 256, y = 256, fallback = "Ab" },
+		sunsteel = { x = 384, y = 256, fallback = "Ss" },
+		aether = { x = 512, y = 256, fallback = "Ae" },
+		xp = { x = 640, y = 256, fallback = "XP" },
+		eventPoints = { x = 768, y = 256, fallback = "EP" },
+		quake = { x = 896, y = 256, fallback = "Q" },
+		mend = { x = 0, y = 384, fallback = "E" },
+		magnet = { x = 128, y = 384, fallback = "R" },
+		common = { x = 256, y = 384, fallback = "1" },
+		uncommon = { x = 384, y = 384, fallback = "2" },
+		rare = { x = 512, y = 384, fallback = "3" },
+		epic = { x = 640, y = 384, fallback = "4" },
+		legendary = { x = 768, y = 384, fallback = "5" },
+		mythic = { x = 896, y = 384, fallback = "6" },
+		tick = { x = 0, y = 512, fallback = "OK" },
+		lock = { x = 128, y = 512, fallback = "L" },
+		alert = { x = 256, y = 512, fallback = "!" },
+		close = { x = 384, y = 512, fallback = "X" },
+		guide = { x = 512, y = 512, fallback = "G" },
+	},
+}
+
 return Config
