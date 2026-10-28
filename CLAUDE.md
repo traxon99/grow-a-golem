@@ -39,6 +39,10 @@ Before you design or change any player-facing system (UI, loops, progression, mo
 
 These three and the stud UI skill come unchanged from [JoCoding-Inc/roblox-skills](https://github.com/JoCoding-Inc/roblox-skills) (MIT); each folder's `SOURCE.md` has the commit and repo notes. They mention companion skills from roblox-brain that aren't installed here.
 
+## Codex plugin
+
+`.claude/settings.json` registers OpenAI's [`openai/codex-plugin-cc`](https://github.com/openai/codex-plugin-cc) marketplace and enables `codex@openai-codex`, so Claude Code offers to install it when you trust the folder. The plugin only drives Codex: the machine also needs the Codex CLI and an OpenAI login. Run `/codex:setup` to check, and it can install the CLI through npm. Cloud sessions may not have either, so don't count on it there.
+
 ## Driving Roblox Studio (MCP)
 
 Studio ships its own MCP server, so Claude Code can play-test, read Output, inspect the place and run Luau. Nothing extra to install, and no keys are involved. Docs: https://create.roblox.com/docs/studio/mcp
