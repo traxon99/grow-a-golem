@@ -159,6 +159,7 @@ def base_torso(p, t):
     w = t["chest"]
     lump(p, t, "Main", (0, 1.2, 0.5), (w * 1.75, 7.0, 6.2), rot=(-14, 0, 0))
     lump(p, t, "Main", (0, -2.0, 0.4), (w * 1.25, 3.4, 4.8))
+    lump(p, t, "Main", (0, -3.6, 0.3), (w * 1.35, 3.0, 4.4))  # hips, which the thighs sink into
     lump(p, t, "Trim", (0, 3.6, 1.3), (w * 1.3, 2.6, 4.0), rot=(-20, 0, 0))  # hunched back
     p.shift = Vector((0, 0, -0.8))
 
@@ -181,27 +182,52 @@ def base_arm(p, t, side):
 
 
 def base_leg(p, t, side):
-    lump(p, t, "Main", (side * 0.2, 0.2, 0), (3.8, 4.4, 3.6))
+    lump(p, t, "Main", (side * 0.2, 0.9, 0), (3.8, 5.4, 3.6))  # reaches up into the hips
     lump(p, t, "Trim", (0, -1.55, -0.3), (3.9, 2.0, 4.4))  # foot
     for toe in (-1.0, 0, 1.0):
         p.box("Trim", (toe, -2.05, -2.35), (0.8, 0.8, 0.8), jitter=t["rough"] * 0.2, bevel=0.1)
 
 
+# ---------------------------------------------------------------- the starter
+# Stone is the first golem players get, so it's cute rather than hulking:
+# chunky faceted stones, a big round head with big eyes, short chubby arms and
+# round stubby feet.
+
+def pebble(p, role, at, size, jitter=0.06):
+    p.rock(role, at, size, jitter=jitter, round=True)
+
+
+def cute_torso(p, t):
+    pebble(p, "Main", (0, 0.8, 0.3), (8.0, 6.4, 6.0))
+    pebble(p, "Main", (0, -3.2, 0.3), (6.6, 3.4, 4.8))  # hips, which the thighs sink into
+    pebble(p, "Glow", (0, 0.9, -2.75), (1.1, 1.1, 0.5), jitter=0.02)  # core
+    for x, y, z, d in ((-2.6, 3.3, 0.6, 1.6), (2.4, 3.5, 1.2, 1.3), (0.4, 3.9, 2.0, 1.4), (-2.9, -0.8, -1.8, 1.1)):
+        pebble(p, "Trim", (x, y, z), (d, d * 0.8, d))
+
+
+def cute_head(p, t):
+    pebble(p, "Main", (0, -0.9, -1.1), (4.4, 3.8, 4.0), jitter=0.04)
+    pebble(p, "Trim", (0.6, 0.9, -0.9), (1.4, 1.1, 1.3))  # pebble on top
+    for side in (-1, 1):
+        p.box("Glow", (side * 0.95, -0.8, -3.05), (0.85, 1.05, 0.2), bevel=0.12)
+
+
+def cute_arm(p, t, side):
+    # Pulled in toward the body so the shoulder sits against it.
+    pebble(p, "Trim", (side * -0.4, 2.6, 0.1), (3.6, 3.2, 3.6))  # shoulder
+    pebble(p, "Main", (side * -0.2, 0.2, 0), (3.0, 4.6, 3.0))
+    pebble(p, "Main", (0, -2.8, -0.3), (3.8, 3.4, 3.8))  # fist
+
+
+def cute_leg(p, t, side):
+    pebble(p, "Main", (side * 0.2, 0.9, 0), (3.9, 5.4, 3.7))
+    pebble(p, "Trim", (0, -1.5, -0.4), (4.0, 2.0, 4.4))  # round foot
+
+
 # ---------------------------------------------------------------- tier styles
 
 def style_stone(p, slot, side, t):
-    """A walking rock pile with moss-free cracks of light."""
-    if slot == "Torso":
-        p.box("Glow", (0, 1.4, -2.0), (0.5, 1.6, 0.2), rot=(0, 0, 14))
-        p.box("Glow", (0.35, 0.5, -1.95), (0.35, 0.9, 0.2), rot=(0, 0, -30))
-        for x, y in ((-2.4, 2.4), (2.6, 1.9), (-1.8, -0.6)):
-            p.rock("Main", (x, y, -1.4), (1.6, 1.3, 1.2), jitter=0.2)
-    elif slot == "Head":
-        p.rock("Main", (0.9, 0.9, 0.2), (1.4, 1.0, 1.4), jitter=0.2)
-    elif slot in ("LeftArm", "RightArm"):
-        p.rock("Main", (side * 0.6, -4.1, 0.5), (1.5, 1.4, 1.5), jitter=0.2)
-    else:
-        p.rock("Main", (side * 0.7, 1.6, -0.6), (1.3, 1.1, 1.2), jitter=0.2)
+    """The cute starter: its body is all in cute_*; nothing to add."""
 
 
 def style_copper(p, slot, side, t):
@@ -339,7 +365,7 @@ def style_aether(p, slot, side, t):
 
 # Per-tier proportions: chest/waist radii and how rough the surface is.
 STYLES = {
-    "stone": (style_stone, dict(chest=4.9, waist=3.4, rough=0.18)),
+    "stone": (style_stone, dict(chest=4.9, waist=3.4, rough=0.18, cute=True)),
     "copper": (style_copper, dict(chest=4.8, waist=3.6, rough=0.0)),
     "iron": (style_iron, dict(chest=5.2, waist=3.3, rough=0.0)),
     "crystal": (style_crystal, dict(chest=5.0, waist=3.4, rough=0.14)),
@@ -388,14 +414,15 @@ def build_tier(tier, rgb, offset_x=0.0):
         rng = random.Random(f"{tier}:{slot}")
         side = -1 if slot.startswith("Left") else 1
         p = Part(rng)
+        cute = t.get("cute")
         if slot == "Torso":
-            base_torso(p, t)
+            (cute_torso if cute else base_torso)(p, t)
         elif slot == "Head":
-            base_head(p, t)
+            (cute_head if cute else base_head)(p, t)
         elif slot.endswith("Arm"):
-            base_arm(p, t, side)
+            (cute_arm if cute else base_arm)(p, t, side)
         else:
-            base_leg(p, t, side)
+            (cute_leg if cute else base_leg)(p, t, side)
         style(p, slot, side, t)
         for role, bm in p.meshes.items():
             if not bm.verts:
