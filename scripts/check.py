@@ -171,6 +171,14 @@ bundle += "\nlocal function loadPartyService(dependencies, game, task, clock)\n"
 bundle += 'local os = { clock = clock }\nlocal script = { Parent = {} }\n'
 bundle += party_service + "\nend\n"
 bundle += (ROOT / "tests/party-service.luau").read_text()
+# The real PassService with simulated receipts/ownership, profile and policy
+# services, and a controlled clock/coroutine scheduler for boost expiry.
+pass_service = (ROOT / "src/server/Services/PassService.luau").read_text()
+pass_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', pass_service)
+bundle += "\nlocal function loadPassService(dependencies, game, task, time)\n"
+bundle += 'local os = { time = time }\nlocal warn = function() end\nlocal script = { Parent = {} }\n'
+bundle += pass_service + "\nend\n"
+bundle += (ROOT / "tests/pass-service.luau").read_text()
 with tempfile.TemporaryDirectory(prefix="golem-check-") as folder:
     path = Path(folder) / "regression.luau"
     path.write_text(bundle)
