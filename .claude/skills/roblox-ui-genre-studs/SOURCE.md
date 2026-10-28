@@ -4,4 +4,4 @@
 
 To update it, copy the file again from upstream and change the commit above. Keep repo-specific rules in `CLAUDE.md`, not in `SKILL.md`, so the copy stays a clean upstream file.
 
-The skill names two companion skills, `roblox-gui` (from [TabooHarmony/roblox-brain](https://github.com/TabooHarmony/roblox-brain)) and `roblox-pitfalls` (same upstream repo). Neither is installed here; where it points to them, use `docs/reference/ui-ux.md` and `docs/reference/ui-materials.md` instead.
+The skill names two companion skills: `roblox-pitfalls`, installed next to it, and `roblox-gui` from [TabooHarmony/roblox-brain](https://github.com/TabooHarmony/roblox-brain), which is not. Where it points to `roblox-gui`, use `docs/reference/ui-ux.md` and `docs/reference/ui-materials.md` instead.
