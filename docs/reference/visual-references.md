@@ -84,7 +84,9 @@ Original wireframes drawn for Grow A Golem, stored in `docs/reference/images/`. 
 
 ## Grow A Golem today
 
-- [Original mystical icon proof](images/ui-icons.png): 37 symbols at 128 px and 32 px, with grayscale checks, from issue #83. Rebuild from `assets/ui-icons/build.cjs`; the icon inventory maps each asset to its consuming issue. Menu integration and owner uploads remain pending.
+- #109: The existing HUD and menus now consume `Icons.create`: XP/minerals/spells, all 13 tabs, the current window header, close, travel guide/locks, quests and event points/reward status. Icons retain adjacent words and zero-ID text fallbacks. No new animation, remote, rarity assignment or purchase behavior is added. Approved sprite uploads still require the owner (#83); broader menu restyles remain separate.
+
+- [Original mystical icon proof](images/ui-icons.png): 37 symbols at 128 px and 32 px, with grayscale checks, from issue #83. Rebuild from `assets/ui-icons/build.cjs`; the icon inventory maps each asset to its consuming issue. Existing-screen integration is complete in #109; owner uploads remain pending.
 
 ## Sources
 

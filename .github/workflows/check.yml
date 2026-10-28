@@ -12,7 +12,9 @@ jobs:
           make -C "$RUNNER_TEMP/luau" config=release luau luau-compile -j2
           echo "$RUNNER_TEMP/luau/build/release" >> "$GITHUB_PATH"
       - name: Compile and run regression checks
-        run: python3 scripts/check.py
+        run: |
+          python3 scripts/check.py
+          python3 scripts/check_ui_icons.py
       - name: Verify original assets are reproducible
         run: |
           python3 scripts/create_assets.py

@@ -17,6 +17,8 @@ local Controls = require(script.Parent:WaitForChild("Controls"))
 local State = require(script.Parent:WaitForChild("State"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
 
+local Icons = require(script.Parent:WaitForChild("Icons"))
+
 local Hud = {}
 
 local player = Players.LocalPlayer
@@ -87,6 +89,7 @@ function Hud.start()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "GolemHud"
 	gui.ResetOnSpawn = false
+	gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 	gui.Parent = player:WaitForChild("PlayerGui")
 
 	---------------------------------------------------------------- minerals + level
@@ -100,7 +103,8 @@ function Hud.start()
 	Ui.corner(stats, 10)
 	Ui.surface(stats, "stone", { details = true })
 
-	local levelLabel = Ui.label(stats, "Level 1", UDim2.new(1, -20, 0, 22), UDim2.fromOffset(10, 6))
+	local levelLabel = Ui.label(stats, "Level 1", UDim2.new(1, -46, 0, 22), UDim2.fromOffset(36, 6))
+	Icons.create(stats, "xp", 22, UDim2.fromOffset(8, 6))
 	local xpBack = Instance.new("Frame")
 	xpBack.Size = UDim2.new(1, -20, 0, 8)
 	xpBack.Position = UDim2.fromOffset(10, 32)
@@ -118,11 +122,12 @@ function Hud.start()
 		local l = Ui.label(
 			stats,
 			`{Config.Minerals[id].displayName}: 0`,
-			UDim2.new(1, -20, 0, 20),
-			UDim2.fromOffset(10, 48 + (index - 1) * 26)
+			UDim2.new(1, -46, 0, 20),
+			UDim2.fromOffset(36, 48 + (index - 1) * 26)
 		)
 		l.TextColor3 = Config.Minerals[id].color:Lerp(Ui.Colors.text, 0.35)
 		mineralLabels[id] = l
+		Icons.create(stats, id, 22, UDim2.fromOffset(8, 47 + (index - 1) * 26))
 	end
 
 	---------------------------------------------------------------- health + goal
@@ -186,6 +191,7 @@ function Hud.start()
 	---------------------------------------------------------------- spell bar
 
 	local readyAt: { [string]: number } = {}
+	local spellLabels: { [string]: TextLabel } = {}
 	local isTouch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 	for index, spellId in Config.SpellOrder do
 		local spell = Config.Spells[spellId]
@@ -200,8 +206,16 @@ function Hud.start()
 		b.TextStrokeTransparency = 0.3
 		b.Font = Enum.Font.GothamBold
 		b.TextScaled = true
-		b.Text = if isTouch then spell.displayName else `{spell.displayName}\n[{spell.key.Name}]`
+		b.Text = ""
 		b.Parent = gui
+		Icons.create(b, spellId, 32, UDim2.fromOffset(26, 5))
+		spellLabels[spellId] = Ui.label(
+			b,
+			if isTouch then spell.displayName else `{spell.displayName}\n[{spell.key.Name}]`,
+			UDim2.new(1, -8, 0, 42),
+			UDim2.fromOffset(4, 37),
+			{ TextScaled = false, TextSize = 16, TextXAlignment = Enum.TextXAlignment.Center }
+		)
 		Ui.corner(b, 42)
 		-- Runestones: a stone disc with a glowing rune rim.
 		local rim = Ui.surface(b, "stone")
@@ -216,13 +230,13 @@ function Hud.start()
 	task.spawn(function()
 		while true do
 			task.wait(0.2)
-			for spellId, b in spellButtons do
+			for spellId, label in spellLabels do
 				local remaining = (readyAt[spellId] or 0) - os.clock()
 				local spell = Config.Spells[spellId]
 				if remaining > 0 then
-					b.Text = tostring(math.ceil(remaining))
+					label.Text = `{spell.displayName}\n{math.ceil(remaining)}s`
 				else
-					b.Text = if isTouch then spell.displayName else `{spell.displayName}\n[{spell.key.Name}]`
+					label.Text = if isTouch then spell.displayName else `{spell.displayName}\n[{spell.key.Name}]`
 				end
 			end
 		end

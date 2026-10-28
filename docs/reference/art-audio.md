@@ -42,7 +42,9 @@ Button scale-bounce about 1.05-1.1x over 0.1 s; click SFX on every button; pop s
 
 ## Grow A Golem today
 
-- #83 supplies 37 original mystical UI icons in `assets/ui-icons/`, with editable SVGs, color and grayscale sprite sheets, and a [128/32 px preview](images/ui-icons.png). `Config.UiIcons` holds zero upload IDs and cell coordinates; `Icons.create` provides text fallbacks. Uploads, the shared rarity mapping (#82), and per-menu wiring (#84–#97) remain pending. This asset pass changes no UI surface colors or glows; the existing contrast measurements remain applicable.
+- #109: The existing HUD and menus now consume `Icons.create`: XP/minerals/spells, all 13 tabs, the current window header, close, travel guide/locks, quests and event points/reward status. Icons retain adjacent words and zero-ID text fallbacks. No new animation, remote, rarity assignment or purchase behavior is added. Approved sprite uploads still require the owner (#83); broader menu restyles remain separate.
+
+- #83 supplies 37 original mystical UI icons in `assets/ui-icons/`, with editable SVGs, color and grayscale sprite sheets, and a [128/32 px preview](images/ui-icons.png). `Config.UiIcons` holds zero upload IDs and cell coordinates; `Icons.create` provides text fallbacks. Uploads and the shared rarity mapping (#82) remain pending. Existing-screen wiring is complete in #109; full restyles remain in #84–#97. This asset pass changes no UI surface colors or glows; the existing contrast measurements remain applicable.
 
 - Original low-poly templates in `assets/models/Assets.rbxmx` now cover eight golem tiers, six bosses and three prop types. `Build.attachAsset` prefers these under `ReplicatedStorage.Assets`, retains gameplay roots and Motor6D animation, strips imported scripts/physics, and falls back to procedural art when absent. Regular enemies and remaining props use procedural models. Studio appearance remains unverified.
 - Server-side lighting setup in `WorldService`; the client blends per-zone color grading and sky haze (`Config.Visuals.zoneTints`, `zoneAtmosphere`, both need `controlLighting`). Technology choice not set in code (check in Studio).
