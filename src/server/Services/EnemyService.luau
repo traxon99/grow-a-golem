@@ -73,7 +73,10 @@ local function buildModel(designId: string, def: any, at: Vector3): (Model, Huma
 	humanoid.BreakJointsOnDeath = false
 	humanoid.RequiresNeck = false
 	humanoid.DisplayName = def.displayName
-	humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOn
+	-- The client draws its own name and health bar (Fx.luau), with hit shake
+	-- and a draining ghost segment.
+	humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
+	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 	humanoid.Parent = model
 	humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
 

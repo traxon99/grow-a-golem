@@ -9,6 +9,7 @@
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
@@ -126,6 +127,45 @@ function Ui.tween(instance: Instance, info: TweenInfo, goals: { [string]: any })
 	local tween = TweenService:Create(instance, if Ui.reducedMotion() then TweenInfo.new(0) else info, goals :: any)
 	tween:Play()
 	return tween
+end
+
+-- Jolts a GUI object around its place for `duration` seconds, fading out.
+-- A new shake on the same object replaces the old one. Reduced Motion skips it.
+local shaking: { [GuiObject]: { home: UDim2, token: number } } = {}
+function Ui.shake(target: GuiObject, pixels: number, duration: number)
+	if Ui.reducedMotion() then
+		return
+	end
+	local entry = shaking[target]
+	if not entry then
+		entry = { home = target.Position, token = 0 }
+		shaking[target] = entry
+	end
+	assert(entry)
+	entry.token += 1
+	local token = entry.token
+	local home = entry.home
+	local started = os.clock()
+	local connection: RBXScriptConnection
+	connection = RunService.RenderStepped:Connect(function()
+		if entry.token ~= token or not target.Parent then
+			connection:Disconnect()
+			return
+		end
+		local t = (os.clock() - started) / duration
+		if t >= 1 then
+			connection:Disconnect()
+			target.Position = home
+			shaking[target] = nil
+			return
+		end
+		local strength = pixels * (1 - t)
+		target.Position = home
+			+ UDim2.fromOffset(
+				math.floor((math.random() * 2 - 1) * strength + 0.5),
+				math.floor((math.random() * 2 - 1) * strength * 0.5 + 0.5)
+			)
+	end)
 end
 
 -- Panel transparency scaled by the player's PreferredTransparency (1 is the

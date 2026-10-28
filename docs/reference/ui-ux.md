@@ -60,13 +60,14 @@ Sourced points:
 - **HUD (#85).** The stats slab shows minerals in two columns as icon and short number (`Ui.short`). The goal card sits top right: a GOAL header, one short sentence, up to three checklist steps and a "to go" bar; tapping it opens the menu it points to, and it steps aside when the boss bar would overlap it. Event banner time reads "3 days left".
 - **Menus (#86 to #95).** Forge rows show the real stat gain, tier chips, a bar for the missing mineral and a set-bonus line. Travel gives each island a color stripe and chips; a locked island opens a guide dialog with a bar to its gate. Artifacts, Skills, Events and Wardrobe use rarity or item cards in grids, with sort or filter toggles. Quests show the 7 day boxes, gifts and quests with bars, ready ones first. Awaken and Ascend confirm in a plain-words dialog. Trade shows "You give" and "You get" side by side when the window is wide enough, with one footer button. Ranks color the top three and always show your own row.
 - **Moments (#96, #97).** The tutorial sign shows "STEP N OF M" with a bar, a key cap for the input (Q, WASD, Tap, X) and a 48 px Skip button. The artifact reveal uses the rarity table's color, symbol and name, with Nice! and Equip buttons. The boss bar has a red name plate and the numbers inside the bar.
+- **Hit feel (#129).** Normal enemies carry our own name and health bar overhead instead of Roblox's default one. On a hit the enemy turns solid white for 0.15 s, the bar shakes, the red fill drops at once and a pale ghost segment holds for 0.3 s, then drains down to it. Damage numbers pop in big, then settle as they float up, and use `Ui.short`. The boss bar shakes on each hit too. `Ui.shake` skips the shake and the pop with Reduced Motion on. Timings live in `Config.HitFeel`.
 - **Mount button (#123).** A rune-rimmed Mount/Dismount button sits above the spell runestones (F or R1 on input devices). Dismounted, the spell buttons dim because spells need a rider.
 - Still missing: gamepad focus order beyond the confirm button in dialogs, and a Studio check at Largest text size on a small phone (#9).
 
 ## Gaps worth closing
 
 1. **P0 (#9):** Set `CoreUISafeInsets` on all interactive ScreenGuis; verify on a notched phone that spell buttons do not overlap the jump button (`images/mobile-safe-areas.png`).
-2. **Done (#82):** `Ui.short` formats minerals, costs, health and boss numbers. Damage numbers in `Fx.luau` still show raw values.
+2. **Done (#82, #129):** `Ui.short` formats minerals, costs, health, boss numbers and damage numbers.
 3. **Done (#82):** Fixed text sizes replace `TextScaled` on all menu and HUD text. Check at Largest text size in Studio (#9).
 4. **Mostly done (#82):** Kit tweens, the tutorial bob and the reveal glow respect `ReducedMotionEnabled`. Camera shake in `Fx.luau` does not yet.
 5. **Done (#84):** Red "!" badges on Quests, Events and Artifacts.

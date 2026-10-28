@@ -828,6 +828,26 @@ Config.Cosmetics = {
 
 ---------------------------------------------------------------- visuals
 
+-- How a hit feels (#129): the enemy turns white, its health bar shakes, the
+-- red fill drops at once and a pale "ghost" segment holds, then drains down
+-- to it, and the damage number pops in big before it floats away.
+Config.HitFeel = {
+	flashTransparency = 0, -- 0 is a solid white body for a moment
+	flashTime = 0.15, -- seconds for the white to fade
+	shakePixels = 5, -- how far the health bar jolts
+	bossShakePixels = 8,
+	shakeTime = 0.25,
+	fillTime = 0.1, -- the red fill slides to the new health this fast
+	ghostDelay = 0.3, -- the ghost holds this long after the last hit
+	ghostDrainTime = 0.5, -- then drains to the real health over this long
+	numberPop = 1.7, -- damage numbers start this much bigger, then settle
+	numberPopTime = 0.15,
+	barWidth = 110, -- pixels, overhead health bar of normal enemies
+	barHeight = 12,
+	barColor = Color3.fromRGB(220, 60, 50),
+	ghostColor = Color3.fromRGB(255, 240, 214),
+}
+
 Config.Visuals = {
 	-- Set to false once you tune Lighting by hand in Studio, so the game
 	-- stops overwriting your settings.
