@@ -132,7 +132,7 @@ bundle += (ROOT / "tests/reward-service.luau").read_text()
 policy_service = (ROOT / "src/server/Services/PolicyService.luau").read_text()
 policy_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', policy_service)
 bundle += "\nlocal function loadPolicyService(dependencies, game, task)\n"
-bundle += 'local script = { Parent = {} }\n'
+bundle += 'local warn = function() end\nlocal script = { Parent = {} }\n'
 bundle += policy_service + "\nend\n"
 bundle += (ROOT / "tests/policy-service.luau").read_text()
 with tempfile.TemporaryDirectory(prefix="golem-check-") as folder:
