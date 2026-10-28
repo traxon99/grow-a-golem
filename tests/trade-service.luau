@@ -378,6 +378,26 @@ do
 	assert(total(X, live[a], live[b]) == 1 and total(Y, live[a], live[b]) == 1)
 	assert(journalRecords["trade_g5"] == nil, "Settled after the outage, aborted, and cleaned up")
 
+	-- 6. The trade commits and a settles, but b's settle save fails and the
+	-- server dies: b's save still holds escrow. On rejoin b finds "committed",
+	-- gets a's spare, and only then is the record removed.
+	a, b = join(11, { [X] = 1 }), join(12, { [Y] = 1 })
+	trade(a, b, X, Y)
+	local finishSix = table.remove(queue, 1)
+	finishSix[1](table.unpack(finishSix[2], 1, finishSix[2].n)) -- escrow saves land, then the decision
+	failSave[b] = true -- b's settle save won't be written
+	drain()
+	assert(TradeJournal.status(journalRecords["trade_g6"]) == "committed", "Only a has marked, so it stays")
+	assert(records[12].trades.pending, "b's last written save still holds escrow")
+	failSave[b] = nil
+	leave(a)
+	leave(b)
+	b = join(12)
+	assert(live[b].trades.pending == nil and live[b].artifacts.spares[X] == 1, "b completes the committed trade")
+	assert(journalRecords["trade_g6"] == nil, "Removed once b's settled save is written")
+	a = join(11)
+	assert(total(X, live[a], live[b]) == 1 and total(Y, live[a], live[b]) == 1)
+
 	Config.Trading.countdownSeconds = countdown
 	Config.Trading.requestCooldown = cooldown
 	print(

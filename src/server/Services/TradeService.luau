@@ -216,7 +216,6 @@ local function decide(id: string, wanted: string): string?
 	return nil
 end
 
--- Applies the decision to a loaded player's save if it still holds that trade.
 -- Marks one side of a decided trade settled; removes the record once both are.
 -- Failing here only leaves a small record behind, so it doesn't retry for long.
 local function markSettled(id: string, side: string)
@@ -237,6 +236,7 @@ local function markSettled(id: string, side: string)
 	end
 end
 
+-- Applies the decision to a loaded player's save if it still holds that trade.
 local function settleLoaded(player: Player, id: string, status: string): boolean
 	local data = DataService.get(player)
 	local pending = data and data.trades.pending
