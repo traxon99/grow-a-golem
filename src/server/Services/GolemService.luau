@@ -341,7 +341,12 @@ local function groundUnder(golem: Golem): Vector3
 	return golem.root.Position - Vector3.new(0, golem.groundOffset, 0)
 end
 
--- Rebuilds the model in place (new parts or a new size).
+-- Rebuilds the model in place (new parts or a new size). Seats the rider on
+-- the new model before tearing down the old one: Seat:Sit() on a different
+-- seat moves the humanoid's weld directly, seat to seat, with no gap where
+-- gravity could take over. Destroying the old (by then unoccupied) seat
+-- first would otherwise drop the rider for a frame before seatRider() got a
+-- chance to teleport them back, which is what "booted off the golem" was.
 local function rebuild(golem: Golem, data: any)
 	local ground = groundUnder(golem)
 	local look = golem.root.CFrame.LookVector
@@ -349,9 +354,9 @@ local function rebuild(golem: Golem, data: any)
 	local model, humanoid, root, seat, groundOffset = buildModel(golem.player, data, golem.stats, ground, look)
 	golem.model, golem.humanoid, golem.root, golem.seat, golem.groundOffset = model, humanoid, root, seat, groundOffset
 	hookSeat(golem, seat)
+	seatRider(golem)
 	oldModel:Destroy()
 	publishHealth(golem)
-	seatRider(golem)
 end
 
 -- Recalculates stats after any data change; rebuilds the model if it looks different.
