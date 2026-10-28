@@ -414,6 +414,8 @@ Config.Party = {
 	friendBonusPerFriend = 10, -- % minerals per friend in your party
 	maxFriendBonus = 30,
 	inviteTimeout = 60,
+	inviteCooldown = 15, -- seconds between new invites to the same player
+	maxOutgoingInvites = 8, -- maximum pending invites from one player
 }
 
 ---------------------------------------------------------------- hub and trading
