@@ -35,6 +35,7 @@ Config.Golem = {
 	miningRange = 10,
 	seekRange = 150, -- when idle, golem walks to nodes this far away
 	respawnTime = 5,
+	fallDepth = 4, -- feet below the island surface: immediately knock out
 	maxLevel = 100,
 	baseArtifactSlots = 3,
 }

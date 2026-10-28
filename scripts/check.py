@@ -161,6 +161,16 @@ bundle += "\nlocal function loadActionService(dependencies, game, clock)\n"
 bundle += 'local os = { clock = clock }\nlocal warn = function() end\n'
 bundle += action_service + "\nend\n"
 bundle += (ROOT / "tests/action-service.luau").read_text()
+# The real PartyService with mocked services, a test-controlled os.clock, and
+# a mocked Players service (GetPlayerByUserId/GetPlayers/PlayerAdded/
+# PlayerRemoving) so invite/accept/decline/leave, friendBonus and the
+# friend-lookup cache can all be driven the way real party play does.
+party_service = (ROOT / "src/server/Services/PartyService.luau").read_text()
+party_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', party_service)
+bundle += "\nlocal function loadPartyService(dependencies, game, task, clock)\n"
+bundle += 'local os = { clock = clock }\nlocal script = { Parent = {} }\n'
+bundle += party_service + "\nend\n"
+bundle += (ROOT / "tests/party-service.luau").read_text()
 with tempfile.TemporaryDirectory(prefix="golem-check-") as folder:
     path = Path(folder) / "regression.luau"
     path.write_text(bundle)
