@@ -88,6 +88,15 @@ bundle += 'local os = { clock = clock, time = time }\nlocal task = { spawn = fun
 bundle += 'local script = { Parent = {} }\n'
 bundle += code_service + "\nend\n"
 bundle += (ROOT / "tests/code-service.luau").read_text()
+# The real LiveEventService with mocked services and a test-controlled os.time.
+# task.spawn only queues (never runs) so the service's own background loop,
+# started by .start(), never actually executes inside the test.
+live_event_service = (ROOT / "src/server/Services/LiveEventService.luau").read_text()
+live_event_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', live_event_service)
+bundle += "\nlocal function loadLiveEventService(dependencies, game, task, time)\n"
+bundle += 'local os = { time = time }\nlocal script = { Parent = {} }\n'
+bundle += live_event_service + "\nend\n"
+bundle += (ROOT / "tests/live-event-service.luau").read_text()
 with tempfile.TemporaryDirectory(prefix="golem-check-") as folder:
     path = Path(folder) / "regression.luau"
     path.write_text(bundle)
