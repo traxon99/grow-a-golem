@@ -140,6 +140,7 @@ local function startBossBar(gui: ScreenGui)
 			title.Text = if fraction <= 0.25 then `{h.DisplayName}  ·  Almost there!` else h.DisplayName
 			title.TextColor3 = if fraction <= 0.25 then Ui.Colors.gold else Ui.Colors.text
 			if fraction < lastFraction then
+				Ui.shake(frame, Config.HitFeel.bossShakePixels, Config.HitFeel.shakeTime)
 				if chipTween then
 					chipTween:Cancel()
 				end

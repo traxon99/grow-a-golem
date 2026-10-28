@@ -1,6 +1,7 @@
 --!strict
 -- Client-only hit feedback, drawn locally so it costs the server nothing:
--- enemies flash and pop a damage number when hit, your golem flashes red,
+-- enemies turn white, shake their health bar and pop a damage number when
+-- hit (the bar's pale ghost segment then drains down), your golem flashes red,
 -- defeated enemies burst into chunks, mined nodes throw off chips, and the
 -- color grading shifts a little to match the island you're on.
 
@@ -13,6 +14,8 @@ local GuiService = game:GetService("GuiService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
+
+local Ui = require(script.Parent:WaitForChild("Ui"))
 
 local Fx = {}
 
@@ -79,7 +82,7 @@ local function burst(
 end
 
 -- A quick colored glow over the whole model.
-local function flash(model: Model, color: Color3)
+local function flash(model: Model, color: Color3, transparency: number?, duration: number?)
 	local highlight = model:FindFirstChild("HitFlash") :: Highlight?
 	if not highlight then
 		local made = Instance.new("Highlight")
@@ -94,8 +97,8 @@ local function flash(model: Model, color: Color3)
 	-- Roblox draws a limited number of Highlights, so only enable it briefly.
 	highlight.Enabled = true
 	highlight.FillColor = color
-	highlight.FillTransparency = 0.35
-	local fade = TweenService:Create(highlight, TweenInfo.new(0.18), { FillTransparency = 1 })
+	highlight.FillTransparency = transparency or 0.35
+	local fade = TweenService:Create(highlight, TweenInfo.new(duration or 0.18), { FillTransparency = 1 })
 	fade:Play()
 	fade.Completed:Once(function(state)
 		if state == Enum.PlaybackState.Completed then
@@ -124,12 +127,21 @@ local function damageNumber(at: BasePart, amount: number)
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)
 	label.BackgroundTransparency = 1
-	label.Text = tostring(amount)
+	label.Text = Ui.short(amount)
 	label.Font = Enum.Font.GothamBlack
 	label.TextScaled = true
 	label.TextColor3 = Color3.fromRGB(255, 236, 140)
 	label.TextStrokeTransparency = 0.2
 	label.Parent = gui
+
+	-- Punch: the number lands big, then settles to size as it floats up.
+	if not GuiService.ReducedMotionEnabled then
+		local pop = Instance.new("UIScale")
+		pop.Scale = Config.HitFeel.numberPop
+		pop.Parent = label
+		TweenService:Create(pop, TweenInfo.new(Config.HitFeel.numberPopTime, Enum.EasingStyle.Back), { Scale = 1 })
+			:Play()
+	end
 
 	TweenService:Create(anchor, TweenInfo.new(0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 		Position = anchor.Position + Vector3.new(0, 4, 0),
@@ -149,16 +161,135 @@ local function bodyColor(model: Model): Color3
 	return Color3.fromRGB(140, 130, 120)
 end
 
+-- A name and health bar over a normal enemy. The red fill drops to the new
+-- health quickly; a pale ghost segment holds where the health was, then
+-- drains down to it, so every hit visibly takes a chunk out. Returns a
+-- function that shakes the bar.
+local function healthBar(model: Model, humanoid: Humanoid, root: BasePart): () -> ()
+	local feel = Config.HitFeel
+	local _, extents = model:GetBoundingBox()
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "HealthBar"
+	gui.Adornee = root
+	gui.Size = UDim2.fromOffset(feel.barWidth, feel.barHeight + 24)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, math.max(extents.Y, root.Size.Y) / 2 + 1.5, 0)
+	gui.MaxDistance = MAX_DISTANCE
+	gui.LightInfluence = 0
+	gui.ResetOnSpawn = false
+	gui.Parent = folder
+
+	-- Everything sits in one holder, so a shake moves the name and bar together.
+	local holder = Instance.new("Frame")
+	holder.Size = UDim2.fromScale(1, 1)
+	holder.BackgroundTransparency = 1
+	holder.Parent = gui
+	local name = Ui.label(holder, humanoid.DisplayName, UDim2.new(1, 0, 0, 20), UDim2.new(), {
+		Title = true,
+		TextSize = 14,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextWrapped = false,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+	})
+	if model:GetAttribute("Elite") then
+		name.TextColor3 = Ui.Colors.gold
+	end
+	local back = Instance.new("Frame")
+	back.Size = UDim2.new(1, 0, 0, feel.barHeight)
+	back.Position = UDim2.new(0, 0, 1, -feel.barHeight)
+	back.BackgroundColor3 = Color3.fromRGB(24, 22, 30)
+	back.Parent = holder
+	Ui.corner(back, 6)
+	local rim = Instance.new("UIStroke")
+	rim.Color = Ui.Colors.outline
+	rim.Thickness = 2
+	rim.Parent = back
+	local ghost = Instance.new("Frame")
+	ghost.Size = UDim2.fromScale(1, 1)
+	ghost.BackgroundColor3 = feel.ghostColor
+	ghost.ZIndex = 2
+	ghost.Parent = back
+	Ui.corner(ghost, 6)
+	local fill = Instance.new("Frame")
+	fill.Size = UDim2.fromScale(1, 1)
+	fill.ZIndex = 3
+	fill.Parent = back
+	Ui.corner(fill, 6)
+	Ui.fill(fill, feel.barColor)
+
+	local shown = 1
+	local ghostTween: Tween? = nil
+	local function update()
+		local fraction = math.clamp(humanoid.Health / math.max(humanoid.MaxHealth, 1), 0, 1)
+		Ui.tween(fill, TweenInfo.new(feel.fillTime, Enum.EasingStyle.Quad), { Size = UDim2.fromScale(fraction, 1) })
+		if ghostTween then
+			ghostTween:Cancel()
+		end
+		if fraction < shown then
+			-- Restarting the delay on every hit lets fast combos pile up in
+			-- the ghost before it drains.
+			ghostTween = Ui.tween(
+				ghost,
+				TweenInfo.new(
+					feel.ghostDrainTime,
+					Enum.EasingStyle.Quad,
+					Enum.EasingDirection.In,
+					0,
+					false,
+					feel.ghostDelay
+				),
+				{ Size = UDim2.fromScale(fraction, 1) }
+			)
+		else
+			ghost.Size = UDim2.fromScale(fraction, 1) -- healing back up
+		end
+		shown = fraction
+	end
+	update()
+	humanoid.HealthChanged:Connect(update)
+	humanoid:GetPropertyChangedSignal("MaxHealth"):Connect(update)
+	humanoid:GetPropertyChangedSignal("DisplayName"):Connect(function()
+		name.Text = humanoid.DisplayName
+	end)
+	model.Destroying:Connect(function()
+		gui:Destroy()
+	end)
+	model.AncestryChanged:Connect(function()
+		if not model:IsDescendantOf(workspace) then
+			gui:Destroy()
+		end
+	end)
+
+	return function()
+		Ui.shake(holder, feel.shakePixels, feel.shakeTime)
+	end
+end
+
 local function watchEnemy(model: Instance)
 	if not model:IsA("Model") then
 		return
 	end
+	local shakeBar: (() -> ())? = nil
+	task.spawn(function()
+		local humanoid = model:WaitForChild("Humanoid", 10)
+		local root = model.PrimaryPart or model:WaitForChild("HumanoidRootPart", 10)
+		-- Bosses use the big bar at the top of the screen (Moments.luau).
+		if model:GetAttribute("BossZone") then
+			return
+		end
+		if humanoid and humanoid:IsA("Humanoid") and root and root:IsA("BasePart") and model.Parent then
+			shakeBar = healthBar(model, humanoid, root)
+		end
+	end)
 	model:GetAttributeChangedSignal("Hit"):Connect(function()
 		local root = model.PrimaryPart
 		if not root or not near(root.Position) then
 			return
 		end
-		flash(model, Color3.new(1, 1, 1))
+		local feel = Config.HitFeel
+		flash(model, Color3.new(1, 1, 1), feel.flashTransparency, feel.flashTime)
+		if shakeBar then
+			shakeBar()
+		end
 		local amount = model:GetAttribute("HitDamage") :: number?
 		if amount then
 			damageNumber(root, amount)

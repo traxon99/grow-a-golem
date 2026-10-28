@@ -136,7 +136,7 @@ local enemies = loadEnemyService(
 			return at
 		end,
 	},
-	{ HumanoidRigType = {}, HumanoidHealthDisplayType = {}, HumanoidStateType = {} },
+	{ HumanoidRigType = {}, HumanoidHealthDisplayType = {}, HumanoidDisplayDistanceType = {}, HumanoidStateType = {} },
 	function()
 		return now
 	end
