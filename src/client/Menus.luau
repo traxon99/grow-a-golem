@@ -971,6 +971,20 @@ local function renderParty(list: ScrollingFrame, snap: any)
 		{ icon = "party", text = `{#party.members} / {Config.Party.maxSize} in party` },
 		{ text = `Friend bonus +{party.friendBonus}%` },
 	})
+	local inviteMode = if snap.data and snap.data.social then snap.data.social.partyInvites or "friends" else "friends"
+	local inviteLabel = if inviteMode == "everyone" then "Everyone" elseif inviteMode == "off" then "Off" else "Friends only"
+	local nextInviteMode = if inviteMode == "friends" then "everyone" elseif inviteMode == "everyone" then "off" else "friends"
+	Ui.item(list, nextOrder(), {
+		title = `Party invites: {inviteLabel}`,
+		subtitle = "Choose who can send you party invitations.",
+		action = {
+			text = "Change",
+			style = "secondary",
+			onClick = function()
+				State.request("setPartyInvites", nextInviteMode)
+			end,
+		},
+	})
 	if not party.inParty and #party.others == 0 then
 		Ui.empty(list, nextOrder(), "Playing solo.", "Invite a friend to fight together!")
 	end
@@ -1534,6 +1548,20 @@ local function renderHub(list: ScrollingFrame, snap: any)
 			style = "secondary",
 			onClick = function()
 				State.request("setAnnounce", not announce)
+			end,
+		},
+	})
+	local inviteMode = if snap.data and snap.data.social then snap.data.social.partyInvites or "friends" else "friends"
+	local inviteLabel = if inviteMode == "everyone" then "Everyone" elseif inviteMode == "off" then "Off" else "Friends only"
+	local nextInviteMode = if inviteMode == "friends" then "everyone" elseif inviteMode == "everyone" then "off" else "friends"
+	Ui.item(list, nextOrder(), {
+		title = `Party invites: {inviteLabel}`,
+		subtitle = "Choose who can send you party invitations.",
+		action = {
+			text = "Change",
+			style = "secondary",
+			onClick = function()
+				State.request("setPartyInvites", nextInviteMode)
 			end,
 		},
 	})
