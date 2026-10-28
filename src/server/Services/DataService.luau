@@ -93,6 +93,24 @@ local function reconcile(target: any, template: any)
 	end
 end
 
+-- Saves from before marble bags (#156) counted misses in artifacts.pity.
+-- Carry them into the bags, stopping one marble short of the end, so a find
+-- the menus already showed as close stays close.
+local function migratePity(data: any)
+	local pity = data.artifacts.pity
+	if type(pity) ~= "table" then
+		return
+	end
+	for key, rolls in pity do
+		local source = string.match(key, "^%a+")
+		local def = source and Config.ArtifactBags[source]
+		if def and type(rolls) == "number" and rolls > 0 and data.artifacts.bags[key] == nil then
+			data.artifacts.bags[key] = { drawn = math.min(math.floor(rolls), def.marbles - 1), wins = 0 }
+		end
+	end
+	data.artifacts.pity = nil
+end
+
 local function storeKey(player: Player): string
 	return "player_" .. player.UserId
 end
@@ -232,6 +250,7 @@ local function load(player: Player)
 	if ok then
 		data = if type(saved) == "table" then saved else defaultData()
 		reconcile(data, defaultData())
+		migratePity(data)
 	elseif RunService:IsStudio() then
 		warn("[DataService] Could not load data in Studio; playing without saving.")
 		data = defaultData()

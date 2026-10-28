@@ -148,6 +148,15 @@ do
 	assert(not unsaved.kicked and dataService.get(unsaved))
 	assert(not dataService.getSession(unsaved).canSave and not dataService.saveNow(unsaved))
 	assert(records.player_4 == nil)
+	-- A save from before marble bags keeps its miss counts as bag progress.
+	studio, fail = false, false
+	records.player_5 = { artifacts = { found = {}, equipped = {}, pity = { drop1 = 299, boss2 = 1 } } }
+	local old = player(5)
+	players.PlayerAdded:Fire(old)
+	local migrated = dataService.get(old).artifacts
+	assert(migrated.pity == nil, "the old pity counts are moved, not kept")
+	assert(migrated.bags.drop1.drawn == Config.ArtifactBags.drop.marbles - 1, "a near-pity find stays sure")
+	assert(migrated.bags.boss2.drawn == 1 and migrated.bags.boss2.wins == 0)
 	print(
 		"PASS: actual DataService acquisition/save/release, expired takeover, stale writes, abandoned loads, failed live/Studio loads"
 	)
