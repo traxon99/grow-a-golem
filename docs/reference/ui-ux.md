@@ -1,6 +1,6 @@
 # UI/UX
 
-Last updated: 2026-10-27. See also [ui-materials.md](ui-materials.md) (surface textures), [performance-mobile.md](performance-mobile.md), [art-audio.md](art-audio.md) and the wireframes in [visual-references.md](visual-references.md#our-wireframes).
+Last updated: 2026-10-28. See also [ui-materials.md](ui-materials.md) (surface textures), [performance-mobile.md](performance-mobile.md), [art-audio.md](art-audio.md) and the wireframes in [visual-references.md](visual-references.md#our-wireframes).
 
 ![HUD layout wireframe](images/hud-layout.png)
 
@@ -20,6 +20,17 @@ Last updated: 2026-10-27. See also [ui-materials.md](ui-materials.md) (surface t
 10. **Abbreviate large numbers** with one shared helper (1.2K, 3.4M, 5.6B, T...) (common practice, unverified).
 11. **Every purchase button shows its Robux price** (see [safety-compliance.md](safety-compliance.md)).
 12. Touch targets: aim for at least about 44-48 px (Apple/Google HIG figure quoted on DevForum; no Roblox source, unverified).
+
+## Writing for kids
+
+Our players are 9 to 15. Every word on screen follows these rules (house style, from the #82 brief; not from a cited source).
+
+1. **One idea per sentence, about 12 words or fewer.** "Beat Old Rockjaw to open Ember Flats." Not a sentence with directions in it.
+2. **Everyday words.** Taught game words stay ("Forge", "Awaken", "artifact"); everything else is a word a 9-year-old uses: "beat" not "defeat", "sure to drop" not "guaranteed".
+3. **Say what to do next.** A locked thing says how to open it; an empty list says what's missing and what to do ("No artifacts yet. Beat monsters to find your first one!").
+4. **Numbers over words.** "12 TO GO" on a bar, "3 days left", "Rank 2 / 5".
+5. **No pressure near anything paid.** No "only", "just", "hurry", "limited", "today only" or timers next to a Robux button (see [safety-compliance.md](safety-compliance.md)). Gameplay timers (gifts, events) never sit beside a price.
+6. **Friendly, not spooky.** Exclamation marks for good news, plain calm words for resets and warnings.
 
 ## What top games do
 
@@ -44,22 +55,22 @@ Sourced points:
 
 ## Grow A Golem today
 
-- #109: The existing HUD and menus now consume `Icons.create`: XP/minerals/spells, all 13 tabs, the current window header, close, travel guide/locks, quests and event points/reward status. Icons retain adjacent words and zero-ID text fallbacks. No new animation, remote, rarity assignment or purchase behavior is added. Approved sprite uploads still require the owner (#83); broader menu restyles remain separate.
-
-- UI built in code with themed materials (wood, stone, metal, studs, crystal) through `Ui.surface`; see [ui-materials.md](ui-materials.md). GothamBold with `TextScaled` and a dark text outline.
-- Layout: stats panel top-left (level, XP bar, mineral counts); golem health bar top-center with next-goal tracker and progress bar under it; menu buttons on the left; spell buttons Q/E/R bottom-right on touch; toasts bottom-center; event banner. This matches the common simulator layout (target wireframe: `images/hud-layout.png`).
-- Moments: boss HP bar, artifact reveal card, level-up banner, damage numbers.
-- HUD and menu ScreenGuis now explicitly use `CoreUISafeInsets`. **Still missing elsewhere:** number abbreviation helper, ReducedMotion handling, PreferredTextSize support (TextScaled overrides it), PreferredTransparency, gamepad navigation, notification badges.
+- **Menu kit (#82, 2026-10-28).** Every menu, the HUD, the tutorial and the big moments are built from the kit in `src/client/Ui.luau` (see [ui-materials.md](ui-materials.md) and [the wireframe](images/menu-kit.png)). Text is Builder Sans at fixed sizes with a thick `UIStroke` outline, so `PreferredTextSize` applies; rows and cards grow with `AutomaticSize`. `TextScaled` remains only on floating damage numbers.
+- **Window and tabs (#84).** A colored header per tab with its icon and title, and a red 48 px X. Escape and gamepad B close the newest dialog, then the menu grid, then the window. The tab column holds 176 x 56 buttons with icon and label; a red "!" badge shows on Quests, Events and Artifacts exactly when something is ready. Under 900 x 520 px the column folds into one Menu button that opens the tabs as a grid, and the window narrows to 60% of the width to leave the thumb corners clear.
+- **HUD (#85).** The stats slab shows minerals in two columns as icon and short number (`Ui.short`). The goal card sits top right: a GOAL header, one short sentence, up to three checklist steps and a "to go" bar; tapping it opens the menu it points to, and it steps aside when the boss bar would overlap it. Event banner time reads "3 days left".
+- **Menus (#86 to #95).** Forge rows show the real stat gain, tier chips, a bar for the missing mineral and a set-bonus line. Travel gives each island a color stripe and chips; a locked island opens a guide dialog with a bar to its gate. Artifacts, Skills, Events and Wardrobe use rarity or item cards in grids, with sort or filter toggles. Quests show the 7 day boxes, gifts and quests with bars, ready ones first. Awaken and Ascend confirm in a plain-words dialog. Trade shows "You give" and "You get" side by side when the window is wide enough, with one footer button. Ranks color the top three and always show your own row.
+- **Moments (#96, #97).** The tutorial sign shows "STEP N OF M" with a bar, a key cap for the input (Q, WASD, Tap, X) and a 48 px Skip button. The artifact reveal uses the rarity table's color, symbol and name, with Nice! and Equip buttons. The boss bar has a red name plate and the numbers inside the bar.
+- Still missing: gamepad focus order beyond the confirm button in dialogs, and a Studio check at Largest text size on a small phone (#9).
 
 ## Gaps worth closing
 
 1. **P0 (#9):** Set `CoreUISafeInsets` on all interactive ScreenGuis; verify on a notched phone that spell buttons do not overlap the jump button (`images/mobile-safe-areas.png`).
-2. **P0:** Add a shared number formatter (K/M/B/T) and use it for minerals, damage numbers and prices.
-3. **P1:** Replace `TextScaled` on body text with fixed sizes plus `UITextSizeConstraint`, honoring PreferredTextSize; keep TextScaled only for single big numbers if needed.
-4. **P1:** Gate tweens, camera shake and banner slides on `ReducedMotionEnabled`.
-5. **P1:** Red "!" badges on Quests/Gifts/Artifacts buttons when something is claimable, with a symbol, not just color.
-6. **P1:** Collapse the left menu column into one button on small phones.
-7. **P2 (#16):** Cartoony restyle: heavier outlined font and brighter palette, once the loop is playtested. Rounded corners and themed surface materials are done ([ui-materials.md](ui-materials.md)).
+2. **Done (#82):** `Ui.short` formats minerals, costs, health and boss numbers. Damage numbers in `Fx.luau` still show raw values.
+3. **Done (#82):** Fixed text sizes replace `TextScaled` on all menu and HUD text. Check at Largest text size in Studio (#9).
+4. **Mostly done (#82):** Kit tweens, the tutorial bob and the reveal glow respect `ReducedMotionEnabled`. Camera shake in `Fx.luau` does not yet.
+5. **Done (#84):** Red "!" badges on Quests, Events and Artifacts.
+6. **Done (#84):** The left column folds into a Menu button on small screens.
+7. **Done (#82 to #97):** Cartoony restyle with a heavier outlined font and brighter palette. Playtest it (#9).
 8. **P2:** Gamepad focus order and input-aware prompts.
 
 ## Sources

@@ -1,6 +1,6 @@
 # Visual references
 
-Last updated: 2026-10-27. We do not store other games' screenshots here. These are links to pages that show notable game UIs or official UI guidance, plus our own original wireframes.
+Last updated: 2026-10-28. We do not store other games' screenshots here. These are links to pages that show notable game UIs or official UI guidance, plus our own original wireframes.
 
 Status key:
 - **Verified**: the page was fetched or seen in search results during research (2026-10). Contents of image-heavy pages were not inspected as images.
@@ -81,6 +81,7 @@ Original wireframes drawn for Grow A Golem, stored in `docs/reference/images/`. 
 | [images/mobile-safe-areas.png](images/mobile-safe-areas.png) | Phone screen with safe insets, thumb zones, and default joystick/jump areas to keep clear | [ui-ux.md](ui-ux.md), [performance-mobile.md](performance-mobile.md) |
 | [images/rarity-colors.png](images/rarity-colors.png) | Our rarity color ladder with symbols for color-blind players | [art-audio.md](art-audio.md) |
 | [images/ui-materials.png](images/ui-materials.png) | Our five UI materials (wood, stone, metal, studs, crystal), code-only and with textures, with worst-case text samples | [ui-materials.md](ui-materials.md) |
+| [images/menu-kit.png](images/menu-kit.png) | The #82 menu kit: plate window with colored header and red X, button styles, a row with a "to go" bar, rarity cards, a checklist, an empty state and the speech-bubble dialog | [ui-materials.md](ui-materials.md), [ui-ux.md](ui-ux.md) |
 
 ## Grow A Golem today
 
