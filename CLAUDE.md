@@ -46,10 +46,9 @@ Studio ships its own MCP server, so Claude Code can play-test, read Output, insp
 
 ## Driving Blender (MCP)
 
-For modelling in Blender, use [blender-mcp](https://github.com/ahujasid/blender-mcp) (PyPI package `mcp-for-blender`). It needs [uv](https://docs.astral.sh/uv/) (`winget install --id=astral-sh.uv -e` on Windows).
+We use only Blender Lab's official **MCP** add-on (Blender 5.1+, from Blender's extensions platform; see https://www.blender.org/lab/mcp-server/). Its add-on listens on `localhost:9876`; [`tools/blender_mcp_bridge.py`](tools/blender_mcp_bridge.py) is the stdio MCP server Claude Code launches to talk to it. It uses only the Python standard library, so there's nothing to install.
 
-- **Install:** `uvx mcp-for-blender install-addon`, then in Blender go to **Edit → Preferences → Add-ons** and enable **MCP for Blender**.
-- **Register:** `claude mcp add --scope user blender -- uvx mcp-for-blender`, then restart Claude Code. If Claude Code can't find `uvx`, use its full path.
-- **Start:** in the 3D viewport press **N**, open the **MCP for Blender** tab and click **Start MCP Server** (it listens on `localhost:9876`).
-- **Using it:** `get_scene_info` and `look` to see the scene, `execute_blender_code` to run Python. Save the .blend first, since that tool runs arbitrary code. Only run one Blender MCP server at a time.
-- The add-on's socket has no authentication, so keep it on localhost.
+- **Blender side:** **Edit → Preferences → Get Extensions**, install **MCP**, and make sure online access is allowed (Preferences → System). The server auto-starts; its add-on preferences show "Server is running" and have Start/Stop buttons.
+- **Claude Code side:** `claude mcp add --scope user blender -- python -I <path to this repo>/tools/blender_mcp_bridge.py`, then restart Claude Code. `BLENDER_HOST` / `BLENDER_PORT` override the address.
+- **Tools:** `get_scene_info`, `viewport_screenshot`, and `execute_python`, which runs any Python in the live session (assign a dict to `result` to return data). Save the .blend before letting Claude edit it.
+- The add-on's socket has no authentication, so keep it on localhost. Don't run another Blender MCP add-on at the same time; they all default to port 9876.
