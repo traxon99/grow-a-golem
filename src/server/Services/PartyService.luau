@@ -19,6 +19,7 @@ local PartyService = {}
 
 local partyOf: { [Player]: Party } = {}
 local invites: { [Player]: { [Player]: number } } = {} -- target -> inviter -> expiry (os.clock)
+local inviteSentAt: { [Player]: { [Player]: number } } = {} -- inviter -> target -> last new invite
 local friendCache: { [Player]: { [number]: boolean } } = {}
 local friendCheckedAt: { [Player]: { [number]: number } } = {}
 local friendPending: { [Player]: { [number]: boolean } } = {}
@@ -222,8 +223,41 @@ function PartyService.start()
 		if #PartyService.members(player) >= Config.Party.maxSize then
 			return false, "Your party is full"
 		end
+		local data = DataService.get(target)
+		if not data then
+			return false, "That player isn't ready"
+		end
+		local mode = data.social and data.social.partyInvites or "friends"
+		if mode == "off" then
+			return false, "That player has party invites off"
+		end
+		if mode ~= "everyone" and not PartyService.areFriends(target, player) then
+			return false, "That player only accepts invites from friends"
+		end
+
+		local now = os.clock()
 		invites[target] = invites[target] or {}
-		invites[target][player] = os.clock() + Config.Party.inviteTimeout
+		if (invites[target][player] or 0) > now then
+			-- Refresh the existing invite silently: never send a second toast.
+			invites[target][player] = now + Config.Party.inviteTimeout
+			return true, `Invite already pending for {target.DisplayName}`
+		end
+		local lastSent = inviteSentAt[player] and inviteSentAt[player][target]
+		if lastSent and now - lastSent < Config.Party.inviteCooldown then
+			return false, "Wait before inviting that player again"
+		end
+		local open = 0
+		for other, pending in invites do
+			if other.Parent and (pending[player] or 0) > now then
+				open += 1
+			end
+		end
+		if open >= Config.Party.maxOutgoingInvites then
+			return false, "Too many open party invites"
+		end
+		inviteSentAt[player] = inviteSentAt[player] or {}
+		inviteSentAt[player][target] = now
+		invites[target][player] = now + Config.Party.inviteTimeout
 		Remotes.Notify:FireClient(
 			target,
 			"message",
@@ -239,17 +273,18 @@ function PartyService.start()
 		if not inviter or not pending or (pending[inviter] or 0) < os.clock() then
 			return false, "That invite expired"
 		end
+		local party = partyOf[inviter]
+		-- Check capacity before leaving the player's current party.
+		if party and #party.members >= Config.Party.maxSize then
+			return false, "That party is full"
+		end
 		pending[inviter] = nil
 		if partyOf[player] then
 			leave(player)
 		end
-		local party = partyOf[inviter]
 		if not party then
 			party = { leader = inviter, members = { inviter } }
 			partyOf[inviter] = party
-		end
-		if #party.members >= Config.Party.maxSize then
-			return false, "That party is full"
 		end
 		table.insert(party.members, player)
 		partyOf[player] = party
@@ -260,6 +295,19 @@ function PartyService.start()
 		end
 		Events.fire("partyJoined", player, #party.members)
 		return true, nil
+	end)
+
+	ActionService.register("setPartyInvites", function(player, mode)
+		if mode ~= "everyone" and mode ~= "friends" and mode ~= "off" then
+			return false, "Choose an invite setting"
+		end
+		if not DataService.get(player) then
+			return false, "Not ready"
+		end
+		DataService.update(player, function(data)
+			data.social.partyInvites = mode
+		end)
+		return true, "Party invite preference saved"
 	end)
 
 	ActionService.register("partyDecline", function(player, userId)
@@ -285,6 +333,10 @@ function PartyService.start()
 	Players.PlayerRemoving:Connect(function(player)
 		leave(player)
 		invites[player] = nil
+		inviteSentAt[player] = nil
+		for _, sent in inviteSentAt do
+			sent[player] = nil
+		end
 		friendCache[player] = nil
 		friendCheckedAt[player] = nil
 		friendPending[player] = nil
