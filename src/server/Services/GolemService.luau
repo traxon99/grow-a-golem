@@ -540,6 +540,10 @@ function GolemService.sendToZone(golem: Golem, zoneId: number)
 	local spawn = WorldService.getSpawnPoint(zoneId)
 		+ Vector3.new(math.random(-spread, spread), 0, math.random(-spread, spread))
 	golem.model:PivotTo(CFrame.new(spawn + Vector3.new(0, golem.groundOffset, 0)))
+	-- Teleporting doesn't discard falling momentum. Stop the whole assembly
+	-- so a fall can't carry the golem straight through its recovery spawn.
+	golem.root.AssemblyLinearVelocity = Vector3.zero
+	golem.root.AssemblyAngularVelocity = Vector3.zero
 	publishHealth(golem)
 end
 
@@ -578,9 +582,11 @@ function GolemService.update(golem: Golem, dt: number)
 		return
 	end
 
-	-- Fell off the island: put it back at the spawn.
-	if golem.root.Position.Y < WorldService.getSurfaceY(golem.zoneId) - 40 then
-		GolemService.sendToZone(golem, golem.zoneId)
+	-- Use foot height so every golem size hits the same kill plane. Falling
+	-- is a real knock-out, with the normal recovery time, not a free heal.
+	if groundUnder(golem).Y < WorldService.getSurfaceY(golem.zoneId) - Config.Golem.fallDepth then
+		GolemService.damage(golem, golem.hp)
+		return
 	end
 
 	if golem.hp < golem.stats.maxHealth then

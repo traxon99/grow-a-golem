@@ -15,6 +15,7 @@ jobs:
         run: |
           python3 scripts/check.py
           python3 scripts/check_ui_icons.py
+          python3 scripts/check_golem_service.py
       - name: Verify original assets are reproducible
         run: |
           python3 scripts/create_assets.py
