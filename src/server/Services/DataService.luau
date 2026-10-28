@@ -62,7 +62,7 @@ local function defaultData(): any
 		minerals = minerals,
 		golem = { xp = 0, parts = {} },
 		bossesDefeated = {}, -- ["1"] = true
-		artifacts = { found = {}, equipped = {}, pity = {}, spares = {}, boundSpares = {} }, -- pity["drop1"] = rolls since last find; spares[id] = extra copies, boundSpares[id] = how many of those can't be traded
+		artifacts = { found = {}, equipped = {}, bags = {}, spareBags = {}, spares = {}, boundSpares = {} }, -- bags["drop1"] = { drawn, wins } in the marble bag for that island and source (MarbleBag); spareBags["drop1"] = spare ids left to draw; spares[id] = extra copies, boundSpares[id] = how many of those can't be traded
 		skills = {},
 		awakening = { count = 0, shards = 0, upgrades = {} },
 		ascension = { count = 0, points = 0, spentAwakenings = 0, upgrades = {} },

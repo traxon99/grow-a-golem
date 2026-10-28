@@ -44,7 +44,7 @@ local function percent(chance: number): string
 	return `{string.format("%.2f", chance * 100)}%`
 end
 
--- One island's artifact odds at a given luck, per enemy and per boss.
+-- One island's artifact odds at a given luck, on the next enemy and boss.
 local function oddsText(data: any, zoneId: number, luckMult: number): string
 	local parts = {}
 	for _, source in { "drop", "boss" } do
@@ -54,8 +54,10 @@ local function oddsText(data: any, zoneId: number, luckMult: number): string
 		table.insert(
 			parts,
 			if unfound > 0
-				then `{percent(chance)} per {who}`
-				elseif spares then `{who} artifacts all found, {percent(spareChance)} per {who} for a spare copy`
+				then `{percent(chance)} on the next {who}`
+				elseif
+					spares
+				then `{who} artifacts all found, {percent(spareChance)} on the next {who} for a spare copy`
 				else `{who} artifacts all found`
 		)
 	end
@@ -490,7 +492,16 @@ local function artifactCard(grid: Instance, data: any, id: string, order: number
 	})
 end
 
--- The real odds on one island, one row per rarity, and the pity count.
+-- What's left in this source's marble bag, in words.
+local function bagText(data: any, zoneId: number, source: string, luckMult: number): string
+	local marblesLeft, winnersLeft = Stats.artifactBag(data, zoneId, source, luckMult)
+	if winnersLeft <= 0 then
+		return `This bag's find is out; {marblesLeft} marbles left before a new bag.`
+	end
+	return `This bag: {winnersLeft} find in {marblesLeft} marbles left.`
+end
+
+-- The real odds on one island, one row per rarity, and the bag count.
 local function oddsRows(list: ScrollingFrame, nextOrder: () -> number, data: any, zoneId: number, luckMult: number)
 	for _, source in { "drop", "boss" } do
 		local rarity = Ui.rarity(Config.ArtifactSourceRarity[source])
@@ -498,8 +509,8 @@ local function oddsRows(list: ScrollingFrame, nextOrder: () -> number, data: any
 		local chance, rollsLeft, unfound = Stats.artifactOdds(data, zoneId, source, luckMult)
 		if unfound > 0 then
 			Ui.item(list, nextOrder(), {
-				title = `{rarity.name}: {percent(chance)} per {who}`,
-				subtitle = `{unfound} left to find. One is sure to drop within {rollsLeft} more.`,
+				title = `{rarity.name}: {percent(chance)} on the next {who}`,
+				subtitle = `{unfound} left to find. {bagText(data, zoneId, source, luckMult)} One is sure within {rollsLeft} more.`,
 				icon = Config.ArtifactSourceRarity[source],
 				accent = rarity.color,
 				tint = rarity.dark,
@@ -510,8 +521,8 @@ local function oddsRows(list: ScrollingFrame, nextOrder: () -> number, data: any
 			local spareChance, spareLeft, spares = Stats.spareOdds(data, zoneId, source, luckMult)
 			if spares then
 				Ui.item(list, nextOrder(), {
-					title = `{rarity.name} spares: {percent(spareChance)} per {who}`,
-					subtitle = `All found here. A spare to trade is sure within {spareLeft} more.`,
+					title = `{rarity.name} spares: {percent(spareChance)} on the next {who}`,
+					subtitle = `All found here. {bagText(data, zoneId, source, luckMult)} A spare to trade is sure within {spareLeft} more.`,
 					icon = Config.ArtifactSourceRarity[source],
 					accent = rarity.color,
 					tint = rarity.dark,
@@ -1199,7 +1210,7 @@ local function renderShop(list: ScrollingFrame, snap: any)
 		end
 		if #pity > 0 then
 			Ui.item(list, nextOrder(), {
-				title = "Bad-luck protection (boost or not)",
+				title = "Marble bag: no long dry streaks (boost or not)",
 				subtitle = `One is sure to drop here within {table.concat(pity, " or ")}.`,
 			})
 		end

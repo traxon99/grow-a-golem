@@ -76,7 +76,7 @@ For the group join reward, set `Config.Group.id` to your Roblox group's id.
 
 **Paid cosmetics** (Frost skin, Starlight Wizard outfit, Ember Sprite and Crystal Owl pets, Rune Trail) are each their own game pass. Create one per item, set its price to the `price` in `Config.Cosmetics`, and paste the id into its `passId`. Until then the Wardrobe shows "Coming soon" (players can still preview them). Earned cosmetics need nothing.
 
-Kid-safe rules for cosmetics, please keep them: every paid cosmetic is a direct purchase of one item the player has previewed. No eggs, crates, spins or "limited stock" timers. If a free random cosmetic drop is ever added, show its real odds and give it a pity limit like `Config.ArtifactPity`.
+Kid-safe rules for cosmetics, please keep them: every paid cosmetic is a direct purchase of one item the player has previewed. No eggs, crates, spins or "limited stock" timers. If a free random cosmetic drop is ever added, show its real odds and draw it from a marble bag like `Config.ArtifactBags` so a find is sure within a set number of tries.
 
 ## Turning on the Golem Tower
 

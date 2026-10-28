@@ -21,6 +21,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
+local MarbleBag = require(Shared:WaitForChild("MarbleBag"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Stats = require(Shared:WaitForChild("Stats"))
 
@@ -232,20 +233,20 @@ local function payWave(run: Run)
 	end
 end
 
+local enemyBags: { [number]: MarbleBag.Bag<string> } = {} -- which enemy comes next, per route
+
 local function pickEnemy(route: number): string
-	local zone: any = Config.Zones[route]
-	local total = 0
-	for _, id in zone.enemies do
-		total += (Config.Enemies[id] :: any).spawnWeight or 1
-	end
-	local roll = math.random() * total
-	for _, id in zone.enemies do
-		roll -= (Config.Enemies[id] :: any).spawnWeight or 1
-		if roll < 0 then
-			return id
+	local bag = enemyBags[route]
+	if not bag then
+		local zone: any = Config.Zones[route]
+		local entries = {}
+		for _, id in zone.enemies do
+			table.insert(entries, { value = id, weight = (Config.Enemies[id] :: any).spawnWeight or 1 })
 		end
+		bag = MarbleBag.new(entries)
+		enemyBags[route] = bag
 	end
-	return zone.enemies[#zone.enemies]
+	return bag:draw()
 end
 
 local function spawnPoint(run: Run): Vector3?

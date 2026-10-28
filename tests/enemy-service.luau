@@ -71,6 +71,7 @@ Config.Party = { shareRange = 20 }
 local enemies = loadEnemyService(
 	{
 		Config = Config,
+		MarbleBag = MarbleBag,
 		Remotes = { Notify = { FireClient = function() end } },
 		EnemyModels = { dress = function() end },
 		GolemService = {

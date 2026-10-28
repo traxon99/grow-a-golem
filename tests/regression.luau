@@ -5,7 +5,7 @@ local function fresh()
 		golem = { xp = 0, parts = {} },
 		minerals = {},
 		bossesDefeated = {},
-		artifacts = { found = {}, equipped = {}, pity = {}, spares = {}, boundSpares = {} },
+		artifacts = { found = {}, equipped = {}, bags = {}, spares = {}, boundSpares = {} },
 		skills = {},
 		awakening = { count = 0, shards = 0, upgrades = {} },
 		ascension = { count = 0, points = 0, upgrades = {} },
@@ -93,13 +93,34 @@ player.ascension.upgrades.vigor = 1
 local withVigor = Stats.compute(player, ctx)
 player.ascension.upgrades = {}
 assert(withVigor.attackDamage > Stats.compute(player, ctx).attackDamage)
--- New zone rolls retain the exact luck and pity rules used by old zones.
+-- New zone rolls retain the exact luck and marble-bag rules used by old zones.
 for zoneId = 1, 6 do
+	local lucky = math.ceil(Config.ArtifactBags.drop.marbles / 2)
 	local odds, left, unfound = Stats.artifactOdds(player, zoneId, "drop", 2)
-	assert(odds == Config.ArtifactDropChance * 2 and unfound == 4)
-	player.artifacts.pity[Stats.pityKey(zoneId, "drop")] = Config.ArtifactPity.drop - 1
-	local _, atPity = Stats.artifactOdds(player, zoneId, "drop", 2)
-	assert(left == Config.ArtifactPity.drop and atPity == 1)
+	assert(odds == 1 / lucky and unfound == 4 and left == lucky)
+	player.artifacts.bags[Stats.bagKey(zoneId, "drop")] = { drawn = lucky - 1, wins = 0 }
+	local sure, atEnd = Stats.artifactOdds(player, zoneId, "drop", 2)
+	assert(sure == 1 and atEnd == 1)
+	-- Without luck the same bag is 167 marbles, and the miss count carries over.
+	local plain, plainLeft = Stats.artifactOdds(player, zoneId, "drop", 1)
+	assert(
+		plain == 1 / (Config.ArtifactBags.drop.marbles - lucky + 1)
+			and plainLeft == Config.ArtifactBags.drop.marbles - lucky + 1
+	)
+end
+-- Marble bags: weighted bags follow their weights exactly over one bag.
+do
+	local bag = MarbleBag.new({ { value = "a", weight = 3 }, { value = "b", weight = 1 } })
+	for _ = 1, 3 do
+		local counts = { a = 0, b = 0 }
+		for _ = 1, 4 do
+			local value = bag:draw()
+			counts[value] += 1
+		end
+		assert(counts.a == 3 and counts.b == 1, "each bag of four holds exactly three a and one b")
+	end
+	local after = MarbleBag.after({ drawn = 2, wins = 0 }, 3, 1, false)
+	assert(after.drawn == 0 and after.wins == 0, "a drawn-out bag refills")
 end
 -- Fast hop blocked, crash lease recoverable, delayed old-server write rejected.
 local record = { minerals = { stone = 50 } }
@@ -118,4 +139,4 @@ record._session = nil
 assert(SessionLease.canAcquire(record, "C", 181))
 record._session = { token = "B" }
 assert(not SessionLease.canAcquire(record, "C", 999), "Malformed leases fail closed")
-print("PASS: level boundaries, free gate/forge reachability, six-zone content, Ascension, odds/pity, session leases")
+print("PASS: level boundaries, free gate/forge reachability, six-zone content, Ascension, odds/bags, session leases")

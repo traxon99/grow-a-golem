@@ -62,9 +62,12 @@ end
 '''
 config = (ROOT / "src/shared/Config.luau").read_text()
 stats = (ROOT / "src/shared/Stats.luau").read_text().replace(
-    'local Config = require(script.Parent:WaitForChild("Config"))', '')
+    'local Config = require(script.Parent:WaitForChild("Config"))', '').replace(
+    'local MarbleBag = require(script.Parent:WaitForChild("MarbleBag"))', '')
+marble_bag = (ROOT / "src/shared/MarbleBag.luau").read_text()
 lease = (ROOT / "src/shared/SessionLease.luau").read_text()
 bundle = prelude + '\nlocal Config = (function()\n' + config + '\nend)()\n'
+bundle += 'local MarbleBag = (function()\n' + marble_bag + '\nend)()\n'
 bundle += 'local Stats = (function()\n' + stats + '\nend)()\n'
 bundle += 'local SessionLease = (function()\n' + lease + '\nend)()\n'
 journal = (ROOT / "src/shared/TradeJournal.luau").read_text()
@@ -144,7 +147,7 @@ bundle += economy_service + "\nend\n"
 bundle += (ROOT / "tests/economy-service.luau").read_text()
 # The real ArtifactService with mocked services (see the test file's header
 # for what's out of scope); task.spawn is a no-op so the hidden-relic pickup
-# loop never runs. math.random is shadowed so roll()'s pity/chance rolls are
+# loop never runs. math.random is shadowed so roll()'s marble-bag draws are
 # test-controlled; everything else math does is untouched via __index.
 artifact_service = (ROOT / "src/server/Services/ArtifactService.luau").read_text()
 artifact_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', artifact_service)

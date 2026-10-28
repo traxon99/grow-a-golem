@@ -1,15 +1,15 @@
 -- Artifact finds and equip slots (ArtifactService): grant/addCopy's
 -- found-vs-spare bookkeeping, equip/unequip's slot rules, and roll()'s
--- honest pity-timer roll (docs/reference/safety-compliance.md: a guaranteed
--- find at the end of the pity window, never a fake near-miss). The check
+-- honest marble-bag draw (docs/reference/safety-compliance.md: a guaranteed
+-- find before the bag runs out, never a fake near-miss). The check
 -- script bundles the real Config/Stats above this file and loads the real
 -- ArtifactService with its requires replaced by the mocks below, plus a
 -- test-controlled os.time and math.random.
 --
 -- roll() needs Stats.compute's luckMult but nothing else Stats.compute
 -- computes, so Stats here is the real module with just .compute swapped for
--- a stub (everything else -- artifactOdds, spareOdds, pityKey -- stays
--- real, so the pity math itself is genuinely exercised, not reimplemented).
+-- a stub (everything else -- artifactOdds, spareOdds, artifactBag -- stays
+-- real, so the bag math itself is genuinely exercised, not reimplemented).
 --
 -- Out of scope here: the hidden-relic flow (placeRelic/collectRelic/
 -- .start()'s pickup loop), which needs Instance.new/TweenService/
@@ -25,7 +25,7 @@ do
 	local golems = {}
 
 	local function fresh()
-		return { artifacts = { found = {}, equipped = {}, pity = {}, spares = {}, boundSpares = {} }, boosts = {} }
+		return { artifacts = { found = {}, equipped = {}, bags = {}, spares = {}, boundSpares = {} }, boosts = {} }
 	end
 
 	local timeNow = 1000
@@ -39,7 +39,7 @@ do
 		return value
 	end
 	-- Only .compute is stubbed (roll() just needs its luckMult); artifactOdds,
-	-- spareOdds and pityKey fall through to the real Stats, so the pity math
+	-- spareOdds and artifactBag fall through to the real Stats, so the bag math
 	-- itself is exercised, not reimplemented here.
 	local FakeStats = setmetatable({
 		compute = function()
@@ -51,6 +51,7 @@ do
 	Config.Zones = {}
 	local artifacts = loadArtifactService({
 		Config = Config,
+		MarbleBag = MarbleBag,
 		Remotes = {
 			Notify = {
 				FireClient = function(_, player, kind, a, b)
@@ -203,63 +204,111 @@ do
 	-- Zone 1's "drop" artifacts: pebbleCharm, quarryLantern, oldChisel,
 	-- rootboundRing (Config.ArtifactOrder's own order, matching the order
 	-- roll()'s own option lists are built in).
+	local size = Config.ArtifactBags.drop.marbles
 	do
-		-- An honest miss: not at the end of the pity window, and the queued
-		-- roll loses, so only the pity counter moves.
+		-- An honest miss: a losing marble is drawn from the 167-marble bag,
+		-- so only the bag's count moves.
 		local player = join()
 		datas[player].artifacts.found = { quarryLantern = true, oldChisel = true, rootboundRing = true }
-		randomQueue, randomCalls = { 0.5 }, {}
+		randomQueue, randomCalls = { 2 }, {}
 		artifacts.roll(player, 1, "drop")
-		assert(datas[player].artifacts.pity.drop1 == 1, "a miss advances the pity counter")
+		local bag = datas[player].artifacts.bags.drop1
+		assert(bag.drawn == 1 and bag.wins == 0, "a miss takes one marble out of the bag")
 		assert(datas[player].artifacts.found.pebbleCharm == nil, "a miss grants nothing")
-		assert(#randomCalls == 1 and randomCalls[1].a == nil, "a miss only ever checks the roll once")
+		assert(#randomCalls == 1 and randomCalls[1].a == 1 and randomCalls[1].b == size, "one draw from the full bag")
+		-- The miss raises the shown chance: one winner in one fewer marble.
+		local chance, left = Stats.artifactOdds(datas[player], 1, "drop", 1)
+		assert(chance == 1 / (size - 1) and left == size - 1)
 	end
 
 	do
-		-- An honest hit, well before the pity window ends: the roll wins on
-		-- its own merits, and the pity counter resets.
+		-- An honest hit partway through the bag: the winner is drawn, and
+		-- the rest of this bag holds only misses until it refills.
 		local player = join()
 		datas[player].artifacts.found = { quarryLantern = true, oldChisel = true, rootboundRing = true }
-		datas[player].artifacts.pity.drop1 = 5
-		randomQueue, randomCalls = { 0.001, 1 }, {}
+		datas[player].artifacts.bags = { drop1 = { drawn = 5, wins = 0 } }
+		randomQueue, randomCalls = { 1, 1 }, {}
 		artifacts.roll(player, 1, "drop")
-		assert(datas[player].artifacts.pity.drop1 == 0, "a hit resets the pity counter")
 		assert(datas[player].artifacts.found.pebbleCharm == true)
+		local bag = datas[player].artifacts.bags.drop1
+		assert(bag.drawn == 6 and bag.wins == 1, "the winner leaves the bag")
 		assert(fired[#fired].name == "artifactFound" and fired[#fired].player == player)
-		assert(#randomCalls == 2 and randomCalls[1].a == nil and randomCalls[2].a == 1 and randomCalls[2].b == 1)
+		assert(#randomCalls == 2 and randomCalls[1].b == size - 5 and randomCalls[2].a == 1 and randomCalls[2].b == 1)
+		-- The menus now show 0% until the bag refills, and when the next find is sure.
+		datas[player].artifacts.found.pebbleCharm = nil
+		local chance, left = Stats.artifactOdds(datas[player], 1, "drop", 1)
+		assert(chance == 0 and left == (size - 6) + size, "sure within the rest of this bag plus the next")
+		-- A draw from a bag whose winner is out never rolls and never finds.
+		randomQueue, randomCalls = {}, {}
+		artifacts.roll(player, 1, "drop")
+		assert(#randomCalls == 0 and datas[player].artifacts.found.pebbleCharm == nil)
+		assert(datas[player].artifacts.bags.drop1.drawn == 7)
 	end
 
 	do
-		-- At the very last roll of the pity window, the find is guaranteed
-		-- and the "did I get lucky" check is never even consulted -- an
-		-- unlucky roll here would be a fake near-miss, which safety-
-		-- compliance.md rules out. Only one math.random value is queued (for
-		-- the pick, not the chance check): if the chance check ran anyway,
-		-- it would consume that value in the wrong shape and the a==1/b==1
-		-- assertion below would fail.
+		-- The last marble in the bag is the winner: the find is sure and the
+		-- "did I get lucky" draw is never even made -- an unlucky roll here
+		-- would be a fake near-miss, which safety-compliance.md rules out.
+		-- Only one value is queued (for the pick): if a draw ran anyway, the
+		-- a==1/b==1 assertion below would fail. The bag then refills.
 		local player = join()
 		datas[player].artifacts.found = { quarryLantern = true, oldChisel = true, rootboundRing = true }
-		datas[player].artifacts.pity.drop1 = Config.ArtifactPity.drop - 1
+		datas[player].artifacts.bags = { drop1 = { drawn = size - 1, wins = 0 } }
 		randomQueue, randomCalls = { 1 }, {}
 		artifacts.roll(player, 1, "drop")
-		assert(datas[player].artifacts.found.pebbleCharm == true, "the last roll of the window always finds")
-		assert(datas[player].artifacts.pity.drop1 == 0)
-		assert(#randomCalls == 1 and randomCalls[1].a == 1 and randomCalls[1].b == 1, "the chance check never ran")
+		assert(datas[player].artifacts.found.pebbleCharm == true, "the last marble always finds")
+		local bag = datas[player].artifacts.bags.drop1
+		assert(bag.drawn == 0 and bag.wins == 0, "an empty bag refills")
+		assert(#randomCalls == 1 and randomCalls[1].a == 1 and randomCalls[1].b == 1, "the chance draw never ran")
+	end
+
+	do
+		-- 2x Luck halves the bag. A player 100 marbles into an unlucky bag
+		-- is past the end of the 84-marble lucky bag, so their find is owed
+		-- and sure on the next roll, not reset.
+		local player = join()
+		datas[player].artifacts.found = { quarryLantern = true, oldChisel = true, rootboundRing = true }
+		datas[player].artifacts.bags = { drop1 = { drawn = 100, wins = 0 } }
+		luckMult = 2
+		assert(Stats.artifactOdds(datas[player], 1, "drop", 2) == 1)
+		randomQueue, randomCalls = { 1 }, {}
+		artifacts.roll(player, 1, "drop")
+		luckMult = 1
+		assert(datas[player].artifacts.found.pebbleCharm == true and #randomCalls == 1)
 	end
 
 	do
 		-- Everything in the zone/source is already found: the same honest
-		-- roll now gives an unbound spare (no 2x Luck boost active).
+		-- bag now gives an unbound spare (no 2x Luck boost active), drawn
+		-- from a spare bag so each copy comes up once before any repeats.
 		local player = join()
 		datas[player].artifacts.found =
 			{ pebbleCharm = true, quarryLantern = true, oldChisel = true, rootboundRing = true }
+		datas[player].artifacts.spareBags = { drop1 = { "pebbleCharm" } }
 		datas[player].boosts.luck = 0
 		timeNow = 1000
-		randomQueue, randomCalls = { 0.001, 1 }, {}
+		randomQueue, randomCalls = { 1 }, {}
 		artifacts.roll(player, 1, "drop")
 		assert(datas[player].artifacts.spares.pebbleCharm == 1, "a spare is granted once everything is found")
 		assert(datas[player].artifacts.boundSpares.pebbleCharm == nil, "unbound without an active 2x Luck boost")
+		assert(#datas[player].artifacts.spareBags.drop1 == 0, "the drawn spare leaves its bag")
 		assert(string.find(notified[#notified].a, "Trade it from the Trade tab.") ~= nil)
+		-- The spare bag refills with all four once empty, and gives four
+		-- different spares before any repeat.
+		local seen = {}
+		for _ = 1, 4 do
+			datas[player].artifacts.bags.drop1 = { drawn = size - 1, wins = 0 }
+			randomQueue = {}
+			artifacts.roll(player, 1, "drop")
+			for id in datas[player].artifacts.spares do
+				seen[id] = true
+			end
+		end
+		local kinds = 0
+		for _ in seen do
+			kinds += 1
+		end
+		assert(kinds == 4 and datas[player].artifacts.spares.pebbleCharm == 2, "one of each before repeats")
 	end
 
 	do
@@ -267,9 +316,10 @@ do
 		local player = join()
 		datas[player].artifacts.found =
 			{ pebbleCharm = true, quarryLantern = true, oldChisel = true, rootboundRing = true }
+		datas[player].artifacts.spareBags = { drop1 = { "quarryLantern" } }
 		timeNow = 1000
 		datas[player].boosts.luck = timeNow + 100
-		randomQueue, randomCalls = { 0.001, 2 }, {}
+		randomQueue, randomCalls = { 1 }, {}
 		artifacts.roll(player, 1, "drop")
 		assert(datas[player].artifacts.spares.quarryLantern == 1)
 		assert(datas[player].artifacts.boundSpares.quarryLantern == 1, "bound while 2x Luck is active")

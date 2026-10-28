@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
+local MarbleBag = require(Shared:WaitForChild("MarbleBag"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 
 local ArtifactService = require(script.Parent.ArtifactService)
@@ -49,6 +50,7 @@ local countByZone: { [number]: number } = {}
 local bossByZone: { [number]: Enemy } = {}
 local bossReadyAt: { [number]: number } = {}
 local spawnsByZone: { [number]: number } = {}
+local spawnBags: { [number]: MarbleBag.Bag<string> } = {} -- which enemy spawns next, per zone
 
 local function buildModel(designId: string, def: any, at: Vector3): (Model, Humanoid, BasePart)
 	local model = Instance.new("Model")
@@ -134,19 +136,16 @@ end
 
 local function spawnEnemy(zoneId: number)
 	local zone = Config.Zones[zoneId]
-	local totalWeight = 0
-	for _, id in zone.enemies do
-		totalWeight += Config.Enemies[id].spawnWeight or 1
-	end
-	local roll = math.random() * totalWeight
-	local enemyId = zone.enemies[#zone.enemies]
-	for _, id in zone.enemies do
-		roll -= Config.Enemies[id].spawnWeight or 1
-		if roll < 0 then
-			enemyId = id
-			break
+	local bag = spawnBags[zoneId]
+	if not bag then
+		local entries = {}
+		for _, id in zone.enemies do
+			table.insert(entries, { value = id, weight = Config.Enemies[id].spawnWeight or 1 })
 		end
+		bag = MarbleBag.new(entries)
+		spawnBags[zoneId] = bag
 	end
+	local enemyId = bag:draw()
 	local def = Config.Enemies[enemyId]
 	for _ = 1, 6 do
 		local point = WorldService.randomPoint(zoneId, 12)

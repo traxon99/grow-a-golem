@@ -8,6 +8,7 @@ local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
+local MarbleBag = require(Shared:WaitForChild("MarbleBag"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Stats = require(Shared:WaitForChild("Stats"))
 
@@ -78,27 +79,32 @@ function ArtifactService.roll(player: Player, zoneId: number, source: string)
 	-- Luck from right now, so a boost that just ran out stops counting on this
 	-- exact roll and the roll always matches the odds the menus show.
 	local luckMult = Stats.compute(data, GolemService.context(player)).luckMult
-	local chance, rollsLeft = Stats.artifactOdds(data, zoneId, source, luckMult)
+	local _chance, _rollsLeft, unfoundCount = Stats.artifactOdds(data, zoneId, source, luckMult)
 	local spare = false
-	if chance <= 0 then
-		-- Everything here is found: the same roll now gives spare copies to trade.
-		chance, rollsLeft, spare = Stats.spareOdds(data, zoneId, source, luckMult)
+	if unfoundCount == 0 then
+		-- Everything here is found: the same bag now gives spare copies to trade.
+		_chance, _rollsLeft, spare = Stats.spareOdds(data, zoneId, source, luckMult)
 		if not spare then
 			return
 		end
 	end
-	local key = Stats.pityKey(zoneId, source)
-	-- An honest roll: the shown chance, plus a guaranteed find on the last
-	-- roll of the pity window. Never a fake near-miss.
-	if rollsLeft > 1 and math.random() >= chance then
-		DataService.update(player, function(d)
-			d.artifacts.pity[key] = (d.artifacts.pity[key] or 0) + 1
-		end)
+	-- An honest draw from the marble bag the menus show: a winner is a find.
+	-- When only winners are left the find is sure and nothing is rolled, and
+	-- a bag whose winner is already drawn can't find. Never a fake near-miss.
+	local key = Stats.bagKey(zoneId, source)
+	local marblesLeft, winnersLeft, size = Stats.artifactBag(data, zoneId, source, luckMult)
+	local won = if winnersLeft >= marblesLeft
+		then true
+		elseif winnersLeft <= 0 then false
+		else math.random(1, marblesLeft) <= winnersLeft
+	local winners = Config.ArtifactBags[source].winners
+	DataService.update(player, function(d)
+		d.artifacts.bags = d.artifacts.bags or {}
+		d.artifacts.bags[key] = MarbleBag.after(d.artifacts.bags[key], size, winners, won)
+	end)
+	if not won then
 		return
 	end
-	DataService.update(player, function(d)
-		d.artifacts.pity[key] = 0
-	end)
 	if spare then
 		local options = {}
 		for _, id in Config.ArtifactOrder do
@@ -107,7 +113,12 @@ function ArtifactService.roll(player: Player, zoneId: number, source: string)
 				table.insert(options, id)
 			end
 		end
-		local id = options[math.random(1, #options)]
+		-- Spares come from their own bag: one of each before any repeats.
+		local id: string = options[1]
+		DataService.update(player, function(d)
+			d.artifacts.spareBags = d.artifacts.spareBags or {}
+			id, d.artifacts.spareBags[key] = MarbleBag.drawFromList(d.artifacts.spareBags[key], options)
+		end)
 		-- A spare found while 2x Luck (bought with Robux) is on is bound to
 		-- the player: it can never be traded.
 		local boosted = (data.boosts.luck or 0) > os.time()
