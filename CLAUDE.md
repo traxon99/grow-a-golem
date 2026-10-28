@@ -43,3 +43,14 @@ Studio ships its own MCP server, so Claude Code can play-test, read Output, insp
 - **Using it:** call `list_roblox_studios` first, since every other tool needs its `studio_id`. Then `start_stop_play` to play-test, `get_console_output` for Output, `search_game_tree` / `inspect_instance` to look around, `execute_luau` to run code.
 - Code is synced by Rojo, so fix scripts in `src/`, not in Studio. Studio-side script edits are overwritten on the next sync.
 - **Won't connect?** Studio must be open with the toggle on. On Windows, `mcp.bat` hard-codes a Studio version folder and can go stale after a Studio update; toggle **Enable Studio as MCP server** off and on, which rewrites it, then restart Claude Code.
+
+## Driving Blender (MCP)
+
+We use only Blender Lab's official Blender MCP (https://www.blender.org/lab/mcp-server/), Blender 5.1 or newer. It has two parts: an add-on inside Blender that listens on `localhost:9876`, and an MCP server that Claude Code launches. Nothing about it goes in this repo.
+
+- **Add-on:** in Blender, add the extensions repository `https://lab.blender.org/` (Preferences → Get Extensions → Repositories), then install and enable **MCP**. Allow online access (Preferences → System), which it needs to open its socket. The server auto-starts; its add-on preferences show "Server is running".
+- **MCP server:** download the `.mcpb` bundle from the page above (it's a zip), extract it somewhere permanent such as `~/.blender-mcp/<version>`, and register it with [uv](https://docs.astral.sh/uv/):
+  `claude mcp add --scope user blender -- uv run --directory <that folder> blender-mcp`
+  Then restart Claude Code. The first run installs its Python dependencies.
+- **Tools:** `get_objects_summary`, `get_object_detail_summary`, the `get_blendfile_summary_*` family, screenshots (`get_screenshot_of_area_as_image`, `get_screenshot_of_window_as_image`), `render_viewport_to_path`, API and manual search, and `execute_blender_code` for any Python in the live session. Save the .blend before letting Claude edit it.
+- The add-on's socket has no authentication, so keep it on localhost. Don't run another Blender MCP add-on at the same time; they default to the same port.
