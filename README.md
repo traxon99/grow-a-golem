@@ -222,6 +222,7 @@ No secrets are needed. Tests that run inside Roblox (Open Cloud Luau execution) 
 - [Six-zone content, Ascension and co-op tower design](docs/expansion-design.md) (#15)
 - [Original model/audio/key-art sources and upload instructions](assets/README.md) (#16)
 - [Game-page draft](docs/launch/game-page.md) and [launch experiment](docs/launch/plan.md)
+- [Concept review: uniqueness, gaps and market odds](docs/concept-review.md) (#153)
 
 The DataStore still uses the existing v1 record keys, with atomic session leases.
 **Drain old servers before release**: older binaries do not respect those leases.
