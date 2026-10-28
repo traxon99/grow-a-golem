@@ -4,6 +4,7 @@
 -- numbers the server uses; the server is still the one that decides.
 
 local Config = require(script.Parent:WaitForChild("Config"))
+local MarbleBag = require(script.Parent:WaitForChild("MarbleBag"))
 
 export type Context = {
 	passes: { [string]: boolean },
@@ -271,13 +272,39 @@ function Stats.zoneArtifactCount(data: any, zoneId: number): (number, number)
 	return found, total
 end
 
-function Stats.pityKey(zoneId: number, source: string): string
+function Stats.bagKey(zoneId: number, source: string): string
 	return source .. zoneId
 end
 
+-- The marble bag an artifact roll on this island and source draws from right
+-- now (see Config.ArtifactBags). Luck shrinks the bag but keeps its winners,
+-- so 2x Luck halves the marbles and doubles the chance. Returns the marbles
+-- left, the winners left among them, and the bag's full size at this luck.
+function Stats.artifactBag(data: any, zoneId: number, source: string, luckMult: number): (number, number, number)
+	local def = Config.ArtifactBags[source]
+	local size = math.max(math.ceil(def.marbles / math.max(luckMult, 1) - 1e-9), def.winners)
+	local state = (data.artifacts.bags or {})[Stats.bagKey(zoneId, source)]
+	local marblesLeft, winnersLeft = MarbleBag.count(state, size, def.winners)
+	return marblesLeft, winnersLeft, size
+end
+
+-- The chance of a find on the next roll and how many rolls until one is sure,
+-- read straight from the bag.
+local function bagOdds(data: any, zoneId: number, source: string, luckMult: number): (number, number)
+	local marblesLeft, winnersLeft, size = Stats.artifactBag(data, zoneId, source, luckMult)
+	if winnersLeft > 0 then
+		return winnersLeft / marblesLeft, marblesLeft - winnersLeft + 1
+	end
+	-- This bag's winner is already found: the rest of it are misses, and the
+	-- next bag holds a sure find.
+	local winners = Config.ArtifactBags[source].winners
+	return 0, marblesLeft + size - winners + 1
+end
+
 -- The real odds of an artifact roll, used by the server to roll and by the
--- menus to show them. Returns the chance per roll (0 to 1), how many rolls
--- are left before one is guaranteed, and how many artifacts are still unfound.
+-- menus to show them. Returns the chance on the next roll (0 to 1), how many
+-- rolls are left before a find is sure, and how many artifacts are still
+-- unfound.
 function Stats.artifactOdds(data: any, zoneId: number, source: string, luckMult: number): (number, number, number)
 	local unfound = 0
 	for id, artifact in Config.Artifacts do
@@ -285,20 +312,17 @@ function Stats.artifactOdds(data: any, zoneId: number, source: string, luckMult:
 			unfound += 1
 		end
 	end
-	local base = if source == "boss" then Config.ArtifactBossChance else Config.ArtifactDropChance
-	local chance = math.min(base * luckMult, 1)
-	local rolls = (data.artifacts.pity or {})[Stats.pityKey(zoneId, source)] or 0
-	local rollsLeft = math.max(Config.ArtifactPity[source] - rolls, 1)
 	if unfound == 0 then
 		return 0, 0, 0
 	end
+	local chance, rollsLeft = bagOdds(data, zoneId, source, luckMult)
 	return chance, rollsLeft, unfound
 end
 
--- Once every artifact from a source on an island is found, the same roll
--- (same chance, same bad-luck protection) gives a spare copy to trade
--- instead. Returns the chance per roll, rolls left before one is guaranteed,
--- and whether spares are what this source is rolling for right now.
+-- Once every artifact from a source on an island is found, the same bag
+-- gives a spare copy to trade instead. Returns the chance on the next roll,
+-- rolls left before one is sure, and whether spares are what this source is
+-- rolling for right now.
 function Stats.spareOdds(data: any, zoneId: number, source: string, luckMult: number): (number, number, boolean)
 	local _chance, _rollsLeft, unfound = Stats.artifactOdds(data, zoneId, source, luckMult)
 	if unfound > 0 then
@@ -313,9 +337,8 @@ function Stats.spareOdds(data: any, zoneId: number, source: string, luckMult: nu
 	if total == 0 then
 		return 0, 0, false
 	end
-	local base = if source == "boss" then Config.ArtifactBossChance else Config.ArtifactDropChance
-	local rolls = (data.artifacts.pity or {})[Stats.pityKey(zoneId, source)] or 0
-	return math.min(base * luckMult, 1), math.max(Config.ArtifactPity[source] - rolls, 1), true
+	local chance, rollsLeft = bagOdds(data, zoneId, source, luckMult)
+	return chance, rollsLeft, true
 end
 
 -- Spare copies of an artifact that can be traded (the rest are bound).

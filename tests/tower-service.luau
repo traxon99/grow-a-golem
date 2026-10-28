@@ -59,6 +59,7 @@ do
 	local tower = loadTowerService(
 		{
 			Config = Config,
+			MarbleBag = MarbleBag,
 			Stats = Stats,
 			Remotes = {
 				Notify = {

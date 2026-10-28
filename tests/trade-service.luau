@@ -32,7 +32,7 @@ do
 	local function newData(spares)
 		local found = { [X] = true, [Y] = true }
 		return {
-			artifacts = { found = found, equipped = {}, pity = {}, spares = copy(spares), boundSpares = {} },
+			artifacts = { found = found, equipped = {}, bags = {}, spares = copy(spares), boundSpares = {} },
 			trades = { day = 0, count = 0, log = {} },
 		}
 	end

@@ -41,12 +41,12 @@ Last updated: 2026-10-27. See also [gameplay-loops.md](gameplay-loops.md) and [m
 - Forge: 5 part slots x 8 tiers (stone, copper, iron, crystal, stormglass, abyssite, sunsteel, aether) with a full-set bonus.
 - Skill tree: 3 branches x 8 nodes; respec costs stone.
 - **Awakening** (rebirth) from level 20: shards = level - 15; +10% minerals per awakening; shard upgrades.
-- 36 artifacts across six islands (drop, boss, hidden), 0.6% per enemy, 30% per boss, pity 300 enemy / 4 boss rolls, zone set bonuses, odds shown in Artifacts menu and Shop.
-- Once every artifact from an island source is found, the same roll (same odds, same pity, shown in the menus) gives a spare copy of one of them instead (`Stats.spareOdds`). Spares are tradable (see social.md), except those found under Robux-bought 2x Luck. Titles (`Config.Titles`) are earned from boss kills, zone collections, Awakening and level 30.
+- 36 artifacts across six islands (drop, boss, hidden), drawn from marble bags (1 in 167 per enemy, 1 in 3 per boss, a find sure within each bag; 2x Luck halves the bag; #156), zone set bonuses, odds shown in Artifacts menu and Shop.
+- Once every artifact from an island source is found, the same bag (shown in the menus) gives a spare copy instead (`Stats.spareOdds`), drawn from a spare bag so each comes up once before repeats. Spares are tradable (see social.md), except those found under Robux-bought 2x Luck. Titles (`Config.Titles`) are earned from boss kills, zone collections, Awakening and level 30.
 - Compared with norms: structure matches the genre. Awakening's +10% minerals is small next to PS99's +75% per rebirth and does not yet unlock a new system. Later growth milestones now extend to level 100.
 
 - **Expansion (#15):** six islands with two weighted enemy types each, periodic deterministic elites, eight tiers, new skill nodes and later growth. Analytics also logs Ascension completion. Ascension requires five unspent Awakenings plus the zone 6 boss; it resets the current run, preserves lifetime Awakening bonuses and collections, and grants a point for a permanent three-branch upgrade tree. See [expansion-design.md](../expansion-design.md).
-- **Validation:** offline syntax/logic checks cover level boundaries, free gate/resource reachability, odds/pity and actual Ascension handlers. Studio pacing and the 20-hour completion goal remain unmeasured; use [playtest.md](../playtest.md).
+- **Validation:** offline syntax/logic checks cover level boundaries, free gate/resource reachability, odds/marble bags and actual Ascension handlers. Studio pacing and the 20-hour completion goal remain unmeasured; use [playtest.md](../playtest.md).
 
 ## Gaps worth closing
 

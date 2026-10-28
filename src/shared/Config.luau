@@ -320,13 +320,19 @@ Config.Artifacts = {
 	stagAntler = { name = "Stag Antler", zone = 3, source = "boss", bonus = { damage = 12 } },
 	hollowBulb = { name = "Hollow Bulb", zone = 3, source = "hidden", bonus = { minerals = 12 } },
 }
-Config.ArtifactDropChance = 0.006 -- per enemy defeated, before luck
-Config.ArtifactBossChance = 0.3 -- per boss defeat, before luck
--- Bad-luck protection: after this many rolls in a row without a find in a
--- zone, the next roll always succeeds. The Artifacts menu shows the real odds
--- and the count, so random finds stay honest (Roblox requires disclosed odds
--- for anything random that money can affect, like the luck boost).
-Config.ArtifactPity = { drop = 300, boss = 4 }
+-- Artifact finds draw from marble bags, one per island and source for each
+-- player (src/shared/MarbleBag.luau). Each roll takes one marble out without
+-- putting it back, and the bag refills once it's empty. A bag of 167 with 1
+-- winner is about 0.6% a roll on average, but the chance rises with every
+-- miss and a find is sure within 167 enemies; a boss bag of 3 makes a find
+-- sure within 3 boss wins. This is the bad-luck protection. Luck shrinks the
+-- bag (2x Luck halves it). The Artifacts menu and Shop show the real odds
+-- and the count from the same bag (Roblox requires disclosed odds for
+-- anything random that money can affect, like the luck boost).
+Config.ArtifactBags = {
+	drop = { marbles = 167, winners = 1 }, -- per enemy defeated
+	boss = { marbles = 3, winners = 1 }, -- per boss defeat
+}
 Config.ZoneSetBonus = { health = 5, damage = 5 } -- for finding every artifact in a zone
 Config.HiddenRelic = { respawn = 180, pickupRange = 10, consolationMinerals = 50 }
 

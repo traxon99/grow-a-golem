@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
+local MarbleBag = require(Shared:WaitForChild("MarbleBag"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 
 local DataService = require(script.Parent.DataService)
@@ -29,19 +30,19 @@ local MiningService = {}
 
 local nodes: { [BasePart]: Node } = {}
 
+local mineralBags: { [any]: MarbleBag.Bag<string> } = {} -- which mineral the next node holds, per zone
+
 local function pickMineral(zone: any): string
-	local total = 0
-	for _, entry in zone.nodes do
-		total += entry.weight
-	end
-	local roll = math.random() * total
-	for _, entry in zone.nodes do
-		roll -= entry.weight
-		if roll <= 0 then
-			return entry.mineral
+	local bag = mineralBags[zone]
+	if not bag then
+		local entries = {}
+		for _, entry in zone.nodes do
+			table.insert(entries, { value = entry.mineral, weight = entry.weight })
 		end
+		bag = MarbleBag.new(entries)
+		mineralBags[zone] = bag
 	end
-	return zone.nodes[1].mineral
+	return bag:draw()
 end
 
 local function placeNode(zoneId: number)

@@ -13,6 +13,7 @@ config = (ROOT / "src/shared/Config.luau").read_text()
 settings = config[config.index("Config.Golem = {"):config.index("-- Total XP")]
 bundle = (
     "local Config = {}\n" + settings
+    + "\nlocal MarbleBag = (function()\n" + (ROOT / "src/shared/MarbleBag.luau").read_text() + "\nend)()\n"
     + "\nlocal function loadEnemyService(dependencies, game, Instance, Vector3, CFrame, Enum, clock)\n"
     + "local os = { clock = clock }\n" + source + "\nend\n"
     + (ROOT / "tests/enemy-service.luau").read_text()
