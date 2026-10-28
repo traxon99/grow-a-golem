@@ -125,6 +125,16 @@ bundle += "\nlocal function loadRewardService(dependencies, game, task, time)\n"
 bundle += 'local os = { time = time }\nlocal script = { Parent = {} }\n'
 bundle += reward_service + "\nend\n"
 bundle += (ROOT / "tests/reward-service.luau").read_text()
+# The real PolicyService with mocked services. check() is only reachable
+# through the ProfileLoaded callback .start() registers, so task.spawn here
+# actually runs its callback (unlike every other wrapper's no-op) while
+# task.wait stays a no-op so the retry loop's real-second delays don't happen.
+policy_service = (ROOT / "src/server/Services/PolicyService.luau").read_text()
+policy_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', policy_service)
+bundle += "\nlocal function loadPolicyService(dependencies, game, task)\n"
+bundle += 'local warn = function() end\nlocal script = { Parent = {} }\n'
+bundle += policy_service + "\nend\n"
+bundle += (ROOT / "tests/policy-service.luau").read_text()
 with tempfile.TemporaryDirectory(prefix="golem-check-") as folder:
     path = Path(folder) / "regression.luau"
     path.write_text(bundle)
