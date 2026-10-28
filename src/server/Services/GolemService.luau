@@ -30,6 +30,7 @@ export type Golem = {
 	zoneId: number,
 	hp: number,
 	downedUntil: number, -- 0 when standing
+	fallRecovery: boolean,
 	nextAttack: number,
 	nextMine: number,
 	spellReadyAt: { [string]: number },
@@ -358,6 +359,7 @@ local function publishHealth(golem: Golem)
 	golem.player:SetAttribute("GolemDowned", golem.downedUntil > 0)
 	golem.player:SetAttribute("GolemZone", golem.zoneId)
 	golem.model:SetAttribute("Downed", golem.downedUntil > 0)
+	golem.model:SetAttribute("FallRecovery", golem.fallRecovery)
 	local inspect = golem.root:FindFirstChild("InspectPrompt")
 	if inspect and inspect:IsA("ProximityPrompt") then
 		inspect.Enabled = golem.zoneId == Config.HubZone
@@ -462,6 +464,7 @@ local function spawnGolem(player: Player)
 		zoneId = zoneId,
 		hp = stats.maxHealth,
 		downedUntil = 0,
+		fallRecovery = false,
 		nextAttack = 0,
 		nextMine = 0,
 		spellReadyAt = {},
@@ -573,9 +576,24 @@ end
 -- Called every server tick by CombatService.
 function GolemService.update(golem: Golem, dt: number)
 	local now = os.clock()
+	local surface = WorldService.getSurfaceY(golem.zoneId) - Config.Golem.fallDepth
+	local character = golem.player.Character
+	local rider = character and character:FindFirstChildOfClass("Humanoid")
+	local riderRoot = character and character:FindFirstChild("HumanoidRootPart")
+	local riderFell = rider ~= nil
+		and rider.Health > 0
+		and riderRoot ~= nil
+		and riderRoot:IsA("BasePart")
+		and riderRoot.Position.Y - rider.HipHeight - riderRoot.Size.Y / 2 < surface
+	if riderFell and rider then
+		-- A detached character can fall while its golem is still on land.
+		-- Kill that character immediately too; Roblox will respawn the rider.
+		rider.Health = 0
+	end
 	if golem.downedUntil > 0 then
 		if now >= golem.downedUntil then
 			golem.downedUntil = 0
+			golem.fallRecovery = false
 			golem.hp = golem.stats.maxHealth
 			publishHealth(golem)
 		end
@@ -584,7 +602,9 @@ function GolemService.update(golem: Golem, dt: number)
 
 	-- Use foot height so every golem size hits the same kill plane. Falling
 	-- is a real knock-out, with the normal recovery time, not a free heal.
-	if groundUnder(golem).Y < WorldService.getSurfaceY(golem.zoneId) - Config.Golem.fallDepth then
+	if riderFell or groundUnder(golem).Y < surface then
+		golem.fallRecovery = true
+		golem.model:SetAttribute("FallPosition", golem.root.Position)
 		GolemService.damage(golem, golem.hp)
 		return
 	end

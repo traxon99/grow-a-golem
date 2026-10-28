@@ -8,6 +8,7 @@ local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local GuiService = game:GetService("GuiService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
@@ -35,9 +36,10 @@ local function burst(
 	material: Enum.Material,
 	count: number,
 	size: number,
-	power: number
+	power: number,
+	reform: boolean?
 )
-	if not near(position) then
+	if GuiService.ReducedMotionEnabled or not near(position) then
 		return
 	end
 	for _ = 1, count do
@@ -59,9 +61,14 @@ local function burst(
 		chunk.Parent = folder
 		local direction = Vector3.new(math.random() * 2 - 1, 0.6 + math.random(), math.random() * 2 - 1).Unit
 		local target = position + direction * power * (0.6 + math.random() * 0.6) - Vector3.new(0, power * 0.4, 0)
+		if reform then
+			chunk.CFrame = CFrame.new(target)
+			chunk.Size = Vector3.new(0.05, 0.05, 0.05)
+			target = position
+		end
 		local tween = TweenService:Create(chunk, TweenInfo.new(0.55, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 			CFrame = CFrame.new(target) * CFrame.Angles(math.random() * 6, math.random() * 6, math.random() * 6),
-			Size = Vector3.new(0.05, 0.05, 0.05),
+			Size = if reform then Vector3.new(s, s, s) else Vector3.new(0.05, 0.05, 0.05),
 		})
 		tween:Play()
 		tween.Completed:Once(function()
@@ -169,6 +176,77 @@ local function watchGolem(model: Instance)
 			flash(model, Color3.fromRGB(255, 70, 60))
 		end
 	end)
+	-- A fall disperses stone at the saved fall position, then draws the same
+	-- pieces inward at spawn. No model clones or server-side debris are needed.
+	local hidden: { [BasePart]: number } = {}
+	local generation = 0
+	local recovering = model:GetAttribute("FallRecovery") == true
+	local function hide(part: Instance)
+		if part:IsA("BasePart") and hidden[part] == nil then
+			hidden[part] = part.LocalTransparencyModifier
+			part.LocalTransparencyModifier = 1
+		end
+	end
+	local function restore()
+		for part, transparency in hidden do
+			part.LocalTransparencyModifier = transparency
+		end
+		table.clear(hidden)
+	end
+	local function fallChanged(animate: boolean)
+		generation += 1
+		local current = generation
+		local falling = model:GetAttribute("FallRecovery") == true
+		-- Publishing the initial false attribute is not a reformation.
+		animate = animate and (falling or recovering)
+		recovering = falling
+		local root = model.PrimaryPart
+		if falling then
+			for _, part in model:GetDescendants() do
+				hide(part)
+			end
+		end
+		if not animate or not root or GuiService.ReducedMotionEnabled then
+			if not falling then
+				restore()
+			end
+			return
+		end
+		local at = if falling then model:GetAttribute("FallPosition") else root.Position
+		if typeof(at) ~= "Vector3" or not near(at) then
+			if not falling then
+				restore()
+			end
+			return
+		end
+		local effect = Config.FallEffects
+		local scale = root.Size.Y / 8
+		burst(
+			at,
+			bodyColor(model),
+			Enum.Material.Slate,
+			effect.chunks,
+			effect.chunkSize * scale,
+			effect.spread * scale,
+			not falling
+		)
+		if not falling then
+			task.delay(0.55, function()
+				if model.Parent and generation == current then
+					restore()
+				end
+			end)
+		end
+	end
+	model:GetAttributeChangedSignal("FallRecovery"):Connect(function()
+		fallChanged(true)
+	end)
+	model.DescendantAdded:Connect(function(part)
+		if model:GetAttribute("FallRecovery") == true then
+			hide(part)
+		end
+	end)
+	fallChanged(false)
 end
 
 local function watchNode(node: Instance)

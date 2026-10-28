@@ -92,6 +92,7 @@ local function fixture(offset)
 		zoneId = 1,
 		hp = 120,
 		downedUntil = 0,
+		fallRecovery = false,
 	},
 		attributes
 end
@@ -107,6 +108,7 @@ for _, offset in { 8, 24 } do
 	service.update(golem, 1)
 	assert(golem.hp == 0 and golem.downedUntil == now + Config.Golem.respawnTime)
 	assert(attributes.GolemDowned and attributes.GolemHealth == 0)
+	assert(attributes.FallRecovery and attributes.FallPosition.Y < 50 + offset - Config.Golem.fallDepth)
 	assert(golem.root.Position.Y == 50 + offset)
 	assert(golem.root.AssemblyLinearVelocity == Vector3.zero)
 	assert(golem.root.AssemblyAngularVelocity == Vector3.zero)
@@ -117,6 +119,32 @@ for _, offset in { 8, 24 } do
 	now = golem.downedUntil
 	service.update(golem, 1)
 	assert(service.isActive(golem) and golem.hp == 200 and not attributes.GolemDowned)
+	assert(not attributes.FallRecovery)
 end
 assert(messages == 2)
+
+-- A detached rider is also killed even when the golem is safely on land.
+local detached, detachedAttributes = fixture(8)
+local humanoid = { Health = 100, HipHeight = 2 }
+local riderRoot = {
+	Position = Vector3.new(0, 20, 0),
+	Size = Vector3.new(2, 2, 1),
+	IsA = function(_, class)
+		return class == "BasePart"
+	end,
+}
+detached.player.Character = {
+	FindFirstChildOfClass = function()
+		return humanoid
+	end,
+	FindFirstChild = function()
+		return riderRoot
+	end,
+}
+service.update(detached, 0)
+assert(humanoid.Health == 0 and detached.hp == 0 and detachedAttributes.FallRecovery)
+assert(detached.downedUntil == now + Config.Golem.respawnTime)
+local count = messages
+service.update(detached, 1)
+assert(messages == count and humanoid.Health == 0)
 print("GolemService fall knock-out and recovery checks passed")

@@ -36,6 +36,8 @@ export type Enemy = {
 	slamPosition: Vector3,
 	slamMarker: BasePart?,
 	contributors: { [Player]: boolean },
+	lastHitBy: Player?,
+	lastHitPosition: Vector3?, -- party sharing stays at the fight, not below the island
 	-- Set for tower enemies: called once on defeat instead of island rewards.
 	onDefeated: ((Enemy) -> ())?,
 }
@@ -100,6 +102,8 @@ local function makeEnemy(id: string, def: any, zoneId: number, at: Vector3, isBo
 		slamPosition = Vector3.zero,
 		slamMarker = nil,
 		contributors = {},
+		lastHitBy = nil,
+		lastHitPosition = nil,
 		onDefeated = nil,
 	}
 	enemies[model] = enemy
@@ -248,7 +252,7 @@ function EnemyService.bossStatus(zoneId: number): (boolean, number)
 	return alive, math.max((bossReadyAt[zoneId] or 0) - os.clock(), 0)
 end
 
-local function rewardKill(enemy: Enemy, killer: Player)
+local function rewardKill(enemy: Enemy, killer: Player, position: Vector3)
 	local recipients: { Player }
 	if enemy.isBoss then
 		recipients = {}
@@ -262,7 +266,7 @@ local function rewardKill(enemy: Enemy, killer: Player)
 			local golem = GolemService.get(member)
 			return golem ~= nil
 				and golem.zoneId == enemy.zoneId
-				and (golem.root.Position - enemy.root.Position).Magnitude <= Config.Party.shareRange
+				and (golem.root.Position - position).Magnitude <= Config.Party.shareRange
 		end)
 	end
 
@@ -293,6 +297,21 @@ local function rewardKill(enemy: Enemy, killer: Player)
 	end
 end
 
+local function defeat(enemy: Enemy, killer: Player?, position: Vector3)
+	if enemies[enemy.model] == nil then
+		return
+	end
+	local onDefeated = enemy.onDefeated
+	-- Remove before calling anything that can yield, so a second tick cannot
+	-- pay again. Tower enemies keep their own fixed-reward callback.
+	remove(enemy)
+	if onDefeated then
+		onDefeated(enemy)
+	elseif killer then
+		rewardKill(enemy, killer, position)
+	end
+end
+
 -- Damage from a player's golem or spell.
 function EnemyService.damage(enemy: Enemy, amount: number, player: Player)
 	if enemies[enemy.model] == nil then
@@ -302,6 +321,8 @@ function EnemyService.damage(enemy: Enemy, amount: number, player: Player)
 		Events.fire("bossEngaged", player, enemy.zoneId)
 	end
 	enemy.contributors[player] = true
+	enemy.lastHitBy = player
+	enemy.lastHitPosition = enemy.root.Position
 	enemy.hp -= amount
 	-- Clients flash the enemy and show the number (see the client Fx).
 	enemy.model:SetAttribute("HitDamage", math.floor(amount + 0.5))
@@ -310,14 +331,7 @@ function EnemyService.damage(enemy: Enemy, amount: number, player: Player)
 		enemy.humanoid.Health = enemy.hp
 		return
 	end
-	local onDefeated = enemy.onDefeated
-	if onDefeated then
-		remove(enemy)
-		onDefeated(enemy)
-		return
-	end
-	rewardKill(enemy, player)
-	remove(enemy)
+	defeat(enemy, player, enemy.root.Position)
 end
 
 -- Spawns one tower enemy into an arena. `healthMult` scales its health.
@@ -406,6 +420,25 @@ end
 function EnemyService.update()
 	local now = os.clock()
 	for _, enemy in enemies do
+		-- Resolve falls before chase, attacks or a pending slam. Keep the last
+		-- attacker's credit, with party distance measured where the hit landed.
+		local feetY = enemy.root.Position.Y - enemy.def.size.Y / 2 - 0.5
+		if feetY < WorldService.getSurfaceY(enemy.zoneId) - Config.Golem.fallDepth then
+			local killer = enemy.lastHitBy
+			if killer and not killer.Parent then
+				killer = nil
+			end
+			-- A boss can still pay its remaining contributors if its last hitter left.
+			if not killer and enemy.isBoss then
+				for contributor in enemy.contributors do
+					if contributor.Parent and (not killer or contributor.UserId < killer.UserId) then
+						killer = contributor
+					end
+				end
+			end
+			defeat(enemy, killer, enemy.lastHitPosition or enemy.root.Position)
+			continue
+		end
 		if enemy.def.slam then
 			updateSlam(enemy, now)
 		end
@@ -442,11 +475,6 @@ function EnemyService.update()
 			enemy.nextWander = now + math.random(3, 7)
 			local offset = Vector3.new(math.random(-15, 15), 0, math.random(-15, 15))
 			enemy.humanoid:MoveTo(enemy.root.Position + offset)
-		end
-
-		-- Clean up anything that fell off the island.
-		if enemy.root.Position.Y < WorldService.getSurfaceY(enemy.zoneId) - 40 then
-			remove(enemy)
 		end
 	end
 end
