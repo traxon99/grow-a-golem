@@ -234,13 +234,17 @@ do
 	end
 
 	---------------------------------------------------------------- invite expiry
+	-- Left advanced afterwards, on purpose: os.clock() only moves forward in
+	-- real play, and a cleared invite slot (nil, read back as 0 by `pending[
+	-- inviter] or 0`) must compare against a clock that's actually past 0 to
+	-- read as expired, the same as it would after the server's been up a
+	-- while.
 	do
 		local inviter, target = join(), join()
 		invite(inviter, target.UserId)
 		clockNow += Config.Party.inviteTimeout + 1
 		local ok, msg = accept(target, inviter.UserId)
 		assert(ok == false and msg == "That invite expired")
-		clockNow -= Config.Party.inviteTimeout + 1
 	end
 
 	do
