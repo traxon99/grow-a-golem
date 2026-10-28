@@ -93,6 +93,7 @@ local function fixture(offset)
 		hp = 120,
 		downedUntil = 0,
 		fallRecovery = false,
+		mounted = true,
 	},
 		attributes
 end
@@ -148,3 +149,23 @@ local count = messages
 service.update(detached, 1)
 assert(messages == count and humanoid.Health == 0)
 print("GolemService fall knock-out and recovery checks passed")
+
+-- Mounting: dismounted, steering is ignored and the golem is only hit by its own falls.
+local mountGolem, mountAttributes = fixture(8)
+mountGolem.mounted = true
+mountGolem.nextMountChange = 0
+mountGolem.lastSteerAt = 0
+mountGolem.steer = Vector3.new(1, 0, 0)
+mountGolem.lastSteerAt = now
+assert(service.getSteer(mountGolem).X == 1)
+mountGolem.player.SetAttribute = function(_, key, value)
+	mountAttributes[key] = value
+end
+mountGolem.player.Character = nil
+mountGolem.seat = { Occupant = nil }
+service.setMounted(mountGolem, false)
+assert(not mountGolem.mounted and mountAttributes.GolemMounted == false)
+assert(service.getSteer(mountGolem) == Vector3.zero)
+service.setMounted(mountGolem, true)
+assert(mountGolem.mounted and mountAttributes.GolemMounted == true)
+print("GolemService mount checks passed")

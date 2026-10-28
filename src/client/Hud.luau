@@ -371,6 +371,37 @@ function Hud.start()
 		spellButtons[spellId] = b
 	end
 
+	-- Mount button: ride the golem or hop off and walk on your own.
+	local mountButton = Instance.new("TextButton")
+	mountButton.Name = "Mount"
+	mountButton.AnchorPoint = Vector2.new(1, 1)
+	mountButton.Size = UDim2.fromOffset(110, 52)
+	mountButton.Position = UDim2.new(1, -24, 1, -150 - 94)
+	mountButton.BackgroundTransparency = 0.05
+	mountButton.Text = ""
+	mountButton.Parent = gui
+	Ui.corner(mountButton, 26)
+	Ui.surface(mountButton, "stone").Color = Ui.Colors.rune
+	local mountLabel = Ui.label(
+		mountButton,
+		"",
+		UDim2.new(1, -8, 1, -4),
+		UDim2.fromOffset(4, 2),
+		{ Title = true, TextSize = Ui.TextSize.body, TextXAlignment = Enum.TextXAlignment.Center }
+	)
+	mountButton.Activated:Connect(Controls.toggleMount)
+	local function refreshMount()
+		local mounted = Controls.isMounted()
+		local verb = if mounted then "Dismount" else "Mount"
+		mountLabel.Text = if isTouch then verb else `{verb}\n[F]`
+		-- Spells need a rider; dim them while dismounted.
+		for _, button in spellButtons do
+			button.BackgroundTransparency = if mounted then 0.05 else 0.5
+		end
+	end
+	player:GetAttributeChangedSignal("GolemMounted"):Connect(refreshMount)
+	refreshMount()
+
 	task.spawn(function()
 		while true do
 			task.wait(0.2)
