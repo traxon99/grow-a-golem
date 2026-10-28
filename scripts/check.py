@@ -40,6 +40,25 @@ end
 local Enum = setmetatable({}, { __index = function(_, kind)
  return setmetatable({}, { __index = function(_, name) return kind .. "." .. name end })
 end })
+-- A seeded LCG, not Roblox's real Random: deterministic and good enough for
+-- tests that read back whatever it picked rather than predicting exact values.
+local Random = {}
+do
+ local methods = {}
+ methods.NextInteger = function(self, a, b)
+  self.seed = (self.seed * 1103515245 + 12345) % 2147483648
+  return a + (self.seed % (b - a + 1))
+ end
+ methods.NextNumber = function(self, a, b)
+  a = a or 0
+  b = b or 1
+  self.seed = (self.seed * 1103515245 + 12345) % 2147483648
+  return a + (self.seed / 2147483648) * (b - a)
+ end
+ Random.new = function(seed)
+  return setmetatable({ seed = (seed or 0) % 2147483648 }, { __index = methods })
+ end
+end
 '''
 config = (ROOT / "src/shared/Config.luau").read_text()
 stats = (ROOT / "src/shared/Stats.luau").read_text().replace(
@@ -97,6 +116,15 @@ bundle += "\nlocal function loadLiveEventService(dependencies, game, task, time)
 bundle += 'local os = { time = time }\nlocal script = { Parent = {} }\n'
 bundle += live_event_service + "\nend\n"
 bundle += (ROOT / "tests/live-event-service.luau").read_text()
+# The real RewardService with mocked services and a test-controlled os.time.
+# task.spawn/task.wait are no-ops so .start()'s ProfileLoaded hook (offline
+# mining, the group-join check) never actually runs inside the test.
+reward_service = (ROOT / "src/server/Services/RewardService.luau").read_text()
+reward_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', reward_service)
+bundle += "\nlocal function loadRewardService(dependencies, game, task, time)\n"
+bundle += 'local os = { time = time }\nlocal script = { Parent = {} }\n'
+bundle += reward_service + "\nend\n"
+bundle += (ROOT / "tests/reward-service.luau").read_text()
 with tempfile.TemporaryDirectory(prefix="golem-check-") as folder:
     path = Path(folder) / "regression.luau"
     path.write_text(bundle)
