@@ -99,17 +99,16 @@ local function partGain(data: any, slot: string, tier: string): string
 	trial.golem.parts[slot] = tier
 	local after = Stats.compute(trial, ctx)
 	local parts = {}
-	for _, stat in
-		{
-			{ "Health", after.maxHealth - before.maxHealth },
-			{ "Damage", after.attackDamage - before.attackDamage },
-			{ "Mining", after.miningDamage - before.miningDamage },
-			{ "Speed", after.walkSpeed - before.walkSpeed },
-		}
-	do
-		local amount = math.floor((stat[2] :: number) + 0.5)
+	local gains: { { name: string, amount: number } } = {
+		{ name = "Health", amount = after.maxHealth - before.maxHealth },
+		{ name = "Damage", amount = after.attackDamage - before.attackDamage },
+		{ name = "Mining", amount = after.miningDamage - before.miningDamage },
+		{ name = "Speed", amount = after.walkSpeed - before.walkSpeed },
+	}
+	for _, stat in gains do
+		local amount = math.floor(stat.amount + 0.5)
 		if amount > 0 then
-			table.insert(parts, `+{amount} {stat[1]}`)
+			table.insert(parts, `+{amount} {stat.name}`)
 		end
 	end
 	return if #parts > 0 then table.concat(parts, "  ") else "A sturdier part"

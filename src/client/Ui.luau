@@ -521,8 +521,14 @@ function Ui.short(value: number): string
 	if n < 1000 then
 		return sign .. tostring(n)
 	end
-	for _, unit in { { 1e12, "T" }, { 1e9, "B" }, { 1e6, "M" }, { 1e3, "K" } } do
-		local size, suffix = unit[1] :: number, unit[2] :: string
+	local units: { { size: number, suffix: string } } = {
+		{ size = 1e12, suffix = "T" },
+		{ size = 1e9, suffix = "B" },
+		{ size = 1e6, suffix = "M" },
+		{ size = 1e3, suffix = "K" },
+	}
+	for _, unit in units do
+		local size, suffix = unit.size, unit.suffix
 		if n >= size then
 			local scaled = n / size
 			local digits = if scaled >= 100 then "%.0f" elseif scaled >= 10 then "%.1f" else "%.2f"
