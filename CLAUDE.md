@@ -42,4 +42,4 @@ Studio ships its own MCP server, so Claude Code can play-test, read Output, insp
   - macOS: `claude mcp add --scope user Roblox_Studio -- /Applications/RobloxStudio.app/Contents/MacOS/StudioMCP`
 - **Using it:** call `list_roblox_studios` first, since every other tool needs its `studio_id`. Then `start_stop_play` to play-test, `get_console_output` for Output, `search_game_tree` / `inspect_instance` to look around, `execute_luau` to run code.
 - Code is synced by Rojo, so fix scripts in `src/`, not in Studio. Studio-side script edits are overwritten on the next sync.
-- **Won't connect?** Studio must be open with the toggle on. On Windows, `mcp.bat` hard-codes a Studio version folder and can go stale after a Studio update; check that the path inside it exists under `%LOCALAPPDATA%\Roblox\Versions\`.
+- **Won't connect?** Studio must be open with the toggle on. On Windows, `mcp.bat` hard-codes a Studio version folder and can go stale after a Studio update; toggle **Enable Studio as MCP server** off and on, which rewrites it, then restart Claude Code.
