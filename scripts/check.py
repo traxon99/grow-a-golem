@@ -153,6 +153,14 @@ bundle += 'local script = { Parent = {} }\nlocal os = { time = time }\n'
 bundle += 'local math = setmetatable({ random = random }, { __index = math })\n'
 bundle += artifact_service + "\nend\n"
 bundle += (ROOT / "tests/artifact-service.luau").read_text()
+# The real ActionService with mocked services and a test-controlled os.clock
+# for its per-player rate-limit window.
+action_service = (ROOT / "src/server/Services/ActionService.luau").read_text()
+action_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', action_service)
+bundle += "\nlocal function loadActionService(dependencies, game, clock)\n"
+bundle += 'local os = { clock = clock }\nlocal warn = function() end\n'
+bundle += action_service + "\nend\n"
+bundle += (ROOT / "tests/action-service.luau").read_text()
 # The real PartyService with mocked services, a test-controlled os.clock, and
 # a mocked Players service (GetPlayerByUserId/GetPlayers/PlayerAdded/
 # PlayerRemoving) so invite/accept/decline/leave, friendBonus and the
