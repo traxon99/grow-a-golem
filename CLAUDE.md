@@ -31,6 +31,7 @@ Before you design or change any player-facing system (UI, loops, progression, mo
 ## Skills
 
 - [`.claude/skills/auto-ship`](.claude/skills/auto-ship/SKILL.md): when anyone says "ship", "auto-ship <feature>" or "auto-ship #NN", take one change from GitHub issue to merged PR. It routes the work to the matching `docs/reference/` docs (always the safety doc), syntax-checks Luau with `luau-compile --null`, has a fresh subagent review the diff, and merges with a merge commit unless the repo requires a review. The caller is credited, assigned and asked any questions.
+- [`.claude/skills/roblox-ui-genre-studs`](.claude/skills/roblox-ui-genre-studs/SKILL.md): the chunky stud look for Roblox simulator UI (black outlines, lips, gradients, HUD zones, motion, anti-slop checks), from [JoCoding-Inc/roblox-skills](https://github.com/JoCoding-Inc/roblox-skills) (MIT, see its `SOURCE.md`). Use it for HUD, shop and panel work alongside `docs/reference/ui-ux.md` and `ui-materials.md`. Where they differ, `safety-compliance.md` wins first, then our mystical theme (#83: rune, crystal and arcane palette and motifs) over its colour ramps, then the reference docs. Its numbers are starting values, so check them against a Studio screenshot.
 
 ## Driving Roblox Studio (MCP)
 
