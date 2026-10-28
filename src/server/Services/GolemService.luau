@@ -593,12 +593,22 @@ function GolemService.start()
 	DataService.ProfileLoaded:Connect(spawnGolem)
 	DataService.Changed:Connect(GolemService.refresh)
 	Remotes.MoveGolem.OnServerEvent:Connect(onSteer)
-	-- Uploaded mesh art loads in the background; rebuild golems that were
-	-- built with the fallback art before it arrived.
-	GolemMeshes.install(function()
+	-- Uploaded mesh art loads in the background, a tier at a time; rebuild
+	-- golems that wear that tier (unforged slots wear stone) once it arrives.
+	GolemMeshes.install(function(tier)
 		for player, golem in golems do
-			golem.visualKey = ""
-			GolemService.refresh(player)
+			local data = DataService.get(player)
+			if not data then
+				continue
+			end
+			for _, slot in Config.SlotOrder do
+				local worn = data.golem.parts[slot] or "stone"
+				if worn == tier then
+					golem.visualKey = ""
+					GolemService.refresh(player)
+					break
+				end
+			end
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)
