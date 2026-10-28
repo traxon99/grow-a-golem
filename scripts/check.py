@@ -97,6 +97,15 @@ bundle += "\nlocal function loadLiveEventService(dependencies, game, task, time)
 bundle += 'local os = { time = time }\nlocal script = { Parent = {} }\n'
 bundle += live_event_service + "\nend\n"
 bundle += (ROOT / "tests/live-event-service.luau").read_text()
+# The real RewardService with mocked services and a test-controlled os.time.
+# task.spawn/task.wait are no-ops so .start()'s ProfileLoaded hook (offline
+# mining, the group-join check) never actually runs inside the test.
+reward_service = (ROOT / "src/server/Services/RewardService.luau").read_text()
+reward_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', reward_service)
+bundle += "\nlocal function loadRewardService(dependencies, game, task, time)\n"
+bundle += 'local os = { time = time }\nlocal script = { Parent = {} }\n'
+bundle += reward_service + "\nend\n"
+bundle += (ROOT / "tests/reward-service.luau").read_text()
 with tempfile.TemporaryDirectory(prefix="golem-check-") as folder:
     path = Path(folder) / "regression.luau"
     path.write_text(bundle)
