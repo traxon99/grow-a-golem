@@ -31,3 +31,15 @@ Before you design or change any player-facing system (UI, loops, progression, mo
 ## Skills
 
 - [`.claude/skills/auto-ship`](.claude/skills/auto-ship/SKILL.md): when anyone says "ship", "auto-ship <feature>" or "auto-ship #NN", take one change from GitHub issue to merged PR. It routes the work to the matching `docs/reference/` docs (always the safety doc), syntax-checks Luau with `luau-compile --null`, has a fresh subagent review the diff, and merges with a merge commit unless the repo requires a review. The caller is credited, assigned and asked any questions.
+
+## Driving Roblox Studio (MCP)
+
+Studio ships its own MCP server, so Claude Code can play-test, read Output, inspect the place and run Luau. Nothing extra to install, and no keys are involved. Docs: https://create.roblox.com/docs/studio/mcp
+
+- **Studio side:** Assistant → **… → Manage MCP Servers** → turn on **Enable Studio as MCP server**. A green dot there means it's serving.
+- **Claude Code side:** turn on **Claude Code** under Assistant Settings → MCP Servers → **Quick connect**, or run one of these and restart Claude Code:
+  - Windows: `claude mcp add --scope user Roblox_Studio -- cmd.exe /c "%LOCALAPPDATA%\Roblox\mcp.bat"`
+  - macOS: `claude mcp add --scope user Roblox_Studio -- /Applications/RobloxStudio.app/Contents/MacOS/StudioMCP`
+- **Using it:** call `list_roblox_studios` first, since every other tool needs its `studio_id`. Then `start_stop_play` to play-test, `get_console_output` for Output, `search_game_tree` / `inspect_instance` to look around, `execute_luau` to run code.
+- Code is synced by Rojo, so fix scripts in `src/`, not in Studio. Studio-side script edits are overwritten on the next sync.
+- **Won't connect?** Studio must be open with the toggle on. On Windows, `mcp.bat` hard-codes a Studio version folder and can go stale after a Studio update; check that the path inside it exists under `%LOCALAPPDATA%\Roblox\Versions\`.
