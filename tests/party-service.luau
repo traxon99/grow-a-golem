@@ -305,15 +305,21 @@ do
 		assert(#party.members(a) == 1 and party.isLeader(a) == true, "a lone remaining member's party dissolves")
 	end
 
-	---------------------------------------------------------------- switching parties
+	---------------------------------------------------------------- accepting a second pending invite
+	-- partyInvite refuses to invite anyone already in a party (the real
+	-- source's own `if partyOf[target] then return false, ...` check), so a
+	-- player can never be poached out of a party by a fresh invite -- the
+	-- `if partyOf[player] then leave(player) end` inside accept is there for
+	-- a different case: two invites sent while still partyless, the first
+	-- one accepted, and then the second (now-stale) one accepted too.
 	do
 		local leaderA, leaderB, switcher = join(), join(), join()
 		invite(leaderA, switcher.UserId)
+		invite(leaderB, switcher.UserId)
 		accept(switcher, leaderA.UserId)
 		assert(party.sameParty(leaderA, switcher) == true)
-		invite(leaderB, switcher.UserId)
 		accept(switcher, leaderB.UserId)
-		assert(party.sameParty(leaderA, switcher) == false, "accepting a new invite leaves the old party first")
+		assert(party.sameParty(leaderA, switcher) == false, "accepting the second invite leaves the first party")
 		assert(party.sameParty(leaderB, switcher) == true)
 	end
 
