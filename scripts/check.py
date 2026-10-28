@@ -142,6 +142,15 @@ bundle += "\nlocal function loadEconomyService(dependencies, game, clock)\n"
 bundle += 'local os = { clock = clock }\nlocal script = { Parent = {} }\n'
 bundle += economy_service + "\nend\n"
 bundle += (ROOT / "tests/economy-service.luau").read_text()
+# The real ArtifactService with mocked services. Only grant/addCopy/equip/
+# unequip are exercised (see the test file's header for what's out of
+# scope); task.spawn is a no-op so the hidden-relic pickup loop never runs.
+artifact_service = (ROOT / "src/server/Services/ArtifactService.luau").read_text()
+artifact_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', artifact_service)
+bundle += "\nlocal function loadArtifactService(dependencies, game, task)\n"
+bundle += 'local script = { Parent = {} }\n'
+bundle += artifact_service + "\nend\n"
+bundle += (ROOT / "tests/artifact-service.luau").read_text()
 with tempfile.TemporaryDirectory(prefix="golem-check-") as folder:
     path = Path(folder) / "regression.luau"
     path.write_text(bundle)
