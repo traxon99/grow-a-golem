@@ -56,7 +56,7 @@ local function onCastSpell(player: Player, spellId: any)
 	end
 	local spell = Config.Spells[spellId]
 	local golem = GolemService.get(player)
-	if not spell or not golem or not GolemService.isActive(golem) then
+	if not spell or not golem or not golem.mounted or not GolemService.isActive(golem) then
 		return
 	end
 	local now = os.clock()

@@ -23,6 +23,15 @@ function Controls.castSpell(spellId: string)
 	Remotes.CastSpell:FireServer(spellId)
 end
 
+-- The server publishes whether the rider is on the golem; it starts mounted.
+function Controls.isMounted(): boolean
+	return player:GetAttribute("GolemMounted") ~= false
+end
+
+function Controls.toggleMount()
+	Remotes.MountGolem:FireServer(not Controls.isMounted())
+end
+
 local function cameraRelative(move: Vector3): Vector3
 	local camera = workspace.CurrentCamera
 	if not camera or move.Magnitude < 0.05 then
@@ -44,9 +53,10 @@ local function cameraRelative(move: Vector3): Vector3
 end
 
 local function onCharacter(character: Model)
-	-- Riders can't jump off; the jump button would just unseat them.
+	-- Mounted riders can't jump off; the jump button would just unseat them.
+	-- A dismounted rider walks and jumps like any character.
 	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
-	humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, not Controls.isMounted())
 end
 
 -- Used only if Roblox's PlayerModule isn't available: reads WASD/arrow keys
@@ -105,7 +115,8 @@ function Controls.start()
 		end
 		elapsed = 0
 
-		local direction = cameraRelative(getMoveVector())
+		-- Dismounted, the stick walks the rider, not the golem.
+		local direction = if Controls.isMounted() then cameraRelative(getMoveVector()) else Vector3.zero
 		-- Keep sending while steering (the server times out after 0.5 s),
 		-- and send one zero when the player lets go.
 		if direction.Magnitude > 0 or lastSent.Magnitude > 0 then
@@ -118,6 +129,18 @@ function Controls.start()
 		task.spawn(onCharacter, player.Character)
 	end
 	player.CharacterAdded:Connect(onCharacter)
+	player:GetAttributeChangedSignal("GolemMounted"):Connect(function()
+		if player.Character then
+			task.spawn(onCharacter, player.Character)
+		end
+	end)
+
+	ContextActionService:BindAction("ToggleMount", function(_, state)
+		if state == Enum.UserInputState.Begin then
+			Controls.toggleMount()
+		end
+		return Enum.ContextActionResult.Sink
+	end, false, Enum.KeyCode.F, Enum.KeyCode.ButtonR1)
 
 	local gamepadButtons = { Enum.KeyCode.ButtonX, Enum.KeyCode.ButtonY, Enum.KeyCode.ButtonB }
 	for index, spellId in Config.SpellOrder do

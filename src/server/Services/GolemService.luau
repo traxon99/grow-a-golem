@@ -31,6 +31,8 @@ export type Golem = {
 	hp: number,
 	downedUntil: number, -- 0 when standing
 	fallRecovery: boolean,
+	mounted: boolean, -- the rider is on the shoulder; steering and spells only count then
+	nextMountChange: number,
 	nextAttack: number,
 	nextMine: number,
 	spellReadyAt: { [string]: number },
@@ -371,7 +373,7 @@ end
 
 local function seatRider(golem: Golem)
 	local character = golem.player.Character
-	if not character or not golem.model.Parent then
+	if not golem.mounted or not character or not golem.model.Parent then
 		return
 	end
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
@@ -390,7 +392,7 @@ end
 local function hookSeat(golem: Golem, seat: Seat)
 	-- Put the rider back if they get knocked off.
 	seat:GetPropertyChangedSignal("Occupant"):Connect(function()
-		if seat.Occupant == nil and golem.seat == seat then
+		if seat.Occupant == nil and golem.seat == seat and golem.mounted then
 			task.delay(0.5, seatRider, golem)
 		end
 	end)
@@ -398,6 +400,51 @@ end
 
 local function groundUnder(golem: Golem): Vector3
 	return golem.root.Position - Vector3.new(0, golem.groundOffset, 0)
+end
+
+-- Stands a dismounted rider on the ground beside their golem.
+local function placeRiderBeside(golem: Golem)
+	local character = golem.player.Character
+	if not character or not golem.model.Parent then
+		return
+	end
+	local side = golem.root.CFrame.RightVector * Config.Golem.dismountOffset * golem.stats.scale
+	character:PivotTo(CFrame.new(groundUnder(golem) + side + Vector3.new(0, 3, 0)))
+end
+
+-- Mounts or dismounts the rider. Dismounted, the golem ignores steering and
+-- spells and plays itself while the rider walks on their own.
+function GolemService.setMounted(golem: Golem, mounted: boolean)
+	if golem.mounted == mounted then
+		return
+	end
+	golem.mounted = mounted
+	golem.steer = Vector3.zero
+	golem.player:SetAttribute("GolemMounted", mounted)
+	if mounted then
+		seatRider(golem)
+		return
+	end
+	local character = golem.player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if humanoid and golem.seat.Occupant == humanoid then
+		humanoid.Sit = false
+		humanoid.Jump = true
+	end
+	placeRiderBeside(golem)
+end
+
+local function onMount(player: Player, wantMounted: any)
+	local golem = golems[player]
+	if not golem or type(wantMounted) ~= "boolean" or not GolemService.isActive(golem) then
+		return
+	end
+	local now = os.clock()
+	if wantMounted == golem.mounted or now < golem.nextMountChange then
+		return
+	end
+	golem.nextMountChange = now + Config.Golem.mountCooldown
+	GolemService.setMounted(golem, wantMounted)
 end
 
 -- Rebuilds the model in place (new parts or a new size). Seats the rider on
@@ -465,6 +512,8 @@ local function spawnGolem(player: Player)
 		hp = stats.maxHealth,
 		downedUntil = 0,
 		fallRecovery = false,
+		mounted = true,
+		nextMountChange = 0,
 		nextAttack = 0,
 		nextMine = 0,
 		spellReadyAt = {},
@@ -476,13 +525,18 @@ local function spawnGolem(player: Player)
 	}
 	golems[player] = golem
 	hookSeat(golem, seat)
+	player:SetAttribute("GolemMounted", true)
 	publishHealth(golem)
 
 	player.CharacterAdded:Connect(function(character)
 		character:WaitForChild("Humanoid")
 		character:WaitForChild("HumanoidRootPart")
 		task.wait(0.2)
-		seatRider(golem)
+		if golem.mounted then
+			seatRider(golem)
+		else
+			placeRiderBeside(golem)
+		end
 	end)
 	if player.Character then
 		seatRider(golem)
@@ -504,6 +558,9 @@ local function onSteer(player: Player, direction: any)
 		return
 	end
 	-- Reject NaN/inf, flatten, clamp to unit length.
+	if not golem.mounted then
+		return
+	end
 	local flat = Vector3.new(direction.X, 0, direction.Z)
 	if flat.X ~= flat.X or flat.Z ~= flat.Z or flat.Magnitude == math.huge then
 		return
@@ -529,7 +586,7 @@ end
 
 -- The player's current steering, or zero if they've let go.
 function GolemService.getSteer(golem: Golem): Vector3
-	if os.clock() - golem.lastSteerAt > STEER_TIMEOUT then
+	if not golem.mounted or os.clock() - golem.lastSteerAt > STEER_TIMEOUT then
 		return Vector3.zero
 	end
 	return golem.steer
@@ -547,6 +604,9 @@ function GolemService.sendToZone(golem: Golem, zoneId: number)
 	-- so a fall can't carry the golem straight through its recovery spawn.
 	golem.root.AssemblyLinearVelocity = Vector3.zero
 	golem.root.AssemblyAngularVelocity = Vector3.zero
+	if not golem.mounted then
+		placeRiderBeside(golem) -- a walking rider travels with their golem
+	end
 	publishHealth(golem)
 end
 
@@ -589,6 +649,9 @@ function GolemService.update(golem: Golem, dt: number)
 		-- A detached character can fall while its golem is still on land.
 		-- Kill that character immediately too; Roblox will respawn the rider.
 		rider.Health = 0
+		if not golem.mounted then
+			riderFell = false -- a walking rider's own fall doesn't cost the golem
+		end
 	end
 	if golem.downedUntil > 0 then
 		if now >= golem.downedUntil then
@@ -619,6 +682,7 @@ function GolemService.start()
 	DataService.ProfileLoaded:Connect(spawnGolem)
 	DataService.Changed:Connect(GolemService.refresh)
 	Remotes.MoveGolem.OnServerEvent:Connect(onSteer)
+	Remotes.MountGolem.OnServerEvent:Connect(onMount)
 	-- Uploaded mesh art loads in the background, a tier at a time; rebuild
 	-- golems that wear that tier (unforged slots wear stone) once it arrives.
 	GolemMeshes.install(function(tier)

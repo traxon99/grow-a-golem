@@ -26,6 +26,7 @@ Game code lives in this repo and syncs into Roblox Studio with [Rojo](https://ro
 | Quake (area damage) | Q | X | Quake button |
 | Mend (heal) | E | Y | Mend button |
 | Magnet (2x minerals for 10 s) | R | B | Magnet button |
+| Mount / dismount | F | R1 | Mount button |
 | Menus | Buttons on the left | | Buttons on the left |
 
 Let go of the controls and the golem plays itself: it fights enemies nearby, and once the area is clear it walks to mineral nodes and mines them.
