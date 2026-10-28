@@ -345,7 +345,7 @@ function Ui.row(
 	iconKey: string?
 ): Frame
 	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(1, -8, 0, if subtitle then 58 else 40)
+	frame.Size = UDim2.new(1, -8, 0, if subtitle then (if iconKey then 68 else 58) else 40)
 	frame.LayoutOrder = order
 	frame.Parent = parent
 	Ui.corner(frame, 8)
@@ -353,8 +353,9 @@ function Ui.row(
 
 	local inset = if iconKey then 48 else 10
 	if iconKey then
-		local icon = Icons.create(frame, iconKey, 32, UDim2.new(0, 8, 0.5, 0))
-		icon.AnchorPoint = Vector2.new(0, 0.5)
+		local icon =
+			Icons.create(frame, iconKey, 32, if subtitle then UDim2.fromOffset(8, 4) else UDim2.new(0, 8, 0.5, 0))
+		icon.AnchorPoint = Vector2.new(0, if subtitle then 0 else 0.5)
 	end
 	local textWidth = if buttonText then UDim2.new(1, -130 - inset, 0, 22) else UDim2.new(1, -10 - inset, 0, 22)
 	Ui.label(frame, title, textWidth, UDim2.fromOffset(inset, if subtitle then 6 else 9))
@@ -362,8 +363,8 @@ function Ui.row(
 		local sub = Ui.label(
 			frame,
 			subtitle,
-			UDim2.new(textWidth.X.Scale, textWidth.X.Offset, 0, 18),
-			UDim2.fromOffset(inset, 32)
+			UDim2.new(1, if buttonText then -140 else -20, 0, 18),
+			UDim2.fromOffset(10, if iconKey then 42 else 32)
 		)
 		sub.Font = Enum.Font.Gotham
 		sub.TextColor3 = Ui.Colors.quiet
