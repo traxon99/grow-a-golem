@@ -40,6 +40,25 @@ end
 local Enum = setmetatable({}, { __index = function(_, kind)
  return setmetatable({}, { __index = function(_, name) return kind .. "." .. name end })
 end })
+-- A seeded LCG, not Roblox's real Random: deterministic and good enough for
+-- tests that read back whatever it picked rather than predicting exact values.
+local Random = {}
+do
+ local methods = {}
+ methods.NextInteger = function(self, a, b)
+  self.seed = (self.seed * 1103515245 + 12345) % 2147483648
+  return a + (self.seed % (b - a + 1))
+ end
+ methods.NextNumber = function(self, a, b)
+  a = a or 0
+  b = b or 1
+  self.seed = (self.seed * 1103515245 + 12345) % 2147483648
+  return a + (self.seed / 2147483648) * (b - a)
+ end
+ Random.new = function(seed)
+  return setmetatable({ seed = (seed or 0) % 2147483648 }, { __index = methods })
+ end
+end
 '''
 config = (ROOT / "src/shared/Config.luau").read_text()
 stats = (ROOT / "src/shared/Stats.luau").read_text().replace(
