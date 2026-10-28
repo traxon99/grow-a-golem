@@ -63,11 +63,14 @@ class Part:
     def __init__(self, rng):
         self.rng = rng
         self.meshes = {"Main": bmesh.new(), "Trim": bmesh.new(), "Glow": bmesh.new()}
+        # Added to every position; tier styles are drawn against a slot's
+        # surface and the shared body sets where that surface is.
+        self.shift = Vector((0, 0, 0))
 
     def _matrix(self, at, size, rot):
         # Primitives are built along Blender Z, which is Roblox Y.
         m = (
-            Matrix.Translation(at)
+            Matrix.Translation(Vector(at) + self.shift)
             @ (
                 Matrix.Rotation(math.radians(rot[1]), 4, "Y")
                 @ Matrix.Rotation(math.radians(rot[0]), 4, "X")
@@ -109,10 +112,11 @@ class Part:
         )["verts"]
         self._jitter(verts, jitter)
 
-    def rock(self, role, at, size, rot=(0, 0, 0), jitter=0.12):
+    def rock(self, role, at, size, rot=(0, 0, 0), jitter=0.12, round=False):
+        """A faceted boulder; ``round`` gives it more faces for a smoother bulk."""
         bm = self.meshes[role]
         verts = bmesh.ops.create_icosphere(
-            bm, subdivisions=1, radius=0.5, matrix=self._matrix(Vector(at), size, rot)
+            bm, subdivisions=2 if round else 1, radius=0.5, matrix=self._matrix(Vector(at), size, rot)
         )["verts"]
         self._jitter(verts, jitter * min(size))
 
@@ -143,51 +147,44 @@ class Part:
 
 
 # ---------------------------------------------------------------- the shared body
+# A hunched boulder: one big rounded body, a small head set low and forward,
+# long heavy arms whose fists hang near the ground, and short stubby legs.
+# Each tier's "rough" sets how jagged the stone is; metal tiers are cut smooth.
+
+def lump(p, t, role, at, size, rot=(0, 0, 0)):
+    p.rock(role, at, size, rot=rot, jitter=t["rough"] * 0.6 + 0.02, round=True)
+
 
 def base_torso(p, t):
-    """Wide chest, narrow waist, heavy pelvis: the golem's silhouette."""
-    if t.get("rocky"):
-        p.rock("Main", (0, 1.4, 0), (t["chest"] * 1.45, 5.0, 4.4), jitter=0.1)
-        p.rock("Main", (0, -1.2, 0.1), (t["waist"] * 1.5, 2.6, 3.4), jitter=0.12)
-    else:
-        p.frustum("Main", (0, 1.3, 0), t["waist"], t["chest"], 4.6, depth=0.62, jitter=t["rough"])
-    p.frustum("Main", (0, -1.5, 0.1), t["waist"] * 0.82, t["waist"] * 1.02, 1.6, depth=0.7, jitter=t["rough"])
-    p.box("Trim", (0, -2.9, 0.1), (5.0, 1.4, 3.6), jitter=t["rough"] * 0.5, bevel=0.15)
-    # A hunched back hump makes the head sit forward and low.
-    p.rock("Main", (0, 3.1, 1.1), (6.0, 3.0, 3.2), jitter=0.1 + t["rough"])
+    w = t["chest"]
+    lump(p, t, "Main", (0, 1.2, 0.5), (w * 1.75, 7.0, 6.2), rot=(-14, 0, 0))
+    lump(p, t, "Main", (0, -2.0, 0.4), (w * 1.25, 3.4, 4.8))
+    lump(p, t, "Trim", (0, 3.6, 1.3), (w * 1.3, 2.6, 4.0), rot=(-20, 0, 0))  # hunched back
+    p.shift = Vector((0, 0, -0.8))
 
 
 def base_head(p, t):
-    p.box("Main", (0, -0.5, -0.5), (3.2, 2.5, 3.0), jitter=t["rough"] * 0.6, bevel=0.25)
-    p.box("Trim", (0, 0.55, -1.75), (3.7, 0.75, 0.9), rot=(-12, 0, 0), bevel=0.12)
-    p.box("Trim", (0, -1.55, -1.2), (2.6, 0.7, 1.4), bevel=0.12)  # jaw
+    lump(p, t, "Main", (0, -1.3, -1.7), (3.3, 2.8, 3.2))
+    p.box("Trim", (0, -0.45, -2.75), (3.1, 0.7, 0.9), rot=(-15, 0, 0), jitter=t["rough"] * 0.3, bevel=0.12)  # brow
     for side in (-1, 1):
-        p.box("Glow", (side * 0.75, -0.15, -2.05), (0.75, 0.38, 0.2), rot=(0, 0, side * -10))
+        p.box("Glow", (side * 0.65, -1.05, -3.0), (0.6, 0.38, 0.2), rot=(0, 0, side * -12))
+    p.shift = Vector((0, -0.8, -1.1))
 
 
 def base_arm(p, t, side):
-    p.rock("Trim", (side * 0.35, 2.9, 0), (3.6, 2.6, 3.4), jitter=0.12 + t["rough"])
-    if t.get("rocky"):
-        p.rock("Main", (0, 1.0, 0), (2.3, 3.0, 2.3), jitter=0.12)
-        p.rock("Main", (0, -1.9, 0), (3.0, 3.6, 3.0), jitter=0.12)
-        p.rock("Main", (0, -4.6, -0.2), (3.5, 3.0, 3.4), jitter=0.1)
-    else:
-        p.frustum("Main", (0, 1.0, 0), 1.0, 1.15, 2.6, segments=6, jitter=t["rough"] * 0.5)
-        p.frustum("Main", (0, -1.9, 0), 1.35, 1.6, 3.2, segments=6, jitter=t["rough"] * 0.5)
-        p.box("Main", (0, -4.6, -0.2), (3.3, 2.8, 3.2), jitter=t["rough"] * 0.6, bevel=0.3)
-    p.box("Trim", (0, -4.0, -1.5), (2.5, 0.9, 0.5), bevel=0.1)  # knuckles
+    lump(p, t, "Trim", (side * 0.2, 2.8, 0.2), (3.8, 3.0, 3.6))  # shoulder
+    lump(p, t, "Main", (side * 0.1, 0.6, 0), (2.8, 4.8, 2.8))
+    lump(p, t, "Main", (0, -2.9, -0.2), (3.5, 4.8, 3.5))
+    lump(p, t, "Main", (0, -5.7, -0.4), (3.9, 3.0, 3.9))  # fist
+    p.box("Trim", (0, -5.3, -2.2), (2.6, 0.9, 0.5), bevel=0.1)  # knuckles
+    p.shift = Vector((0, -0.6, 0))
 
 
 def base_leg(p, t, side):
-    if t.get("rocky"):
-        p.rock("Main", (0, 0.9, 0), (2.9, 3.0, 2.8), jitter=0.12)
-        p.rock("Main", (0, -0.9, 0), (2.6, 2.2, 2.6), jitter=0.12)
-    else:
-        p.frustum("Main", (0, 1.0, 0), 1.3, 1.5, 2.6, segments=6, jitter=t["rough"] * 0.5)
-        p.frustum("Main", (0, -1.0, 0), 1.45, 1.25, 1.8, segments=6, jitter=t["rough"] * 0.5)
-    p.box("Trim", (0, -1.95, -0.45), (3.1, 1.1, 4.0), jitter=t["rough"] * 0.4, bevel=0.2)
-    for toe in (-0.9, 0, 0.9):
-        p.box("Trim", (toe, -2.05, -2.5), (0.75, 0.8, 0.8), bevel=0.1)
+    lump(p, t, "Main", (side * 0.2, 0.2, 0), (3.8, 4.4, 3.6))
+    lump(p, t, "Trim", (0, -1.55, -0.3), (3.9, 2.0, 4.4))  # foot
+    for toe in (-1.0, 0, 1.0):
+        p.box("Trim", (toe, -2.05, -2.35), (0.8, 0.8, 0.8), jitter=t["rough"] * 0.2, bevel=0.1)
 
 
 # ---------------------------------------------------------------- tier styles
@@ -342,10 +339,10 @@ def style_aether(p, slot, side, t):
 
 # Per-tier proportions: chest/waist radii and how rough the surface is.
 STYLES = {
-    "stone": (style_stone, dict(chest=4.9, waist=3.4, rough=0.18, rocky=True)),
+    "stone": (style_stone, dict(chest=4.9, waist=3.4, rough=0.18)),
     "copper": (style_copper, dict(chest=4.8, waist=3.6, rough=0.0)),
     "iron": (style_iron, dict(chest=5.2, waist=3.3, rough=0.0)),
-    "crystal": (style_crystal, dict(chest=5.0, waist=3.4, rough=0.14, rocky=True)),
+    "crystal": (style_crystal, dict(chest=5.0, waist=3.4, rough=0.14)),
     "stormglass": (style_stormglass, dict(chest=5.3, waist=3.0, rough=0.04)),
     "abyssite": (style_abyssite, dict(chest=5.0, waist=3.6, rough=0.08)),
     "sunsteel": (style_sunsteel, dict(chest=5.4, waist=3.3, rough=0.0)),
