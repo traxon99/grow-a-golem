@@ -148,8 +148,13 @@ function Ui.shake(target: GuiObject, pixels: number, duration: number)
 	local started = os.clock()
 	local connection: RBXScriptConnection
 	connection = RunService.RenderStepped:Connect(function()
-		if entry.token ~= token or not target.Parent then
+		if entry.token ~= token then
+			connection:Disconnect() -- a newer shake took over
+			return
+		end
+		if not target.Parent then
 			connection:Disconnect()
+			shaking[target] = nil
 			return
 		end
 		local t = (os.clock() - started) / duration
