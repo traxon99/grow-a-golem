@@ -110,19 +110,22 @@ do
 	--------------------------------------------------------- only an explicit allow turns it on
 	do
 		-- ArePaidRandomItemsRestricted missing, true, or non-boolean: all stay off.
-		for _, restricted in { nil, true, "not a boolean" } do
+		-- Wrapped in {v=...} tables, not a bare array: a positional nil isn't
+		-- actually stored in a table constructor, so a plain { nil, true, ... }
+		-- would silently skip the "field is missing" case entirely.
+		for _, case in { { v = nil }, { v = true }, { v = "not a boolean" } } do
 			local player = join()
 			queues[player] = {
-				{ ok = true, info = { ArePaidRandomItemsRestricted = restricted, IsPaidItemTradingAllowed = true } },
+				{ ok = true, info = { ArePaidRandomItemsRestricted = case.v, IsPaidItemTradingAllowed = true } },
 			}
 			profileLoaded(player)
 			assert(policy.paidRandomAllowed(player) == false, "only an explicit false turns paid random items on")
 		end
 		-- IsPaidItemTradingAllowed missing, false, or non-boolean: all stay off.
-		for _, allowed in { nil, false, "not a boolean" } do
+		for _, case in { { v = nil }, { v = false }, { v = "not a boolean" } } do
 			local player = join()
 			queues[player] = {
-				{ ok = true, info = { ArePaidRandomItemsRestricted = false, IsPaidItemTradingAllowed = allowed } },
+				{ ok = true, info = { ArePaidRandomItemsRestricted = false, IsPaidItemTradingAllowed = case.v } },
 			}
 			profileLoaded(player)
 			assert(policy.paidTradingAllowed(player) == false, "only an explicit true turns trading on")
