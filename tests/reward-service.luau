@@ -199,9 +199,14 @@ do
 			connected[quest.event](player)
 		end
 		assert(data.quests.progress[quest.id] == quest.target, "progress is capped at the quest's target")
+		-- Scoped to this specific quest's own text, not just "Quest complete":
+		-- today's active set can include two quests sharing an event (the
+		-- pool has duplicates, e.g. defeat50/defeat150 both on enemyDefeated),
+		-- so driving one to its target can legitimately also complete a
+		-- sibling and fire a second, unrelated notice for the same player.
 		local completeMessages = 0
 		for _, f in fired do
-			if f.player == player and f.kind == "message" and string.find(f.text, "Quest complete") then
+			if f.player == player and f.kind == "message" and string.find(f.text, quest.text, 1, true) then
 				completeMessages += 1
 			end
 		end
