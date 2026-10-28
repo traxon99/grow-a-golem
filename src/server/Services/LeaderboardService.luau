@@ -7,6 +7,7 @@
 local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserService = game:GetService("UserService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
@@ -21,6 +22,7 @@ local LeaderboardService = {}
 local stores: { [string]: OrderedDataStore } = {}
 local boards: { [string]: { Entry } } = {}
 local nameCache: { [number]: string } = {}
+local lastWritten: { [string]: { [number]: number } } = {}
 
 local function valueFor(boardId: string, data: any): number
 	if boardId == "level" then
@@ -33,38 +35,60 @@ local function valueFor(boardId: string, data: any): number
 	return 0
 end
 
-local function nameFor(userId: number): string
-	if nameCache[userId] then
-		return nameCache[userId]
+-- Fetch display names once for the page, rather than yielding on every row.
+-- Failed or missing names are not cached, so the next refresh can retry.
+local function cacheDisplayNames(page: { any })
+	local missing: { number } = {}
+	for _, row in page do
+		local userId = tonumber(row.key)
+		if userId and not nameCache[userId] then
+			table.insert(missing, userId)
+		end
 	end
-	local ok, name = pcall(function()
-		return Players:GetNameFromUserIdAsync(userId)
+	if #missing == 0 then
+		return
+	end
+	local ok, infos = pcall(function()
+		return UserService:GetUserInfosByUserIdsAsync(missing)
 	end)
-	nameCache[userId] = if ok and name then name else "Player"
-	return nameCache[userId]
+	if ok and infos then
+		for _, info in infos do
+			if type(info.DisplayName) == "string" and info.DisplayName ~= "" then
+				nameCache[info.Id] = info.DisplayName
+			end
+		end
+	end
 end
 
 local function refresh()
 	for _, board in Config.Leaderboards.boards do
 		local store = stores[board.id]
 		if store then
+			local written = lastWritten[board.id]
 			for _, player in Players:GetPlayers() do
-				local data = DataService.get(player)
-				if data then
-					pcall(function()
-						store:SetAsync(tostring(player.UserId), valueFor(board.id, data))
-					end)
+				local session = DataService.getSession(player)
+				if session and session.canSave then
+					local value = valueFor(board.id, session.data)
+					if written[player.UserId] ~= value then
+						local ok = pcall(function()
+							store:SetAsync(tostring(player.UserId), value)
+						end)
+						if ok then
+							written[player.UserId] = value
+						end
+					end
 				end
 			end
 			local ok, page = pcall(function()
 				return store:GetSortedAsync(false, Config.Leaderboards.size):GetCurrentPage()
 			end)
 			if ok and page then
+				cacheDisplayNames(page)
 				local entries = {}
 				for _, row in page do
 					local userId = tonumber(row.key)
 					if userId then
-						table.insert(entries, { name = nameFor(userId), value = row.value })
+						table.insert(entries, { name = nameCache[userId] or "Player", value = row.value })
 					end
 				end
 				boards[board.id] = entries
@@ -83,6 +107,7 @@ function LeaderboardService.start()
 		end)
 		if ok then
 			stores[board.id] = store
+			lastWritten[board.id] = {}
 		end
 	end
 	DataService.addProvider("leaderboards", function()
