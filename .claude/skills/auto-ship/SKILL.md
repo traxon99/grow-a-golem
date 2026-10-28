@@ -1,6 +1,6 @@
 ---
 name: auto-ship
-description: End-to-end delivery of one Grow A Golem change, tracked through a GitHub issue. Find or create the issue (checking for duplicates first) and claim it by the workflow in CONTRIBUTING.md, sort the work into categories and read the matching docs in docs/reference/ (always including safety-compliance.md), implement it in Luau, syntax-check it, have a fresh subagent review the diff against those docs, update the docs' "Grow A Golem today" sections, open a PR that closes the issue, and merge it. Use this when someone asks to "ship", "auto-ship", "just get this done", "build and merge", or says "auto-ship <feature>" or "auto-ship #NN". Don't use it for exploration, questions, or anything the caller wants reviewed before it lands.
+description: End-to-end delivery of one Grow A Golem change, tracked through a GitHub issue. Find or create the issue (checking for duplicates first) and claim it by the workflow in CONTRIBUTING.md, sort the work into categories and read the matching docs in docs/reference/ (always including safety-compliance.md) and the matching repo skills in .claude/skills/, implement it in Luau, syntax-check it, have a fresh subagent review the diff against those docs, update the docs' "Grow A Golem today" sections, open a PR that closes the issue, and merge it. Use this when someone asks to "ship", "auto-ship", "just get this done", "build and merge", or says "auto-ship <feature>" or "auto-ship #NN". Don't use it for exploration, questions, or anything the caller wants reviewed before it lands.
 ---
 
 # Auto-ship
@@ -31,25 +31,28 @@ Work out the feature from the request ("auto-ship trading" means trading; "auto-
 
 If `list_issue_fields` shows a project `Status` field, also move the issue to In Progress. Re-check that each run.
 
-## 2. Route the work to the reference docs
+## 2. Route the work to the reference docs and skills
 
-Sort the change into one or more categories, then read the "Rules for agents" section of each matching doc in `docs/reference/` and the "Grow A Golem today" section for the systems you'll touch. **Always read `safety-compliance.md` in full, whatever the category.** It overrides every other doc, every top game's example, and the issue itself.
+Sort the change into one or more categories, then read the "Rules for agents" section of each matching doc in `docs/reference/` and the "Grow A Golem today" section for the systems you'll touch. Also read each matching skill in the **Skills** column: its `SKILL.md` and the `SOURCE.md` next to it, which says which sections don't apply to this repo. **Always read `safety-compliance.md` in full, whatever the category.** It overrides every other doc, every top game's example, and the issue itself.
 
-| Category | Typical signs in the request or diff | Read | Code usually lives in |
-|---|---|---|---|
-| UI / HUD / menus | buttons, panels, HUD, text, layout, controls | `ui-ux.md`, `performance-mobile.md` | `src/client/Hud.luau`, `Menus.luau`, `Ui.luau`, `Controls.luau` |
-| Gameplay loops | combat, mining, riding, bosses, enemies, islands | `gameplay-loops.md` | `GolemService`, `CombatService`, `MiningService`, `EnemyService`, `WorldService` |
-| Progression | forging, levels, skill tree, awakening (rebirth), artifacts, zones, balance numbers | `progression.md` | `ProgressionService`, `ArtifactService`, `src/shared/Stats.luau`, `Config.luau` |
-| Monetization | game passes, products, prices, shop, luck boosts, paid cosmetics | `monetization.md` (and the paid-random rules in the safety doc) | `PassService`, `CosmeticService`, `Config.GamePasses`, `Config.Products` |
-| Retention | daily login, quests, streaks, offline gains, gifts, notifications | `retention.md` | `RewardService` |
-| Onboarding | tutorial, first session, time to fun, funnel steps | `onboarding.md` | `TutorialService`, `src/client/Tutorial.luau`, `Config.Tutorial` |
-| Social | parties, co-op, friends, trading, hub, chat, leaderboards | `social.md` | `PartyService`, `LeaderboardService` |
-| Live ops | codes, events, update cadence, banners | `live-ops.md` | `CodeService`, `LiveEventService`, `Config.Codes`, `Config.Events` |
-| Art / audio | models, lighting, effects, animation, sounds, thumbnails | `art-audio.md`, `visual-references.md` | `src/server/Models/`, `src/client/Fx.luau`, `Animator.luau`, `Sfx.luau` |
-| Performance / mobile | frame rate, remotes, streaming, part counts, touch | `performance-mobile.md` | anywhere; `src/shared/Remotes.luau` for network traffic |
-| Safety | odds, pity, chat, text filtering, PolicyService, age checks, codes | `safety-compliance.md` | wherever the feature is |
+| Category | Typical signs in the request or diff | Read | Skills | Code usually lives in |
+|---|---|---|---|---|
+| UI / HUD / menus | buttons, panels, HUD, text, layout, controls | `ui-ux.md`, `performance-mobile.md` | `roblox-ui-genre-studs` | `src/client/Hud.luau`, `Menus.luau`, `Ui.luau`, `Controls.luau` |
+| Gameplay loops | combat, mining, riding, bosses, enemies, islands | `gameplay-loops.md` | - | `GolemService`, `CombatService`, `MiningService`, `EnemyService`, `WorldService` |
+| Progression | forging, levels, skill tree, awakening (rebirth), artifacts, zones, balance numbers | `progression.md` | - | `ProgressionService`, `ArtifactService`, `src/shared/Stats.luau`, `Config.luau` |
+| Monetization | game passes, products, prices, shop, luck boosts, paid cosmetics | `monetization.md` (and the paid-random rules in the safety doc) | `roblox-ui-genre-studs` for shop UI | `PassService`, `CosmeticService`, `Config.GamePasses`, `Config.Products` |
+| Retention | daily login, quests, streaks, offline gains, gifts, notifications | `retention.md` | - | `RewardService` |
+| Onboarding | tutorial, first session, time to fun, funnel steps | `onboarding.md` | - | `TutorialService`, `src/client/Tutorial.luau`, `Config.Tutorial` |
+| Social | parties, co-op, friends, trading, hub, chat, leaderboards | `social.md` | `roblox-pitfalls` for teleports | `PartyService`, `LeaderboardService` |
+| Live ops | codes, events, update cadence, banners | `live-ops.md` | - | `CodeService`, `LiveEventService`, `Config.Codes`, `Config.Events` |
+| Art / audio | models, lighting, effects, animation, sounds, thumbnails | `art-audio.md`, `visual-references.md` | `roblox-blender-export` for meshes; `roblox-store-art-pack` for icons, thumbnails, map composition and Creator Store assets | `src/server/Models/`, `src/client/Fx.luau`, `Animator.luau`, `Sfx.luau` |
+| Performance / mobile | frame rate, remotes, streaming, part counts, touch | `performance-mobile.md` | `roblox-blender-export` for triangle budgets | anywhere; `src/shared/Remotes.luau` for network traffic |
+| Safety | odds, pity, chat, text filtering, PolicyService, age checks, codes | `safety-compliance.md` | - | wherever the feature is |
+| Studio, publishing, third-party assets | Studio MCP testing, publishing a place, Open Cloud, loading Creator Store models, "works offline but not in Studio" | the docs of the feature's own category | `roblox-pitfalls`; `roblox-store-art-pack` section 3 for inserted models | `src/server/`, `scripts/` |
 
-Most changes hit two or three rows (a new shop item is monetization, UI and safety). Note the routed docs; the review in step 5 checks against exactly this list. Check `docs/reference/research-notes/` before doing new research. If you do research, add it to the library with cited URLs and a date, following `docs/reference/README.md`.
+Most changes hit two or three rows (a new shop item is monetization, UI and safety). Note the routed docs and skills; the review in step 5 checks against exactly this list. Check `docs/reference/research-notes/` before doing new research. If you do research, add it to the library with cited URLs and a date, following `docs/reference/README.md`.
+
+The skills come unchanged from an outside repo, so they rank last. Where they differ: `safety-compliance.md` wins first, then the routed `docs/reference/` docs and our own theme (the mystical palette and motifs in #83 beat the stud skill's colour ramps), then the skill. Skip `roblox-blender-export` section 8 (it uses a Blender MCP add-on this repo doesn't use; see "Driving Blender" in `CLAUDE.md`) and `roblox-store-art-pack` section 1 (a daylight simulator palette that doesn't fit our zones). The skills name companion skills from roblox-brain that aren't installed; ignore those pointers.
 
 **Stop and ask the caller** before building anything that conflicts with `safety-compliance.md`. Don't change the safety doc's rules in an auto-ship run at all: `docs/reference/README.md` says that needs the project owner's sign-off, so open the PR without merging it and say whose sign-off it needs. Keep building any part that doesn't depend on the answer. Hard lines that never need asking about: real odds shown before any paid random item (luck boosts included), pity timers kept, no faked near-misses, cosmetics sold only by direct purchase, no purchase countdowns, codes stay free.
 
@@ -77,7 +80,7 @@ Studio can't run here, so nothing executes the game before merge. Write numbered
 
 **Then review the diff in a fresh agent.** Spawn one `general-purpose` subagent with this prompt, filling in the doc list and issue number:
 
-> You are reviewing a diff for the grow-a-golem Roblox repo before it merges. Run `git diff origin/main...HEAD`. Read `docs/reference/safety-compliance.md` in full and the "Rules for agents" section of each of these docs: <routed docs>. For each rule that applies to the diff, decide whether the diff follows it. Also check that balance numbers live in `src/shared/Config.luau`, that the server validates every new remote, and that the diff does what issue #NN asked for. Report only real violations, each with file and line, the rule it breaks, and the fix. Reply "No findings" if there are none. Don't edit files.
+> You are reviewing a diff for the grow-a-golem Roblox repo before it merges. Run `git diff origin/main...HEAD`. Read `docs/reference/safety-compliance.md` in full and the "Rules for agents" section of each of these docs: <routed docs>. Also read these skills in `.claude/skills/`, each with its `SOURCE.md` (skip the sections it says don't apply): <routed skills, or "none">. Where a skill disagrees with the safety doc or a reference doc, the doc wins. For each rule that applies to the diff, decide whether the diff follows it. Also check that balance numbers live in `src/shared/Config.luau`, that the server validates every new remote, and that the diff does what issue #NN asked for. Report only real violations, each with file and line, the rule it breaks, and the fix. Reply "No findings" if there are none. Don't edit files.
 
 The review is done when every finding is fixed in the branch or answered in the PR body under "Reference docs check" with why it doesn't apply. Re-run the syntax check after fixes.
 
@@ -96,7 +99,7 @@ Commit with a clear message and push with `git push -u origin <branch>`. Check f
 
 - the PR attribution block from the session context (if there is one) as the first lines, crediting the caller
 - **Summary**: what changed and why, in a few sentences
-- **Reference docs check**: the categories and docs this run routed to, and how the change follows the safety doc
+- **Reference docs check**: the categories, docs and skills this run routed to, and how the change follows the safety doc
 - **Verification**: which files passed `luau-compile --null`, and the review result
 - **Playtest in Studio**: the numbered steps from step 5
 - `Fixes #NN`
