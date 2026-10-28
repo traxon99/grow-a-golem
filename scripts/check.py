@@ -80,6 +80,14 @@ bundle += "\nlocal function loadTowerService(dependencies, game, task, clock)\n"
 bundle += 'local os = { clock = clock, time = os.time }\nlocal warn = function() end\nlocal script = { Parent = {} }\n'
 bundle += tower_service + "\nend\n"
 bundle += (ROOT / "tests/tower-service.luau").read_text()
+# The real CodeService with mocked services and test-controlled os.clock/os.time.
+code_service = (ROOT / "src/server/Services/CodeService.luau").read_text()
+code_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', code_service)
+bundle += "\nlocal function loadCodeService(dependencies, game, clock, time)\n"
+bundle += 'local os = { clock = clock, time = time }\nlocal task = { spawn = function() end }\n'
+bundle += 'local script = { Parent = {} }\n'
+bundle += code_service + "\nend\n"
+bundle += (ROOT / "tests/code-service.luau").read_text()
 with tempfile.TemporaryDirectory(prefix="golem-check-") as folder:
     path = Path(folder) / "regression.luau"
     path.write_text(bundle)
