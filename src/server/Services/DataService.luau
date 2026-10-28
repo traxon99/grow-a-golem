@@ -77,7 +77,7 @@ local function defaultData(): any
 		totals = { enemies = 0, nodes = 0, bosses = 0 },
 		tutorial = { step = 0, done = false }, -- step 0 = not started yet
 		cosmetics = { owned = {}, equipped = {} }, -- owned[id] = true, equipped[slot] = id
-		social = { title = "", announce = true }, -- worn title id ("" = none), hear rare-find announcements
+		social = { title = "", announce = true, partyInvites = "friends" }, -- invite choices: everyone, friends, off
 		trades = { day = 0, count = 0, log = {} }, -- completed trades today, and a record of recent ones
 	}
 end
