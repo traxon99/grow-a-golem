@@ -125,6 +125,34 @@ bundle += "\nlocal function loadRewardService(dependencies, game, task, time)\n"
 bundle += 'local os = { time = time }\nlocal script = { Parent = {} }\n'
 bundle += reward_service + "\nend\n"
 bundle += (ROOT / "tests/reward-service.luau").read_text()
+# The real PolicyService with mocked services. check() is only reachable
+# through the ProfileLoaded callback .start() registers, so task.spawn here
+# actually runs its callback (unlike every other wrapper's no-op) while
+# task.wait stays a no-op so the retry loop's real-second delays don't happen.
+policy_service = (ROOT / "src/server/Services/PolicyService.luau").read_text()
+policy_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', policy_service)
+bundle += "\nlocal function loadPolicyService(dependencies, game, task)\n"
+bundle += 'local warn = function() end\nlocal script = { Parent = {} }\n'
+bundle += policy_service + "\nend\n"
+bundle += (ROOT / "tests/policy-service.luau").read_text()
+# The real EconomyService with mocked services and a test-controlled os.clock.
+economy_service = (ROOT / "src/server/Services/EconomyService.luau").read_text()
+economy_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', economy_service)
+bundle += "\nlocal function loadEconomyService(dependencies, game, clock)\n"
+bundle += 'local os = { clock = clock }\nlocal script = { Parent = {} }\n'
+bundle += economy_service + "\nend\n"
+bundle += (ROOT / "tests/economy-service.luau").read_text()
+# The real ArtifactService with mocked services (see the test file's header
+# for what's out of scope); task.spawn is a no-op so the hidden-relic pickup
+# loop never runs. math.random is shadowed so roll()'s pity/chance rolls are
+# test-controlled; everything else math does is untouched via __index.
+artifact_service = (ROOT / "src/server/Services/ArtifactService.luau").read_text()
+artifact_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', artifact_service)
+bundle += "\nlocal function loadArtifactService(dependencies, game, task, time, random)\n"
+bundle += 'local script = { Parent = {} }\nlocal os = { time = time }\n'
+bundle += 'local math = setmetatable({ random = random }, { __index = math })\n'
+bundle += artifact_service + "\nend\n"
+bundle += (ROOT / "tests/artifact-service.luau").read_text()
 with tempfile.TemporaryDirectory(prefix="golem-check-") as folder:
     path = Path(folder) / "regression.luau"
     path.write_text(bundle)

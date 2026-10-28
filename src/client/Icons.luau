@@ -36,6 +36,14 @@ function Icons.create(parent: Instance, key: string, size: number, position: UDi
 	icon.Position = position
 	icon.BackgroundTransparency = 1
 	icon.BorderSizePixel = 0
+	icon.Active = false
+	icon.Selectable = false
+	if parent:IsA("GuiObject") then
+		icon.ZIndex = parent.ZIndex + 1
+	end
+	local aspect = Instance.new("UIAspectRatioConstraint")
+	aspect.AspectRatio = 1
+	aspect.Parent = icon
 	icon.Parent = parent
 	return icon
 end

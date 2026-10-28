@@ -39,8 +39,12 @@ renderer uses `R$` and purchase controls must retain the numeric price.
    readability, grayscale, small landscape phone and largest preferred text.
    Keep visible word labels and 48 px touch targets; an icon is not a button.
 
-The art and reusable renderer are ready for the menu kit and per-menu work.
-Existing screens keep their current text UI until #82/#84–#97 wire in the icons.
+The existing HUD now uses XP, mineral and spell icons. All menu tabs and the
+window header use their matching icon; close, travel guide/locks, quest status,
+event points and event reward status use the same renderer. Word labels and
+server-driven actions remain. Rarity sprites await the shared rarity semantics
+in #82; no rarity is invented for existing artifacts. The larger redesigns in
+#84–#97 remain separate.
 This change does not claim that Studio validation or Roblox uploads are done.
 If an uploaded image is rejected, reset its ID to zero to restore the fallback.
 
@@ -52,6 +56,7 @@ locally with `npm install --no-save --package-lock=false sharp@0.35.5` if needed
 ```sh
 node assets/ui-icons/build.cjs
 node assets/ui-icons/verify.cjs
+python3 scripts/check_ui_icons.py
 ```
 
 `build.cjs` is the geometry source; it exports the individual SVGs under `src/`,

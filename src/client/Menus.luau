@@ -16,6 +16,8 @@ local State = require(script.Parent:WaitForChild("State"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
 local Wardrobe = require(script.Parent:WaitForChild("Wardrobe"))
 
+local Icons = require(script.Parent:WaitForChild("Icons"))
+
 local Menus = {}
 
 local player = Players.LocalPlayer
@@ -220,7 +222,7 @@ end
 local function renderTravel(list: ScrollingFrame, snap: any)
 	local data = snap.data
 	local currentZone = if snap.golem then snap.golem.zoneId else 1
-	Ui.heading(list, 1, "Islands")
+	Ui.row(list, 1, "Travel guide", "Locked islands show what you need to unlock them.", nil, nil, nil, "guide")
 	local inHub = currentZone == Config.HubZone
 	Ui.row(
 		list,
@@ -251,7 +253,7 @@ local function renderTravel(list: ScrollingFrame, snap: any)
 		end
 		Ui.row(list, index + 2, zone.name, subtitle, "Travel", unlocked and zoneId ~= currentZone, function()
 			State.request("travel", zoneId)
-		end)
+		end, if unlocked then "travel" else "lock")
 	end
 	renderTower(list, snap, 100)
 end
@@ -561,7 +563,8 @@ local function renderQuests(list: ScrollingFrame, snap: any)
 			not quest.claimed and quest.progress >= quest.target,
 			function()
 				State.request("claimQuest", quest.id)
-			end
+			end,
+			if quest.claimed then "tick" elseif quest.progress >= quest.target then "alert" else "quests"
 		)
 	end
 
@@ -858,7 +861,11 @@ local function renderEvents(list: ScrollingFrame, snap: any)
 				list,
 				nextOrder(),
 				`{tokens} {track.currency}`,
-				`Earn {table.concat(earn, ", ")} while the event is on.`
+				`Earn {table.concat(earn, ", ")} while the event is on.`,
+				nil,
+				nil,
+				nil,
+				"eventPoints"
 			)
 			for index, tier in track.tiers do
 				local done = claimed[tostring(index)] == true
@@ -875,7 +882,8 @@ local function renderEvents(list: ScrollingFrame, snap: any)
 					ready,
 					function()
 						State.request("claimEventTier", event.id, index)
-					end
+					end,
+					if done then "tick" elseif ready then "alert" else "lock"
 				)
 			end
 		end
@@ -1252,6 +1260,8 @@ local TABS: { { id: string, name: string, render: Render } } = {
 
 local window: Frame
 local titleLabel: TextLabel
+local titleIcon: GuiObject?
+local titleIconKey: string?
 local list: ScrollingFrame
 local openTab: number? = nil
 local tabButtons: { [string]: TextButton } = {}
@@ -1282,6 +1292,13 @@ function Menus.refresh()
 	end
 	local tab = TABS[openTab]
 	titleLabel.Text = tab.name
+	if titleIconKey ~= tab.id then
+		if titleIcon then
+			titleIcon:Destroy()
+		end
+		titleIcon = Icons.create(window, tab.id, 32, UDim2.fromOffset(12, 12))
+		titleIconKey = tab.id
+	end
 	local ok, err = pcall(function(): any
 		tab.render(list, State.snapshot)
 		return nil
@@ -1326,6 +1343,7 @@ function Menus.start()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "GolemMenus"
 	gui.ResetOnSpawn = false
+	gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 	gui.Parent = player:WaitForChild("PlayerGui")
 
 	-- Tab buttons down the left edge, under the stats panel.
@@ -1337,17 +1355,24 @@ function Menus.start()
 	bar.ScrollBarThickness = 0
 	bar.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	bar.CanvasSize = UDim2.new()
-	bar.Size = UDim2.new(0, 110, 1, -220)
+	bar.Size = UDim2.new(0, 156, 1, -220)
 	bar.Position = UDim2.fromOffset(12, 180)
 	bar.Parent = gui
 	local barLayout = Instance.new("UIListLayout")
-	barLayout.Padding = UDim.new(0, 6)
+	barLayout.Padding = UDim.new(0, 8)
 	barLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	barLayout.Parent = bar
 	for index, tab in TABS do
-		local b = Ui.button(bar, tab.name, UDim2.fromOffset(110, 34), UDim2.new(), true, function()
+		local b = Ui.button(bar, "", UDim2.fromOffset(156, 48), UDim2.new(), true, function()
 			open(index)
 		end)
+		-- Clear button padding: the icon and its word label have their own insets.
+		local padding = b:FindFirstChildOfClass("UIPadding")
+		if padding then
+			padding:Destroy()
+		end
+		Icons.create(b, tab.id, 32, UDim2.fromOffset(6, 8))
+		Ui.label(b, tab.name, UDim2.new(1, -48, 1, 0), UDim2.fromOffset(44, 0), { TextScaled = false, TextSize = 18 })
 		b.LayoutOrder = index
 		tabButtons[tab.id] = b
 		b.BackgroundTransparency = 0.05
@@ -1369,16 +1394,21 @@ function Menus.start()
 	constraint.MaxSize = Vector2.new(640, 620)
 	constraint.Parent = window
 
-	titleLabel = Ui.label(window, "", UDim2.new(1, -70, 0, 30), UDim2.fromOffset(16, 10))
-	local close = Ui.button(window, "X", UDim2.fromOffset(36, 36), UDim2.new(1, -46, 0, 8), true, function()
+	titleLabel = Ui.label(window, "", UDim2.new(1, -116, 0, 32), UDim2.fromOffset(52, 12))
+	local close = Ui.button(window, "", UDim2.fromOffset(48, 48), UDim2.new(1, -56, 0, 4), true, function()
 		open(openTab)
 	end)
 	Ui.surface(close, "metal")
+	local closePadding = close:FindFirstChildOfClass("UIPadding")
+	if closePadding then
+		closePadding:Destroy()
+	end
+	Icons.create(close, "close", 32, UDim2.fromOffset(8, 8))
 
 	list = Instance.new("ScrollingFrame")
 	list.Name = "List"
-	list.Size = UDim2.new(1, -20, 1, -60)
-	list.Position = UDim2.fromOffset(10, 50)
+	list.Size = UDim2.new(1, -20, 1, -70)
+	list.Position = UDim2.fromOffset(10, 60)
 	list.BackgroundTransparency = 1
 	list.BorderSizePixel = 0
 	list.ScrollBarThickness = 6
