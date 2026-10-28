@@ -210,7 +210,10 @@ do
 				completeMessages += 1
 			end
 		end
-		assert(completeMessages == 1, "the completion notice fires exactly once, at the target, not on every overflow call")
+		assert(
+			completeMessages == 1,
+			"the completion notice fires exactly once, at the target, not on every overflow call"
+		)
 
 		-- Claiming it, then firing its event again, must not re-increment.
 		local ok = claimQuest(player, quest.id)
@@ -321,7 +324,10 @@ do
 			error("roblox API down")
 		end
 		local okApiDown, msgApiDown = claimGroup(player)
-		assert(okApiDown == false and msgApiDown == "Join the group first, then try again", "a failed lookup is refused")
+		assert(
+			okApiDown == false and msgApiDown == "Join the group first, then try again",
+			"a failed lookup is refused"
+		)
 
 		player.IsInGroupAsync = function()
 			return false
