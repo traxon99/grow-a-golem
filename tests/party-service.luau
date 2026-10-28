@@ -20,6 +20,8 @@ do
 	local removingHandlers = {}
 	local friendsOf = {} -- player -> set of userIds it's friends with
 	local friendCalls = {}
+	local deferredTasks = {}
+	local deferFriends = false
 
 	local function makeFriends(a, b)
 		friendsOf[a] = friendsOf[a] or {}
@@ -105,10 +107,14 @@ do
 			}
 		end,
 	}, {
-		-- friendNow's background lookup runs synchronously in this test, so
-		-- its cache-fill effect is visible right after the call returns.
+		-- By default run background work immediately; individual tests can
+		-- defer it to simulate a Roblox friendship API call that yields.
 		spawn = function(fn, ...)
-			fn(...)
+			if deferFriends then
+				table.insert(deferredTasks, { fn = fn, args = { ... } })
+			else
+				fn(...)
+			end
 		end,
 	}, function()
 		return clockNow
@@ -153,12 +159,9 @@ do
 	end
 
 	---------------------------------------------------------------- friendBonus
-	-- isFriend's cache locks in a pair's answer on its first lookup and never
-	-- re-queries it (the real source only clears a player's slot on
-	-- PlayerRemoving), so each case below uses its own fresh players and
-	-- calls makeFriends before anything -- friendBonus, areFriends, or
-	-- friendNow -- ever looks that pair up; flipping friendsOf afterwards
-	-- wouldn't be seen.
+	-- Party formation warms friendships in the background; this test mock
+	-- resolves them immediately unless the deferred-lookup test opts out.
+	-- Negative answers expire after five minutes.
 	do
 		local solo = join()
 		assert(party.friendBonus(solo) == 0, "a party of one has no one to be friends with")
@@ -231,6 +234,48 @@ do
 		assert(party.friendNow(stranger1, stranger2) == false, "an uncached pair reads as not-friends at first")
 		assert(#changed > changedBefore and changed[#changed] == stranger1, "the background fill marks it changed")
 		assert(party.friendNow(stranger1, stranger2) == true, "now cached, the real answer comes back")
+	end
+
+	---------------------------------------------------------------- non-yielding friend lookups
+	do
+		local leader, member = join(), join()
+		makeFriends(leader, member)
+		local callsBefore = #friendCalls
+		local changedBefore = #changed
+		deferFriends = true
+		assert(invite(leader, member.UserId) == true)
+		assert(accept(member, leader.UserId) == true)
+		assert(#friendCalls == callsBefore, "joining only schedules lookups; it never waits for them")
+		assert(#deferredTasks == 2, "one lookup per direction is queued on party formation")
+		local bonus = party.friendBonus(leader)
+		local snap = providers.party(leader)
+		assert(bonus == 0 and snap.friendBonus == 0, "unknown friendships give no bonus until confirmed")
+		assert(snap.members[2].friend == false, "snapshot reads the pending cache without waiting")
+		assert(#friendCalls == callsBefore, "reward and snapshot never invoke the yielding API")
+		assert(#deferredTasks == 2, "repeated reads do not spawn duplicate pending lookups")
+		deferFriends = false
+		while #deferredTasks > 0 do
+			local queued = table.remove(deferredTasks, 1)
+			queued.fn(table.unpack(queued.args))
+		end
+		assert(#friendCalls == callsBefore + 2, "background tasks resolve both directions")
+		assert(#changed > changedBefore, "resolved friendships refresh client state")
+		assert(party.friendBonus(leader) == Config.Party.friendBonusPerFriend)
+		assert(providers.party(leader).members[2].friend == true)
+	end
+
+	---------------------------------------------------------------- negative cache refresh
+	do
+		local a, b = join(), join()
+		local before = #friendCalls
+		assert(party.areFriends(a, b) == false)
+		makeFriends(a, b)
+		assert(party.friendNow(a, b) == false, "a recent negative answer stays cached")
+		assert(#friendCalls == before + 1)
+		clockNow += 301
+		assert(party.friendNow(a, b) == false, "expired negatives refresh in the background")
+		assert(party.friendNow(a, b) == true, "a newly added friend is recognized")
+		assert(#friendCalls == before + 2)
 	end
 
 	---------------------------------------------------------------- invite expiry
@@ -341,9 +386,9 @@ do
 	do
 		assert(providers.party ~= nil, "PartyService registers a DataService provider")
 		local leader, member = join(), join()
+		makeFriends(leader, member)
 		invite(leader, member.UserId)
 		accept(member, leader.UserId)
-		makeFriends(leader, member)
 		local snap = providers.party(leader)
 		assert(snap.inParty == true and #snap.members == 2)
 		assert(snap.friendBonus == Config.Party.friendBonusPerFriend)

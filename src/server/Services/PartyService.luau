@@ -20,6 +20,9 @@ local PartyService = {}
 local partyOf: { [Player]: Party } = {}
 local invites: { [Player]: { [Player]: number } } = {} -- target -> inviter -> expiry (os.clock)
 local friendCache: { [Player]: { [number]: boolean } } = {}
+local friendCheckedAt: { [Player]: { [number]: number } } = {}
+local friendPending: { [Player]: { [number]: boolean } } = {}
+local FALSE_CACHE_SECONDS = 300 -- Retry negative answers so newly added friends count without rejoining.
 
 local function refreshAll(party: Party?)
 	if party then
@@ -29,19 +32,37 @@ local function refreshAll(party: Party?)
 	end
 end
 
-local function isFriend(a: Player, b: Player): boolean
+-- Read the cache without yielding. Negative answers eventually expire so a
+-- friendship made during this session can start earning its party bonus.
+local function cachedFriend(a: Player, b: Player): boolean?
 	local cache = friendCache[a]
 	if not cache then
-		cache = {}
-		friendCache[a] = cache
+		return nil
 	end
-	if cache[b.UserId] == nil then
-		local ok, result = pcall(function()
-			return a:IsFriendsWithAsync(b.UserId)
-		end)
-		cache[b.UserId] = ok and result == true
+	local answer = cache[b.UserId]
+	if answer == false then
+		local checked = friendCheckedAt[a]
+		if not checked or checked[b.UserId] == nil or os.clock() - checked[b.UserId] >= FALSE_CACHE_SECONDS then
+			return nil
+		end
 	end
-	return cache[b.UserId]
+	return answer
+end
+
+local function isFriend(a: Player, b: Player): boolean
+	local cached = cachedFriend(a, b)
+	if cached ~= nil then
+		return cached
+	end
+	local ok, result = pcall(function()
+		return a:IsFriendsWithAsync(b.UserId)
+	end)
+	local answer = ok and result == true
+	friendCache[a] = friendCache[a] or {}
+	friendCache[a][b.UserId] = answer
+	friendCheckedAt[a] = friendCheckedAt[a] or {}
+	friendCheckedAt[a][b.UserId] = os.clock()
+	return answer
 end
 
 -- Whether two players are Roblox friends (looked up once, then remembered).
@@ -49,22 +70,44 @@ function PartyService.areFriends(a: Player, b: Player): boolean
 	return isFriend(a, b)
 end
 
--- Like areFriends but never waits: unknown pairs read as "not friends" until
--- the lookup finishes in the background, then the player's state refreshes.
--- For snapshots, which must not stall.
+-- Never yield from a snapshot or reward calculation. Only one background
+-- lookup per ordered pair may be outstanding, even if snapshots arrive often.
 function PartyService.friendNow(a: Player, b: Player): boolean
-	local cache = friendCache[a]
-	if cache and cache[b.UserId] ~= nil then
-		return cache[b.UserId]
+	local cached = cachedFriend(a, b)
+	if cached ~= nil then
+		return cached
 	end
-	if not a.Parent then
+	if not a.Parent or not b.Parent then
 		return false
 	end
-	task.spawn(function()
-		isFriend(a, b)
-		DataService.markChanged(a)
-	end)
+	local pending = friendPending[a]
+	if not pending then
+		pending = {}
+		friendPending[a] = pending
+	end
+	if not pending[b.UserId] then
+		pending[b.UserId] = true
+		task.spawn(function()
+			isFriend(a, b)
+			pending[b.UserId] = nil
+			if a.Parent then
+				DataService.markChanged(a)
+			end
+		end)
+	end
 	return false
+end
+
+-- Start friend lookups when a party forms or grows, not when the next reward
+-- or state push needs the answer. Each result refreshes its owner's snapshot.
+local function warmPartyFriends(party: Party)
+	for _, member in party.members do
+		for _, other in party.members do
+			if other ~= member then
+				PartyService.friendNow(member, other)
+			end
+		end
+	end
 end
 
 function PartyService.sameParty(a: Player, b: Player): boolean
@@ -86,7 +129,7 @@ end
 function PartyService.friendBonus(player: Player): number
 	local bonus = 0
 	for _, member in PartyService.members(player) do
-		if member ~= player and isFriend(player, member) then
+		if member ~= player and PartyService.friendNow(player, member) then
 			bonus += Config.Party.friendBonusPerFriend
 		end
 	end
@@ -137,7 +180,7 @@ local function snapshot(player: Player): any
 			userId = member.UserId,
 			name = member.DisplayName,
 			leader = party ~= nil and party.leader == member,
-			friend = member ~= player and isFriend(player, member),
+			friend = member ~= player and PartyService.friendNow(player, member),
 		})
 	end
 	local others = {}
@@ -210,6 +253,7 @@ function PartyService.start()
 		end
 		table.insert(party.members, player)
 		partyOf[player] = party
+		warmPartyFriends(party)
 		refreshAll(party)
 		for _, member in party.members do
 			Remotes.Notify:FireClient(member, "message", `{player.DisplayName} joined the party!`)
@@ -242,6 +286,8 @@ function PartyService.start()
 		leave(player)
 		invites[player] = nil
 		friendCache[player] = nil
+		friendCheckedAt[player] = nil
+		friendPending[player] = nil
 		for _, pending in invites do
 			pending[player] = nil
 		end
