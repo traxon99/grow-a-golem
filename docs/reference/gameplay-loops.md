@@ -45,6 +45,8 @@ Details:
 
 - Strong fit with the genre skeleton. Co-op parties add a social multiplier (see [social.md](social.md)).
 - Falling four studs below an island's surface knocks the golem out immediately, at any size. It returns to that island's spawn with no falling momentum, stays down for the normal five-second recovery, and then reforms at full health. Falling never removes saved progress.
+- Enemies that fall below the same plane count as defeats for their last attacker. Nearby party sharing measures from the last hit location, so knockback does not cost the party XP. Boss contributors and fixed Tower wave rewards still use their usual paths; untouched enemies disappear without rewards.
+- A detached rider also dies immediately below the kill plane, even when their golem is still on land. The character respawns normally, and its golem uses the same fall recovery.
 - **Golem Tower (#62, off until playtested):** a session-layer side mode. Ten waves of an unlocked island's enemies in a private arena, with fixed, pre-shown rewards per cleared wave instead of drops. It gives parties a shared goal without a new random reward table.
 - No global shared timer (restock, world boss) yet; nothing pulls players to a shared moment every few minutes.
 - Each island now has weighted swarmer/tank spawns; every twentieth successful spawn is an elite with more fixed XP/minerals. The 20-hour completion goal is unmeasured.

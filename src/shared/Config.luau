@@ -40,6 +40,8 @@ Config.Golem = {
 	baseArtifactSlots = 3,
 }
 
+Config.FallEffects = { chunks = 18, chunkSize = 0.8, spread = 10 }
+
 -- Total XP needed to reach a level: 25 * (level - 1) ^ 1.6
 Config.LevelCurve = { base = 25, exponent = 1.6 }
 

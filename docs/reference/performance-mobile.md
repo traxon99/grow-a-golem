@@ -36,6 +36,7 @@ Last updated: 2026-10-27. See also [ui-ux.md](ui-ux.md) for touch layout and saf
 - Server-authoritative; client sends intents only.
 - Optional original part-based templates in `ReplicatedStorage.Assets` supplement procedural fallbacks (not MeshParts); procedural Motor6D animation; low-poly; built-in materials (e.g. DiamondPlate on iron tier). Part count per golem and per enemy not measured.
 - Hit flashes, damage numbers and debris: pooling and caps not confirmed.
+- Fall disintegration and reformation reuse the client-only debris budget (120 chunks total), skip distant cameras, and create no full-model clones or new remotes. Burst motion is skipped when `ReducedMotionEnabled` is on.
 - `StreamingEnabled` not found in `default.project.json` (check the place file in Studio).
 - Lighting set from `WorldService`; Technology not set in code.
 - The eight-tier/six-boss/prop library replicates from ReplicatedStorage as required by #16. Its phone memory/instance cost still needs measurement; prune unused art or move server-only templates if this budget proves too high.
