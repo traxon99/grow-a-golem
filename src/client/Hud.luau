@@ -405,18 +405,12 @@ function Hud.start()
 		TextWrapped = false,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 	})
-	local bannerInfo = Ui.label(
-		banner,
-		"",
-		UDim2.new(1, -16, 0, 22),
-		UDim2.fromOffset(8, 30),
-		{
-			TextColor3 = Ui.Colors.quiet,
-			TextSize = Ui.TextSize.body,
-			TextWrapped = false,
-			TextTruncate = Enum.TextTruncate.AtEnd,
-		}
-	)
+	local bannerInfo = Ui.label(banner, "", UDim2.new(1, -16, 0, 22), UDim2.fromOffset(8, 30), {
+		TextColor3 = Ui.Colors.quiet,
+		TextSize = Ui.TextSize.body,
+		TextWrapped = false,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+	})
 	task.spawn(function()
 		while true do
 			local now = State.serverNow()
