@@ -43,3 +43,13 @@ Studio ships its own MCP server, so Claude Code can play-test, read Output, insp
 - **Using it:** call `list_roblox_studios` first, since every other tool needs its `studio_id`. Then `start_stop_play` to play-test, `get_console_output` for Output, `search_game_tree` / `inspect_instance` to look around, `execute_luau` to run code.
 - Code is synced by Rojo, so fix scripts in `src/`, not in Studio. Studio-side script edits are overwritten on the next sync.
 - **Won't connect?** Studio must be open with the toggle on. On Windows, `mcp.bat` hard-codes a Studio version folder and can go stale after a Studio update; toggle **Enable Studio as MCP server** off and on, which rewrites it, then restart Claude Code.
+
+## Driving Blender (MCP)
+
+For modelling in Blender, use [blender-mcp](https://github.com/ahujasid/blender-mcp) (PyPI package `mcp-for-blender`). It needs [uv](https://docs.astral.sh/uv/) (`winget install --id=astral-sh.uv -e` on Windows).
+
+- **Install:** `uvx mcp-for-blender install-addon`, then in Blender go to **Edit → Preferences → Add-ons** and enable **MCP for Blender**.
+- **Register:** `claude mcp add --scope user blender -- uvx mcp-for-blender`, then restart Claude Code. If Claude Code can't find `uvx`, use its full path.
+- **Start:** in the 3D viewport press **N**, open the **MCP for Blender** tab and click **Start MCP Server** (it listens on `localhost:9876`).
+- **Using it:** `get_scene_info` and `look` to see the scene, `execute_blender_code` to run Python. Save the .blend first, since that tool runs arbitrary code. Only run one Blender MCP server at a time.
+- The add-on's socket has no authentication, so keep it on localhost.
