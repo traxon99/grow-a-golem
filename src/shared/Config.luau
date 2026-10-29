@@ -1422,10 +1422,10 @@ Config.Tower = {
 }
 
 -- Original #83 sprite sheets; upload instructions: assets/ui-icons/README.md.
--- Keep IDs at zero until the owner uploads and verifies the images.
+-- Reset an ID to zero to fall back to the text labels if an upload is rejected.
 Config.UiIcons = {
-	color = 0,
-	mono = 0,
+	color = 130214142096922, -- mystical.png, uploaded 2026-10-28
+	mono = 96019795815429, -- mystical-mono.png
 	robux = 0, -- Official Roblox artwork only; never a custom logo.
 	cellSize = 128,
 	entries = {
