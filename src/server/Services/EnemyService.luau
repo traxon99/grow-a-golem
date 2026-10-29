@@ -40,6 +40,9 @@ export type Enemy = {
 	slamPattern: any,
 	slamIndex: number,
 	slamMarker: BasePart?,
+	staggerUntil: number,
+	staggerReadyAt: number,
+	staggerGlow: Highlight?,
 	contributors: { [Player]: number }, -- actual damage per player, capped at remaining health
 	lastHitPosition: Vector3?, -- party sharing stays at the fight, not below the island
 	-- Set for tower enemies: called once on defeat instead of island rewards.
@@ -112,6 +115,9 @@ local function makeEnemy(id: string, def: any, zoneId: number, at: Vector3, isBo
 		slamPattern = nil,
 		slamIndex = 0,
 		slamMarker = nil,
+		staggerUntil = 0,
+		staggerReadyAt = 0,
+		staggerGlow = nil,
 		contributors = {},
 		lastHitPosition = nil,
 		onDefeated = nil,
@@ -204,9 +210,20 @@ local function clearSlam(enemy: Enemy)
 	enemy.slamPattern = nil
 end
 
+local function clearStagger(enemy: Enemy)
+	if enemy.staggerGlow then
+		enemy.staggerGlow:Destroy()
+		enemy.staggerGlow = nil
+	end
+	enemy.staggerUntil = 0
+	enemy.humanoid.WalkSpeed = enemy.def.walkSpeed
+	enemy.model:SetAttribute("Staggered", false)
+end
+
 local function remove(enemy: Enemy)
 	enemies[enemy.model] = nil
 	clearSlam(enemy)
+	clearStagger(enemy)
 	if enemy.onDefeated then
 		-- Tower enemies don't touch the island spawn counts or boss timers.
 		countByZone[enemy.zoneId] = math.max((countByZone[enemy.zoneId] or 1) - 1, 0)
@@ -258,6 +275,45 @@ end
 function EnemyService.bossStatus(zoneId: number): (boolean, number)
 	local alive = bossByZone[zoneId] ~= nil
 	return alive, math.max((bossReadyAt[zoneId] or 0) - os.clock(), 0)
+end
+
+-- Perfect Quake can interrupt a living island boss. This is never a client
+-- action: CombatService calls it only after grading the second press on the
+-- server. Tower bosses and regular enemies cannot be stunned.
+function EnemyService.stagger(enemy: Enemy, player: Player): boolean
+	if enemies[enemy.model] ~= enemy or not enemy.isBoss or enemy.onDefeated ~= nil then
+		return false
+	end
+	local golem = GolemService.get(player)
+	if not golem or golem.zoneId ~= enemy.zoneId or not GolemService.isActive(golem) then
+		return false
+	end
+	local now = os.clock()
+	if now < enemy.staggerReadyAt or now < enemy.staggerUntil then
+		return false
+	end
+	local rules = Config.BossStagger
+	enemy.staggerUntil = now + rules.duration
+	enemy.staggerReadyAt = now + rules.cooldown
+	enemy.nextAttack = math.max(enemy.nextAttack, enemy.staggerUntil)
+	enemy.nextSlam = math.max(enemy.nextSlam, enemy.staggerUntil + rules.recovery)
+	clearSlam(enemy) -- cancel a pending red warning instead of landing a hidden hit
+	enemy.model:SetAttribute("SlamAt", 0)
+	enemy.model:SetAttribute("SlamPattern", nil)
+	enemy.model:SetAttribute("Staggered", true)
+	enemy.humanoid.WalkSpeed = 0
+	enemy.humanoid:Move(Vector3.zero)
+
+	local glow = Instance.new("Highlight")
+	glow.Name = "StaggerGlow"
+	glow.FillColor = Color3.fromRGB(85, 220, 255)
+	glow.OutlineColor = Color3.fromRGB(255, 210, 90)
+	glow.FillTransparency = 0.65
+	glow.OutlineTransparency = 0.1
+	glow.DepthMode = Enum.HighlightDepthMode.Occluded
+	glow.Parent = enemy.model
+	enemy.staggerGlow = glow
+	return true
 end
 
 local function rewardKill(enemy: Enemy, position: Vector3)
@@ -506,6 +562,13 @@ function EnemyService.update()
 		if feetY < WorldService.getSurfaceY(enemy.zoneId) - Config.Golem.fallDepth then
 			defeat(enemy, enemy.lastHitPosition or enemy.root.Position)
 			continue
+		end
+		if enemy.staggerUntil > 0 then
+			if now < enemy.staggerUntil then
+				enemy.humanoid:Move(Vector3.zero)
+				continue -- no chase, melee attack, slam or regen during the opening
+			end
+			clearStagger(enemy)
 		end
 		if enemy.def.slam then
 			updateSlam(enemy, now)

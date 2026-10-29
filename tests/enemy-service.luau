@@ -32,11 +32,11 @@ local Instance = {
 				self.destroyed = true
 				self.Parent = nil
 			end,
-			Move = function()
-				error("a fallen enemy must not move or attack")
+			Move = function(self)
+				assert(not self.failOnMove, "a fallen enemy must not move or attack")
 			end,
-			MoveTo = function()
-				error("a fallen enemy must not move or attack")
+			MoveTo = function(self)
+				assert(not self.failOnMove, "a fallen enemy must not move or attack")
 			end,
 		}
 	end,
@@ -94,6 +94,9 @@ local enemies = loadEnemyService(
 			getSurfaceY = function()
 				return 50
 			end,
+			getBossPoint = function()
+				return v(0, 50, 0)
+			end,
 		},
 		PartyService = {
 			shareWith = function(player, nearby)
@@ -142,7 +145,13 @@ local enemies = loadEnemyService(
 			return at
 		end,
 	},
-	{ HumanoidRigType = {}, HumanoidHealthDisplayType = {}, HumanoidDisplayDistanceType = {}, HumanoidStateType = {} },
+	{
+		HumanoidRigType = {},
+		HumanoidHealthDisplayType = {},
+		HumanoidDisplayDistanceType = {},
+		HumanoidStateType = {},
+		HighlightDepthMode = { Occluded = "Occluded" },
+	},
 	function()
 		return now
 	end
@@ -153,6 +162,7 @@ local function spawn(boss, callback)
 		displayName = "Test enemy",
 		size = v(4, 6, 4),
 		maxHealth = 100,
+		walkSpeed = 10,
 		xp = 10,
 		drops = { stone = 3 },
 		respawn = 30,
@@ -165,6 +175,7 @@ local function spawn(boss, callback)
 end
 local function fall(enemy)
 	enemy.root.Position = v(0, -100, 0)
+	enemy.humanoid.failOnMove = true
 	enemies.update()
 	assert(enemy.model.destroyed)
 end
@@ -255,4 +266,43 @@ assert(callbacks == 1 and paid[attacker] == before)
 local normal = spawn(false)
 enemies.damage(normal, 100, attacker)
 assert(normal.model.destroyed and paid[attacker] == before + 1)
-print("EnemyService fair credit, party sharing, boss presence and Tower checks passed")
+-- A perfect Quake creates a server-owned, one-time opening. An active red
+-- telegraph is removed, the boss cannot attack during the stagger, and the
+-- next slam is delayed. Repeated attempts cannot keep a boss stun-locked.
+local staggerBoss = spawn(true)
+staggerBoss.slamAt = now + 1
+local warning = {
+	Destroy = function(self)
+		self.destroyed = true
+	end,
+}
+staggerBoss.slamMarker = warning
+assert(enemies.stagger(staggerBoss, attacker))
+assert(staggerBoss.model:GetAttribute("Staggered") == true and staggerBoss.humanoid.WalkSpeed == 0)
+assert(staggerBoss.slamAt == 0 and warning.destroyed)
+assert(staggerBoss.nextAttack == now + Config.BossStagger.duration)
+assert(staggerBoss.nextSlam >= now + Config.BossStagger.duration + Config.BossStagger.recovery)
+assert(not enemies.stagger(staggerBoss, attacker), "cannot reapply while staggered")
+now += Config.BossStagger.duration - 0.01
+enemies.update()
+assert(staggerBoss.model:GetAttribute("Staggered") == true)
+now += 0.01
+enemies.update()
+assert(staggerBoss.model:GetAttribute("Staggered") == false and staggerBoss.humanoid.WalkSpeed == 10)
+assert(staggerBoss.staggerGlow == nil)
+assert(not enemies.stagger(staggerBoss, attacker), "per-boss cooldown persists after recovery")
+now = 100 + Config.BossStagger.cooldown
+assert(enemies.stagger(staggerBoss, attacker), "cooldown is inclusive at its boundary")
+assert(not enemies.stagger(spawn(false), attacker), "regular enemies cannot be staggered")
+assert(not enemies.stagger(spawn(true, function() end), attacker), "Tower bosses cannot be staggered")
+local wrongZoneBoss = spawn(true)
+golems[attacker].zoneId = 2
+assert(not enemies.stagger(wrongZoneBoss, attacker))
+golems[attacker].zoneId = 1
+golems[attacker].active = false
+assert(not enemies.stagger(wrongZoneBoss, attacker))
+golems[attacker].active = true
+assert(enemies.stagger(wrongZoneBoss, attacker))
+fall(wrongZoneBoss)
+assert(not enemies.stagger(wrongZoneBoss, attacker), "defeated bosses cannot be staggered")
+print("EnemyService fair credit, party sharing, boss presence, Tower and stagger checks passed")

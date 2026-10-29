@@ -37,7 +37,7 @@ Let go of the controls and the golem plays itself: it fights enemies nearby, and
 | --- | --- |
 | Riding, steering, auto-battle, mining | `GolemService`, `CombatService`, `MiningService` |
 | Forging parts (5 slots × 8 tiers), growth in size, full-set bonus | `ProgressionService`, `Stats` |
-| 6 islands, weighted enemy variants, elites, gates and dodgeable zone bosses | `WorldService`, `EnemyService` |
+| 6 islands, weighted enemy variants, elites, gates and dodgeable, Quake-staggerable zone bosses | `WorldService`, `EnemyService` |
 | 36 artifacts (drops, boss drops, hidden relics), index, zone set bonuses, shown odds and bad-luck protection | `ArtifactService` |
 | Skill tree (3 branches × 8 nodes), respec | `ProgressionService` |
 | Awakening, Ascension and permanent upgrades | `ProgressionService` |
