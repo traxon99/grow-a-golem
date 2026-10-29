@@ -88,6 +88,7 @@ local function setTitle(player: Player, id: any): (boolean, string?)
 		DataService.update(player, function(d)
 			d.social.title = ""
 		end)
+		DataService.invalidateProvider("hub")
 		return true, "Title removed"
 	end
 	if not Config.Titles[id] or not Stats.titleEarned(data, id) then
@@ -96,6 +97,7 @@ local function setTitle(player: Player, id: any): (boolean, string?)
 	DataService.update(player, function(d)
 		d.social.title = id
 	end)
+	DataService.invalidateProvider("hub")
 	return true, `Title: {Config.Titles[id].name}`
 end
 
@@ -139,7 +141,7 @@ local function hookGolem(model: Instance)
 end
 
 function SocialService.start()
-	DataService.addProvider("hub", snapshot)
+	DataService.addProvider("hub", snapshot, Config.Hub.refreshSeconds)
 	ActionService.register("setTitle", setTitle)
 	ActionService.register("setAnnounce", setAnnounce)
 	Events.connect("artifactFound", announce)
@@ -152,32 +154,20 @@ function SocialService.start()
 		task.spawn(hookGolem, model)
 	end
 
-	-- Levels and artifacts change while people stand around, so keep the
-	-- cards of everyone in the hub fresh.
+	-- Rebuild hub cards on their own timer, not on every mineral tick.
+	-- Joining, leaving and title changes invalidate the cache immediately.
 	task.spawn(function()
 		while true do
 			task.wait(Config.Hub.refreshSeconds)
-			for player, golem in GolemService.all() do
-				if golem.zoneId == Config.HubZone then
-					DataService.markChanged(player)
-				end
-			end
+			DataService.invalidateProvider("hub")
 		end
 	end)
 
-	-- Cards and the Hub tab show every player's progress, so refresh everyone
-	-- whenever someone joins or leaves.
 	DataService.ProfileLoaded:Connect(function()
-		for _, other in Players:GetPlayers() do
-			DataService.markChanged(other)
-		end
+		DataService.invalidateProvider("hub")
 	end)
-	Players.PlayerRemoving:Connect(function(leaving)
-		for _, other in Players:GetPlayers() do
-			if other ~= leaving then
-				DataService.markChanged(other)
-			end
-		end
+	Players.PlayerRemoving:Connect(function()
+		DataService.invalidateProvider("hub")
 	end)
 end
 
