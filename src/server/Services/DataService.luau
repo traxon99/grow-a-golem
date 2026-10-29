@@ -97,6 +97,27 @@ local function reconcile(target: any, template: any)
 	end
 end
 
+-- Older trade saves kept the partner's UserId in logs and pending escrow.
+-- Neither field is needed for journal recovery or the daily trade limit.
+-- Remove it during the lease-acquisition write so even a session that never
+-- reaches autosave persists the redaction.
+local function redactTradePartners(data: any)
+	local trades = data.trades
+	if type(trades) ~= "table" then
+		return
+	end
+	if type(trades.log) == "table" then
+		for _, entry in trades.log do
+			if type(entry) == "table" then
+				entry.with = nil
+			end
+		end
+	end
+	if type(trades.pending) == "table" then
+		trades.pending.with = nil
+	end
+end
+
 -- Saves from before marble bags (#156) counted misses in artifacts.pity.
 -- Carry them into the bags, stopping one marble short of the end, so a find
 -- the menus already showed as close stays close.
@@ -256,6 +277,7 @@ local function load(player: Player)
 					return nil
 				end
 				local data = if type(current) == "table" then current else defaultData()
+				redactTradePartners(data)
 				data._session = { token = token, expiresAt = os.time() + Config.Data.sessionLeaseSeconds }
 				return data
 			end)
@@ -271,6 +293,7 @@ local function load(player: Player)
 	if ok then
 		data = if type(saved) == "table" then saved else defaultData()
 		reconcile(data, defaultData())
+		redactTradePartners(data)
 		migratePity(data)
 	elseif RunService:IsStudio() then
 		warn("[DataService] Could not load data in Studio; playing without saving.")
