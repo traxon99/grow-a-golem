@@ -182,6 +182,12 @@ bundle += "\nlocal function loadPassService(dependencies, game, task, time)\n"
 bundle += 'local os = { time = time }\nlocal warn = function() end\nlocal script = { Parent = {} }\n'
 bundle += pass_service + "\nend\n"
 bundle += (ROOT / "tests/pass-service.luau").read_text()
+# The real CosmeticService with mocked pass ownership and data updates.
+cosmetic_service = (ROOT / "src/server/Services/CosmeticService.luau").read_text()
+cosmetic_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', cosmetic_service)
+bundle += "\nlocal function loadCosmeticService(dependencies, game, task)\n"
+bundle += 'local script = { Parent = {} }\n' + cosmetic_service + "\nend\n"
+bundle += (ROOT / "tests/cosmetic-service.luau").read_text()
 with tempfile.TemporaryDirectory(prefix="golem-check-") as folder:
     path = Path(folder) / "regression.luau"
     path.write_text(bundle)

@@ -31,6 +31,26 @@ for id, cosmetic in Config.Cosmetics do
 	end
 end
 
+-- A finished purchase prompt is not proof of ownership. Retry briefly
+-- for a newly purchased pass, but never grant without Roblox confirmation.
+local function confirmPassPurchase(player: Player, passId: number): boolean
+	for attempt = 1, 3 do
+		if not player.Parent then
+			return false
+		end
+		local ok, has = pcall(function()
+			return MarketplaceService:UserOwnsGamePassAsync(player.UserId, passId)
+		end)
+		if ok and has == true then
+			return true
+		end
+		if attempt < 3 then
+			task.wait(attempt)
+		end
+	end
+	return false
+end
+
 -- Puts the equipped outfit on the rider (or takes it off).
 local function dressRider(player: Player)
 	local character = player.Character
@@ -148,10 +168,20 @@ function CosmeticService.start()
 
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, purchased)
 		local id = cosmeticByPassId[passId]
-		if purchased and id then
+		if not purchased or not id then
+			return
+		end
+		task.spawn(function()
+			if not confirmPassPurchase(player, passId) then
+				return
+			end
+			local data = DataService.get(player)
+			if not data or data.cosmetics.owned[id] then
+				return
+			end
 			CosmeticService.grant(player, id, "bought")
 			Events.fire("purchased", player, "cosmetic", id)
-		end
+		end)
 	end)
 
 	-- The pet hops for every win.

@@ -55,6 +55,7 @@ Paid luck stacking to a non-guaranteed chase (PS99 Huge Hunter), paid griefing g
 - All pass and product ids are 0 (not created). No subscriptions, no ads, no written Creator Rewards strategy.
 - 2x Luck is gated by `PolicyService` (hidden where paid random items are restricted, fail closed) and the Shop shows the player's real odds now and with the boost, live while it's active (#26).
 - No whale pass and no paid power over other players. Good fit for 9-15.
+- Game pass and paid cosmetic purchase callbacks now confirm ownership through `MarketplaceService:UserOwnsGamePassAsync` (up to three attempts with short delays) before granting benefits; a prompt-closing flag alone never grants. Confirmed purchases are merged with in-flight initial ownership checks, so a slow load cannot undo them (#131).
 
 ## Gaps worth closing
 
