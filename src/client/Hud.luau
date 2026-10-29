@@ -401,18 +401,6 @@ function Hud.start()
 	)
 	Ui.pressable(mountButton)
 	mountButton.Activated:Connect(Controls.toggleMount)
-	local function refreshMount()
-		local mounted = Controls.isMounted()
-		local verb = if mounted then "Dismount" else "Mount"
-		mountLabel.Text = if isTouch then verb else `{verb}\n[F]`
-		-- Spells need a rider; dim them while dismounted.
-		for _, button in spellButtons do
-			button.BackgroundTransparency = if mounted then 0.05 else 0.5
-		end
-	end
-	player:GetAttributeChangedSignal("GolemMounted"):Connect(refreshMount)
-	refreshMount()
-
 	-- Sprint button: the touch (and mouse) way to sprint; Shift or L3 hold it too.
 	local sprintButton = Instance.new("TextButton")
 	sprintButton.Name = "Sprint"
@@ -440,6 +428,31 @@ function Hud.start()
 	end
 	Controls.SprintChanged:Connect(refreshSprint)
 	refreshSprint()
+
+	-- The rider-only actions must disappear on foot, not just look dimmed.
+	-- Keep the Mount button available so players can get back on their golem.
+	local function refreshMount()
+		local mounted = Controls.isMounted()
+		local verb = if mounted then "Dismount" else "Mount"
+		mountLabel.Text = if isTouch then verb else `{verb}\n[F]`
+		local moveFocus = not mounted and GuiService.SelectedObject == sprintButton
+		for _, button in spellButtons do
+			if not mounted and GuiService.SelectedObject == button then
+				moveFocus = true
+			end
+			button.Visible = mounted
+			button.Active = mounted
+			button.Selectable = mounted
+		end
+		sprintButton.Visible = mounted
+		sprintButton.Active = mounted
+		sprintButton.Selectable = mounted
+		if moveFocus then
+			GuiService.SelectedObject = mountButton
+		end
+	end
+	player:GetAttributeChangedSignal("GolemMounted"):Connect(refreshMount)
+	refreshMount()
 
 	task.spawn(function()
 		while true do
