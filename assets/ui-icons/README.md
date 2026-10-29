@@ -29,9 +29,10 @@ controls, without adding game features. Robux continues to use the existing
 ## Upload and use
 
 The HUD, menus and status displays already use `Icons.create` and the stable
-registry in `Config.UiIcons`. The current color ID `130214142096922` and mono ID
-`96019795815429` refer to the **previous artwork**. A GitHub merge cannot replace
-those hosted image pixels.
+registry in `Config.UiIcons`. The illustrated sheets were uploaded on
+2026-10-29 as color `132163688139815` and mono `111754038303125`. The older IDs
+`130214142096922` / `96019795815429` hold the previous drawn artwork. A GitHub
+merge cannot replace hosted image pixels, so any rebuild needs a fresh upload.
 
 1. Upload **both** `mystical.png` and `mystical-mono.png` under the experience
    owner. Keep their dimensions and transparent padding unchanged.
@@ -42,7 +43,7 @@ those hosted image pixels.
    readable labels, no clipping/neighbor bleed, and no image-permission errors
    in Output. Test tinted icons as well as full color.
 
-Roblox upload and Studio validation are owner steps; neither is claimed done.
+The upload is done; Studio/published validation (step 3) is still an owner step.
 
 ## Rebuild and verify
 
