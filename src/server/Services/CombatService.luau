@@ -10,6 +10,7 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
+local QuakeTiming = require(Shared:WaitForChild("QuakeTiming"))
 
 local DataService = require(script.Parent.DataService)
 local EnemyService = require(script.Parent.EnemyService)
@@ -19,6 +20,17 @@ local MiningService = require(script.Parent.MiningService)
 local WorldService = require(script.Parent.WorldService)
 
 local CombatService = {}
+
+type PendingQuake = {
+	golem: GolemService.Golem,
+	startedAt: number,
+	attempted: boolean,
+	perfect: boolean,
+}
+
+-- A cast gets one follow-up press. Clear the record at impact even when
+-- the golem was knocked out or the player left during the windup.
+local pendingQuakes: { [Player]: PendingQuake } = {}
 
 -- Tells clients to play a punch (see the client Animator and Sfx).
 -- `kind` is "hit" for enemies or "mine" for mineral nodes.
@@ -56,9 +68,22 @@ end
 -- and clients are told so they can play the blast, rocks and thud (gated on
 -- their own Reduced Motion). A golem knocked out or removed in between slams
 -- nothing, and nobody is told.
-local function quake(player: Player, golem: GolemService.Golem, spell: any)
-	golem.model:SetAttribute("QuakeAt", workspace:GetServerTimeNow() + spell.windup)
+local function quake(player: Player, golem: GolemService.Golem, spell: any, pending: PendingQuake)
+	local impactAt = workspace:GetServerTimeNow() + spell.windup
+	golem.model:SetAttribute("QuakeAt", impactAt)
+	Remotes.Notify:FireClient(
+		player,
+		"quakeTiming",
+		impactAt,
+		spell.windup,
+		spell.timingLead,
+		spell.timingWindow,
+		spell.perfectMultiplier
+	)
 	task.delay(spell.windup, function()
+		if pendingQuakes[player] == pending then
+			pendingQuakes[player] = nil
+		end
 		if GolemService.get(player) ~= golem or not GolemService.isActive(golem) then
 			return
 		end
@@ -66,13 +91,21 @@ local function quake(player: Player, golem: GolemService.Golem, spell: any)
 		for _, enemy in EnemyService.findInRadius(golem.root.Position, radius, golem.zoneId) do
 			EnemyService.damage(
 				enemy,
-				spell.damage * golem.stats.spellPowerMult * (1 + 0.05 * (golem.stats.level - 1)),
+				spell.damage
+					* (if pending.perfect then spell.perfectMultiplier else 1)
+					* golem.stats.spellPowerMult
+					* (1 + 0.05 * (golem.stats.level - 1)),
 				player
 			)
 		end
 		local ground = golem.root.Position - Vector3.new(0, golem.groundOffset, 0) + Vector3.new(0, 0.3, 0)
-		ringEffect(ground, radius, Color3.fromRGB(90, 200, 255))
+		ringEffect(
+			ground,
+			radius,
+			if pending.perfect then Color3.fromRGB(255, 204, 70) else Color3.fromRGB(90, 200, 255)
+		)
 		Remotes.Notify:FireAllClients("quakeImpact", ground, radius, player.UserId)
+		Remotes.Notify:FireClient(player, "quakeTimingImpact")
 	end)
 end
 
@@ -86,6 +119,22 @@ local function onCastSpell(player: Player, spellId: any)
 		return
 	end
 	local now = os.clock()
+	if spellId == "quake" then
+		local pending = pendingQuakes[player]
+		if pending and pending.golem == golem then
+			local graded = QuakeTiming.press(
+				pending,
+				now - pending.startedAt,
+				spell.windup,
+				spell.timingLead,
+				spell.timingWindow
+			)
+			if graded ~= nil then
+				Remotes.Notify:FireClient(player, "quakeTimingResult", graded)
+			end
+			return
+		end
+	end
 	if now < (golem.spellReadyAt[spellId] or 0) then
 		return
 	end
@@ -94,7 +143,14 @@ local function onCastSpell(player: Player, spellId: any)
 	local ground = golem.root.Position - Vector3.new(0, golem.groundOffset, 0) + Vector3.new(0, 0.3, 0)
 
 	if spellId == "quake" then
-		quake(player, golem, spell)
+		local pending: PendingQuake = {
+			golem = golem,
+			startedAt = now,
+			attempted = false,
+			perfect = false,
+		}
+		pendingQuakes[player] = pending
+		quake(player, golem, spell, pending)
 	elseif spellId == "mend" then
 		GolemService.heal(golem, golem.stats.maxHealth * spell.healFraction * golem.stats.spellPowerMult)
 		ringEffect(ground, 10 * golem.stats.scale, Color3.fromRGB(110, 230, 120))
