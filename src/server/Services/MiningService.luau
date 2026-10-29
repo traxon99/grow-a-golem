@@ -21,6 +21,7 @@ export type Node = {
 	part: BasePart,
 	hp: number,
 	chunks: { { part: BasePart, offset: CFrame, size: Vector3 } }, -- ore bits, kept relative to `part`
+	contributors: { [Player]: number }, -- actual damage, capped at remaining node health
 }
 
 local ROCK_COLOR = Color3.fromRGB(112, 106, 100)
@@ -99,7 +100,15 @@ local function placeNode(zoneId: number)
 	end
 	part.Parent = WorldService.getFolder("Nodes")
 
-	nodes[part] = { mineral = mineral, def = def, zoneId = zoneId, part = part, hp = def.maxHealth, chunks = chunks }
+	nodes[part] = {
+		mineral = mineral,
+		def = def,
+		zoneId = zoneId,
+		part = part,
+		hp = def.maxHealth,
+		chunks = chunks,
+		contributors = {},
+	}
 end
 
 function MiningService.findNearest(position: Vector3, range: number, zoneId: number): (Node?, number)
@@ -116,10 +125,15 @@ function MiningService.findNearest(position: Vector3, range: number, zoneId: num
 end
 
 function MiningService.damage(node: Node, amount: number, player: Player)
-	if nodes[node.part] == nil then
+	if nodes[node.part] == nil or amount <= 0 then
 		return
 	end
-	node.hp -= amount
+	local dealt = math.min(amount, node.hp)
+	if dealt <= 0 then
+		return
+	end
+	node.contributors[player] = (node.contributors[player] or 0) + dealt
+	node.hp -= dealt
 	if node.hp > 0 then
 		-- Shrink toward 40% size as it's mined so progress is visible.
 		local scale = 0.4 + 0.6 * (node.hp / node.def.maxHealth)
@@ -137,13 +151,26 @@ function MiningService.damage(node: Node, amount: number, player: Player)
 		return
 	end
 
-	local given = EconomyService.grant(player, { minerals = { [node.mineral] = node.def.yield } }, "mining")
-	DataService.update(player, function(data)
-		data.totals.nodes += 1
-	end)
-	Events.fire("nodeMined", player, node.mineral)
-	Remotes.Notify:FireClient(player, "mined", node.mineral, given.minerals and given.minerals[node.mineral] or 0)
+	-- The final chip does not own the whole node: the highest damage contributor
+	-- gets its fixed yield. A departed player cannot claim a reward.
+	local winner: Player? = nil
+	local best = 0
+	for contributor, damage in node.contributors do
+		if contributor.Parent and (damage > best or (damage == best and winner and contributor.UserId < winner.UserId)) then
+			winner = contributor
+			best = damage
+		end
+	end
+	-- Retire the node before any reward callbacks can yield or re-enter.
 	nodes[node.part] = nil
+	if winner then
+		local given = EconomyService.grant(winner, { minerals = { [node.mineral] = node.def.yield } }, "mining")
+		DataService.update(winner, function(data)
+			data.totals.nodes += 1
+		end)
+		Events.fire("nodeMined", winner, node.mineral)
+		Remotes.Notify:FireClient(winner, "mined", node.mineral, given.minerals and given.minerals[node.mineral] or 0)
+	end
 	node.part:Destroy()
 	task.delay(Config.Zones[node.zoneId].nodeRespawn, placeNode, node.zoneId)
 end

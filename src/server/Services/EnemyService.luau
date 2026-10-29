@@ -1,8 +1,8 @@
 --!strict
 -- Spawns enemy waves and one boss per zone (only while someone is in that
 -- zone), runs their chase-and-hit AI and the boss ground slam, and pays out
--- rewards. Party members near a kill share it; everyone who hit a boss gets
--- the boss reward.
+-- rewards. Significant damage contributors and nearby party members share
+-- ordinary kills; boss contributors must still be active in the boss's zone.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -36,8 +36,7 @@ export type Enemy = {
 	slamAt: number, -- 0 when no slam is winding up
 	slamPosition: Vector3,
 	slamMarker: BasePart?,
-	contributors: { [Player]: boolean },
-	lastHitBy: Player?,
+	contributors: { [Player]: number }, -- actual damage per player, capped at remaining health
 	lastHitPosition: Vector3?, -- party sharing stays at the fight, not below the island
 	-- Set for tower enemies: called once on defeat instead of island rewards.
 	onDefeated: ((Enemy) -> ())?,
@@ -107,7 +106,6 @@ local function makeEnemy(id: string, def: any, zoneId: number, at: Vector3, isBo
 		slamPosition = Vector3.zero,
 		slamMarker = nil,
 		contributors = {},
-		lastHitBy = nil,
 		lastHitPosition = nil,
 		onDefeated = nil,
 	}
@@ -254,22 +252,56 @@ function EnemyService.bossStatus(zoneId: number): (boolean, number)
 	return alive, math.max((bossReadyAt[zoneId] or 0) - os.clock(), 0)
 end
 
-local function rewardKill(enemy: Enemy, killer: Player, position: Vector3)
-	local recipients: { Player }
+local function rewardKill(enemy: Enemy, position: Vector3)
+	local recipients: { Player } = {}
+	local included: { [Player]: boolean } = {}
+	local function addRecipient(player: Player)
+		if player.Parent and not included[player] then
+			included[player] = true
+			table.insert(recipients, player)
+		end
+	end
+
 	if enemy.isBoss then
-		recipients = {}
-		for player in enemy.contributors do
-			if player.Parent then
-				table.insert(recipients, player)
+		for player, damage in enemy.contributors do
+			local golem = GolemService.get(player)
+			-- A single early hit cannot unlock an island from the Hub or while
+			-- the contributor's golem is knocked out.
+			if damage > 0 and player.Parent and golem and golem.zoneId == enemy.zoneId and GolemService.isActive(golem) then
+				addRecipient(player)
 			end
 		end
 	else
-		recipients = PartyService.shareWith(killer, function(member)
-			local golem = GolemService.get(member)
-			return golem ~= nil
-				and golem.zoneId == enemy.zoneId
-				and (golem.root.Position - position).Magnitude <= Config.Party.shareRange
-		end)
+		-- A last-hit thief with only a sliver of damage cannot take the
+		-- reward. Credit every player who dealt at least 25% of max HP.
+		-- If a large crowd splits it below 25% each, credit the top hitter.
+		local qualified: { Player } = {}
+		local top: Player? = nil
+		local topDamage = 0
+		for player, damage in enemy.contributors do
+			if player.Parent then
+				if damage >= enemy.def.maxHealth * 0.25 then
+					table.insert(qualified, player)
+				end
+				if damage > topDamage or (damage == topDamage and top and player.UserId < top.UserId) then
+					top = player
+					topDamage = damage
+				end
+			end
+		end
+		if #qualified == 0 and top then
+			table.insert(qualified, top)
+		end
+		for _, player in qualified do
+			for _, member in PartyService.shareWith(player, function(member)
+				local golem = GolemService.get(member)
+				return golem ~= nil
+					and golem.zoneId == enemy.zoneId
+					and (golem.root.Position - position).Magnitude <= Config.Party.shareRange
+			end) do
+				addRecipient(member)
+			end
+		end
 	end
 
 	for _, player in recipients do
@@ -299,7 +331,7 @@ local function rewardKill(enemy: Enemy, killer: Player, position: Vector3)
 	end
 end
 
-local function defeat(enemy: Enemy, killer: Player?, position: Vector3)
+local function defeat(enemy: Enemy, position: Vector3)
 	if enemies[enemy.model] == nil then
 		return
 	end
@@ -309,23 +341,26 @@ local function defeat(enemy: Enemy, killer: Player?, position: Vector3)
 	remove(enemy)
 	if onDefeated then
 		onDefeated(enemy)
-	elseif killer then
-		rewardKill(enemy, killer, position)
+	elseif next(enemy.contributors) ~= nil then
+		rewardKill(enemy, position)
 	end
 end
 
 -- Damage from a player's golem or spell.
 function EnemyService.damage(enemy: Enemy, amount: number, player: Player)
-	if enemies[enemy.model] == nil then
-		return -- already defeated this tick
+	if enemies[enemy.model] == nil or amount <= 0 then
+		return -- already defeated this tick, or no damage
+	end
+	local dealt = math.min(amount, enemy.hp)
+	if dealt <= 0 then
+		return
 	end
 	if enemy.isBoss and not enemy.contributors[player] then
 		Events.fire("bossEngaged", player, enemy.zoneId)
 	end
-	enemy.contributors[player] = true
-	enemy.lastHitBy = player
+	enemy.contributors[player] = (enemy.contributors[player] or 0) + dealt
 	enemy.lastHitPosition = enemy.root.Position
-	enemy.hp -= amount
+	enemy.hp -= dealt
 	-- Clients flash the enemy and show the number (see the client Fx).
 	enemy.model:SetAttribute("HitDamage", math.floor(amount + 0.5))
 	enemy.model:SetAttribute("Hit", ((enemy.model:GetAttribute("Hit") :: number?) or 0) + 1)
@@ -333,7 +368,7 @@ function EnemyService.damage(enemy: Enemy, amount: number, player: Player)
 		enemy.humanoid.Health = enemy.hp
 		return
 	end
-	defeat(enemy, player, enemy.root.Position)
+	defeat(enemy, enemy.root.Position)
 end
 
 -- Spawns one tower enemy into an arena. `healthMult` scales its health.
@@ -422,23 +457,11 @@ end
 function EnemyService.update()
 	local now = os.clock()
 	for _, enemy in enemies do
-		-- Resolve falls before chase, attacks or a pending slam. Keep the last
-		-- attacker's credit, with party distance measured where the hit landed.
+		-- Resolve falls before chase, attacks or a pending slam. Use the
+		-- last hit location for party range; rewards use damage contributions.
 		local feetY = enemy.root.Position.Y - enemy.def.size.Y / 2 - 0.5
 		if feetY < WorldService.getSurfaceY(enemy.zoneId) - Config.Golem.fallDepth then
-			local killer = enemy.lastHitBy
-			if killer and not killer.Parent then
-				killer = nil
-			end
-			-- A boss can still pay its remaining contributors if its last hitter left.
-			if not killer and enemy.isBoss then
-				for contributor in enemy.contributors do
-					if contributor.Parent and (not killer or contributor.UserId < killer.UserId) then
-						killer = contributor
-					end
-				end
-			end
-			defeat(enemy, killer, enemy.lastHitPosition or enemy.root.Position)
+			defeat(enemy, enemy.lastHitPosition or enemy.root.Position)
 			continue
 		end
 		if enemy.def.slam then
