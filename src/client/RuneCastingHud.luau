@@ -143,23 +143,33 @@ function RuneCastingHud.start()
 		return Enum.ContextActionResult.Sink
 	end, false, 3000, Enum.KeyCode.T, Enum.KeyCode.ButtonL2)
 
-	ContextActionService:BindActionAtPriority("RuneCastTap", function(_, state, input)
-		if not active then
-			return Enum.ContextActionResult.Pass
-		end
-		if state == Enum.UserInputState.Begin then
-			local key = input.KeyCode
-			if key == Enum.KeyCode.One or key == Enum.KeyCode.ButtonX then
-				tap(1)
-			elseif key == Enum.KeyCode.Two or key == Enum.KeyCode.ButtonY then
-				tap(2)
-			elseif key == Enum.KeyCode.Three or key == Enum.KeyCode.ButtonB then
-				tap(3)
+	ContextActionService:BindActionAtPriority(
+		"RuneCastTap",
+		function(_, state, input)
+			if not active then
+				return Enum.ContextActionResult.Pass
 			end
-		end
-		return Enum.ContextActionResult.Sink
-	end, false, 3000, Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three,
-		Enum.KeyCode.ButtonX, Enum.KeyCode.ButtonY, Enum.KeyCode.ButtonB)
+			if state == Enum.UserInputState.Begin then
+				local key = input.KeyCode
+				if key == Enum.KeyCode.One or key == Enum.KeyCode.ButtonX then
+					tap(1)
+				elseif key == Enum.KeyCode.Two or key == Enum.KeyCode.ButtonY then
+					tap(2)
+				elseif key == Enum.KeyCode.Three or key == Enum.KeyCode.ButtonB then
+					tap(3)
+				end
+			end
+			return Enum.ContextActionResult.Sink
+		end,
+		false,
+		3000,
+		Enum.KeyCode.One,
+		Enum.KeyCode.Two,
+		Enum.KeyCode.Three,
+		Enum.KeyCode.ButtonX,
+		Enum.KeyCode.ButtonY,
+		Enum.KeyCode.ButtonB
+	)
 
 	Remotes.Notify.OnClientEvent:Connect(function(kind: any, a: any, b: any, c: any)
 		if kind == "runeStart" then
@@ -177,7 +187,7 @@ function RuneCastingHud.start()
 			active = true
 			expiresAt = b
 			cooldownUntil = workspace:GetServerTimeNow() + c
-			instruction.Text = "Order: " .. table.concat(sequence, " - ")
+			instruction.Text = "Order: " .. tostring(sequence[1]) .. " - " .. tostring(sequence[2]) .. " - " .. tostring(sequence[3])
 			progress.Text = "Tap rune 1 of 3 · 8s to finish"
 			panel.Visible = true
 			hint.Text = "Match the order · no penalty for missing"
