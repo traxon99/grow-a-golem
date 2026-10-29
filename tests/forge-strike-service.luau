@@ -10,24 +10,40 @@ do
 		Config = Config,
 		ForgeStrike = ForgeStrike,
 		Stats = Stats,
-		Remotes = { Notify = { FireClient = function(_, who, kind, a, b, c)
-			assert(who == player)
-			table.insert(notifications, { kind, a, b, c })
-		end } },
-		ActionService = { register = function(name, handler)
-			actions[name] = handler
-		end },
+		Remotes = {
+			Notify = {
+				FireClient = function(_, who, kind, a, b, c)
+					assert(who == player)
+					table.insert(notifications, { kind, a, b, c })
+				end,
+			},
+		},
+		ActionService = {
+			register = function(name, handler)
+				actions[name] = handler
+			end,
+		},
 		DataService = {
-			get = function() return data end,
-			update = function(_, fn) fn(data) end,
+			get = function()
+				return data
+			end,
+			update = function(_, fn)
+				fn(data)
+			end,
 			spend = function(_, cost)
-				if not Stats.canAfford(data, cost) then return false end
-				for id, amount in cost do data.minerals[id] -= amount end
+				if not Stats.canAfford(data, cost) then
+					return false
+				end
+				for id, amount in cost do
+					data.minerals[id] -= amount
+				end
 				return true
 			end,
 			addMinerals = function(_, minerals)
 				table.insert(grants, minerals)
-				for id, amount in minerals do data.minerals[id] += amount end
+				for id, amount in minerals do
+					data.minerals[id] += amount
+				end
 			end,
 		},
 		Events = { fire = function() end },
@@ -48,14 +64,19 @@ do
 	forgeClock = notifications[1][4]
 	local ok = actions.finishForgeStrike(player)
 	assert(ok and #grants == 1, "perfect strike pays exactly one fixed refund")
-	for id, amount in expected do assert(grants[1][id] == amount) end
+	for id, amount in expected do
+		assert(grants[1][id] == amount)
+	end
 	assert(not actions.finishForgeStrike(player), "replay cannot pay twice")
 	assert(#grants == 1)
 	assert(not actions.craftPart(player, slot, tier), "same part cannot be forged again")
 	local secondTier = Config.TierOrder[2]
 	assert(actions.craftPart(player, slot, secondTier))
 	assert(#notifications == 2)
-	forgeClock = notifications[2][4] - Config.ForgeStrike.halfWindowSeconds - Config.ForgeStrike.latencySlackSeconds - 0.1
+	forgeClock = notifications[2][4]
+		- Config.ForgeStrike.halfWindowSeconds
+		- Config.ForgeStrike.latencySlackSeconds
+		- 0.1
 	assert(actions.finishForgeStrike(player), "early attempt still leaves normal craft")
 	assert(#grants == 1, "early strike has no bonus")
 	assert(not actions.finishForgeStrike(player), "miss consumes attempt")
