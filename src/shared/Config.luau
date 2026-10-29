@@ -275,6 +275,14 @@ Config.Bosses = bosses
 -- Share of max health a boss heals each second while nobody is near it.
 Config.BossRegenPerSecond = 0.03
 
+-- A perfect second Quake tap opens a brief, visible window on island bosses.
+-- Cooldown is per boss; ordinary Quake still deals its usual damage.
+Config.BossStagger = {
+	duration = 1.5,
+	cooldown = 10,
+	recovery = 0.5, -- delay before another telegraphed slam may start
+}
+
 Config.Nodes = {
 	stone = { maxHealth = 30, yield = 5, size = Vector3.new(5, 4, 5), material = Enum.Material.Slate },
 	copper = { maxHealth = 50, yield = 3, size = Vector3.new(4, 5, 4), material = Enum.Material.CorrodedMetal },
