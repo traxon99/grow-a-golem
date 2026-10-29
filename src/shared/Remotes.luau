@@ -9,6 +9,7 @@ local EVENTS = {
 	"MoveGolem", -- client -> server: Vector3 steering direction
 	"CastSpell", -- client -> server: spell id string
 	"MountGolem", -- client -> server: boolean, true to ride, false to dismount
+	"SprintGolem", -- client -> server: boolean, true while sprint is held or toggled on
 	"StateUpdate", -- server -> client: full state snapshot
 	"Notify", -- server -> client: (kind, ...) one-off events
 	"Track", -- client -> server: (name, ...) menu moments for analytics
@@ -54,6 +55,7 @@ return {
 	MoveGolem = Remotes.MoveGolem,
 	CastSpell = Remotes.CastSpell,
 	MountGolem = Remotes.MountGolem,
+	SprintGolem = Remotes.SprintGolem,
 	StateUpdate = Remotes.StateUpdate,
 	Notify = Remotes.Notify,
 	Track = Remotes.Track,

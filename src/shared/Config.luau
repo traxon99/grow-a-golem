@@ -26,6 +26,7 @@ Config.Golem = {
 	maxHealth = 200,
 	regenPerSecond = 2,
 	walkSpeed = 14,
+	sprintMult = 1.6, -- walk speed multiplier while sprinting
 	attackDamage = 12,
 	attackCooldown = 1.0,
 	attackRange = 10, -- studs between golem root and enemy root (grows with size)
@@ -97,8 +98,9 @@ Config.FullSetBonus = 0.15 -- all five slots the same tier: +15% health and dama
 ---------------------------------------------------------------- spells
 
 Config.SpellOrder = { "quake", "mend", "magnet" }
+-- Quake's windup is the seconds of raised arms before the slam lands and hits.
 Config.Spells = {
-	quake = { displayName = "Quake", key = Enum.KeyCode.Q, cooldown = 8, damage = 40, radius = 20 },
+	quake = { displayName = "Quake", key = Enum.KeyCode.Q, cooldown = 8, damage = 40, radius = 20, windup = 0.45 },
 	mend = { displayName = "Mend", key = Enum.KeyCode.E, cooldown = 20, healFraction = 0.35 },
 	magnet = { displayName = "Magnet", key = Enum.KeyCode.R, cooldown = 30, duration = 10, mineralBonus = 1.0 },
 }

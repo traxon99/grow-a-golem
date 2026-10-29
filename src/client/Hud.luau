@@ -402,6 +402,33 @@ function Hud.start()
 	player:GetAttributeChangedSignal("GolemMounted"):Connect(refreshMount)
 	refreshMount()
 
+	-- Sprint button: the touch (and mouse) way to sprint; Shift or L3 hold it too.
+	local sprintButton = Instance.new("TextButton")
+	sprintButton.Name = "Sprint"
+	sprintButton.AnchorPoint = Vector2.new(1, 1)
+	sprintButton.Size = UDim2.fromOffset(110, 52)
+	sprintButton.Position = UDim2.new(1, -24 - 120, 1, -150 - 94)
+	sprintButton.Text = ""
+	sprintButton.Parent = gui
+	Ui.corner(sprintButton, 26)
+	Ui.surface(sprintButton, "stone").Color = Ui.Colors.rune
+	local sprintLabel = Ui.label(
+		sprintButton,
+		"",
+		UDim2.new(1, -8, 1, -4),
+		UDim2.fromOffset(4, 2),
+		{ Title = true, TextSize = Ui.TextSize.body, TextXAlignment = Enum.TextXAlignment.Center }
+	)
+	sprintButton.Activated:Connect(Controls.toggleSprint)
+	local function refreshSprint()
+		local on = Controls.isSprinting()
+		sprintButton.BackgroundTransparency = if on then 0 else 0.35
+		local verb = if on then "Sprinting" else "Sprint"
+		sprintLabel.Text = if isTouch then verb else `{verb}\n[Shift]`
+	end
+	Controls.SprintChanged:Connect(refreshSprint)
+	refreshSprint()
+
 	task.spawn(function()
 		while true do
 			task.wait(0.2)

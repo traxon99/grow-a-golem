@@ -6,6 +6,9 @@
 -- The server also sets model attributes that trigger one-off moves:
 --   Attack (counter)  punch with alternating arms, or lunge and bite
 --   SlamAt (time)     raise both arms, then slam down when the time comes
+--   QuakeAt (time)    the golem's Quake slam lands then: arms rise (slowing as against
+--                     gravity), then fall faster and faster into the slam
+--   Sprinting (bool)  longer stride, harder lean and heavier steps
 --   Downed (bool)     slump while the golem reforms
 --   Cheer (counter)   the golem's pet hops and spins
 
@@ -32,6 +35,7 @@ type Rig = {
 	phase: number,
 	walk: number, -- 0 standing still, 1 full walk
 	speed: number, -- smoothed ground speed, studs per second
+	sprint: number, -- 0 walking, 1 full sprint (eased)
 	lastPosition: Vector3,
 	attackAt: number,
 	attackSide: number,
@@ -44,6 +48,8 @@ type Rig = {
 local MAX_DISTANCE = 260 -- don't animate models farther than this from the camera
 local ATTACK_TIME = 0.35
 local CHEER_TIME = 0.6
+local QUAKE_RISE = 0.6 -- share of the Quake windup spent raising the arms
+local QUAKE_RECOIL = 0.35 -- seconds the body settles after the slam lands
 
 local rigs: { [Model]: Rig } = {}
 
@@ -90,6 +96,7 @@ local function makeRig(model: Model): Rig?
 		phase = 0,
 		walk = 0,
 		speed = 0,
+		sprint = 0,
 		lastPosition = root.Position,
 		attackAt = 0,
 		attackSide = 1,
@@ -145,8 +152,14 @@ local function animate(rig: Rig, dt: number, now: number, serverNow: number)
 	rig.speed += (speed - rig.speed) * math.min(dt * 10, 1)
 	local target = math.clamp(rig.speed / 6, 0, 1)
 	rig.walk += (target - rig.walk) * math.min(dt * 8, 1)
+	-- Sprinting stretches the stride (the feet still plant, they just reach
+	-- further), and the lean, arm swing and thud below grow with it.
+	local sprintTarget = if rig.model:GetAttribute("Sprinting") == true then 1 else 0
+	rig.sprint += (sprintTarget - rig.sprint) * math.min(dt * 5, 1)
+	local sprint = rig.sprint * rig.walk
+	local stride = rig.stride * (1 + 0.35 * sprint)
 	local before = stepIndex(rig.phase)
-	rig.phase = (rig.phase + rig.speed * dt / rig.stride * math.pi * 2) % (math.pi * 2)
+	rig.phase = (rig.phase + rig.speed * dt / stride * math.pi * 2) % (math.pi * 2)
 	-- A foot lands twice per cycle.
 	if rig.walk > 0.4 and stepIndex(rig.phase) ~= before then
 		Sfx.footstep(rig.model, rig.root)
@@ -169,6 +182,26 @@ local function animate(rig: Rig, dt: number, now: number, serverNow: number)
 			raise = math.clamp(1 - untilSlam / 1.5, 0, 1)
 		elseif untilSlam <= 0 and untilSlam > -0.4 then
 			smash = 1 + untilSlam / 0.4
+		end
+	end
+	-- Quake: the arms rise fast and slow to a stop at the top, as if against
+	-- gravity, then drop with growing speed so the slam lands hard.
+	local quakeAt = rig.model:GetAttribute("QuakeAt") :: number?
+	if quakeAt then
+		local windup = (rig.model:GetAttribute("QuakeWindup") :: number?) or 0.45
+		local untilQuake = quakeAt - serverNow
+		if untilQuake > 0 and untilQuake <= windup then
+			local t = 1 - untilQuake / windup
+			if t < QUAKE_RISE then
+				local u = t / QUAKE_RISE
+				raise = math.max(raise, 1 - (1 - u) * (1 - u))
+			else
+				local f = (t - QUAKE_RISE) / (1 - QUAKE_RISE)
+				raise = math.max(raise, 1 - f * f)
+			end
+		elseif untilQuake <= 0 and untilQuake > -QUAKE_RECOIL then
+			local u = 1 + untilQuake / QUAKE_RECOIL
+			smash = math.max(smash, u * u)
 		end
 	end
 	local downed = rig.model:GetAttribute("Downed") == true
@@ -194,7 +227,8 @@ local function animate(rig: Rig, dt: number, now: number, serverNow: number)
 				-- In step with `swing`: the right leg is furthest forward at
 				-- phase pi / 2, as it lands. The left leg is half a cycle behind.
 				local p = (rig.phase - math.pi / 2 + (if joint.side < 0 then math.pi else 0)) % (math.pi * 2)
-				local angle, lift = plantedStep(p, rig.stride, legLength)
+				local angle, lift = plantedStep(p, stride, legLength)
+				lift *= 1 + sprint
 				transform = CFrame.new(0, lift * rig.walk, 0)
 					* CFrame.Angles(angle * rig.walk * joint.amp, 0, joint.side * lift / legLength * 0.5 * rig.walk)
 			else
@@ -205,7 +239,7 @@ local function animate(rig: Rig, dt: number, now: number, serverNow: number)
 			end
 		elseif kind == "arm" then
 			-- Positive X rotation swings a hanging arm forward.
-			local angle = -swing * 0.45 * joint.side * joint.amp
+			local angle = -swing * 0.45 * (1 + 0.6 * sprint) * joint.side * joint.amp
 			if punch > 0 and joint.side == rig.attackSide then
 				angle += punch * 1.4
 			end
@@ -217,11 +251,12 @@ local function animate(rig: Rig, dt: number, now: number, serverNow: number)
 		elseif kind == "body" then
 			-- Negative X rotation leans the body forward.
 			local lunge = punch * 0.06 * size
-			local y = bob * 0.04 * size + breathe * 0.01 * size - smash * 0.06 * size
+			local y = bob * 0.04 * (1 + 1.2 * sprint) * size + breathe * 0.01 * size - smash * 0.06 * size
+			y += raise * 0.03 * size -- rises onto its toes as the arms go up
 			-- Heavy gait: the body rolls over the planted leg and twists with the arms.
 			transform = CFrame.new(-math.cos(rig.phase) * rig.walk * 0.03 * size, y, -lunge)
 				* CFrame.Angles(
-					-punch * 0.12 + raise * 0.15 - smash * 0.25 - rig.walk * 0.06,
+					-punch * 0.12 + raise * 0.15 - smash * 0.25 - rig.walk * 0.06 - sprint * 0.14,
 					swing * 0.08,
 					math.cos(rig.phase) * rig.walk * 0.06
 				)
@@ -230,7 +265,7 @@ local function animate(rig: Rig, dt: number, now: number, serverNow: number)
 			end
 		elseif kind == "head" then
 			transform = CFrame.Angles(
-				breathe * 0.05 - bob * 0.04 - punch * 0.1,
+				breathe * 0.05 - bob * 0.04 - punch * 0.1 + sprint * 0.12, -- eyes stay up while the body leans
 				math.sin(now * 0.7 + rig.idleOffset) * 0.12 * (1 - rig.walk),
 				0
 			)

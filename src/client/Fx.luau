@@ -459,13 +459,16 @@ function Fx.start()
 		if kind ~= "spellCast" or spellId ~= "quake" then
 			return
 		end
-		local golems = workspace:FindFirstChild("Golems")
-		local model = golems and golems:FindFirstChild(player.Name .. "_Golem")
-		local root = model and (model :: Model).PrimaryPart
-		if root then
-			local ground = root.Position - Vector3.new(0, root.Size.Y, 0)
-			burst(ground, Color3.fromRGB(120, 110, 96), Enum.Material.Slate, 16, 1.2, root.Size.Y * 2)
-		end
+		-- The rocks fly when the slam lands, not when the arms start to rise.
+		task.delay(Config.Spells.quake.windup, function()
+			local golems = workspace:FindFirstChild("Golems")
+			local model = golems and golems:FindFirstChild(player.Name .. "_Golem")
+			local root = model and (model :: Model).PrimaryPart
+			if root then
+				local ground = root.Position - Vector3.new(0, root.Size.Y, 0)
+				burst(ground, Color3.fromRGB(120, 110, 96), Enum.Material.Slate, 24, 1.2, root.Size.Y * 2)
+			end
+		end)
 	end)
 
 	if Config.Visuals.controlLighting then
