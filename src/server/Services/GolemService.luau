@@ -671,10 +671,17 @@ end
 
 local function onMount(player: Player, wantMounted: any)
 	local golem = golems[player]
-	if not golem or type(wantMounted) ~= "boolean" or not GolemService.isActive(golem) then
+	if not golem or type(wantMounted) ~= "boolean" then
 		return
 	end
 	local now = os.clock()
+	if not GolemService.isActive(golem) then
+		if now >= golem.nextMountChange then
+			golem.nextMountChange = now + Config.Golem.mountCooldown
+			Remotes.Notify:FireClient(player, "message", "Your golem is reforming. Try again in a moment.")
+		end
+		return
+	end
 	if wantMounted == golem.mounted or now < golem.nextMountChange then
 		return
 	end
@@ -930,7 +937,8 @@ local function puffToRider(golem: Golem, center: Vector3): boolean
 	local spot = findGround(
 		center,
 		floor.Position.Y,
-		{ -cf.LookVector, cf.RightVector, -cf.RightVector, cf.LookVector },
+		-- Beside the rider, not behind: the camera is usually behind them.
+		{ cf.RightVector, -cf.RightVector, cf.LookVector, -cf.LookVector },
 		Config.Golem.dismountOffset * golem.stats.scale
 	)
 	if not spot then
