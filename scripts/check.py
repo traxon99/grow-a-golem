@@ -91,6 +91,10 @@ stats = (ROOT / "src/shared/Stats.luau").read_text().replace(
 marble_bag = (ROOT / "src/shared/MarbleBag.luau").read_text()
 lease = (ROOT / "src/shared/SessionLease.luau").read_text()
 bundle = prelude + '\nlocal Config = (function()\n' + config + '\nend)()\n'
+world_beat = (ROOT / "src/shared/WorldBeat.luau").read_text().replace(
+    'local Config = require(script.Parent:WaitForChild("Config"))', '')
+bundle += 'local WorldBeat = (function()\n' + world_beat + '\nend)()\n'
+bundle += (ROOT / "tests/world-beat.luau").read_text()
 bundle += 'local MarbleBag = (function()\n' + marble_bag + '\nend)()\n'
 bundle += 'local Stats = (function()\n' + stats + '\nend)()\n'
 bundle += 'local SessionLease = (function()\n' + lease + '\nend)()\n'
@@ -178,8 +182,8 @@ bundle += (ROOT / "tests/policy-service.luau").read_text()
 # The real EconomyService with mocked services and a test-controlled os.clock.
 economy_service = (ROOT / "src/server/Services/EconomyService.luau").read_text()
 economy_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', economy_service)
-bundle += "\nlocal function loadEconomyService(dependencies, game, clock)\n"
-bundle += 'local os = { clock = clock }\nlocal script = { Parent = {} }\n'
+bundle += "\nlocal function loadEconomyService(dependencies, game, clock, time)\n"
+bundle += 'local os = { clock = clock, time = time }\nlocal script = { Parent = {} }\n'
 bundle += economy_service + "\nend\n"
 bundle += (ROOT / "tests/economy-service.luau").read_text()
 # The real ArtifactService with mocked services (see the test file's header
