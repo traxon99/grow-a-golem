@@ -124,6 +124,7 @@ function QuakeTimingHud.start()
 			window.Size = UDim2.fromScale(right - left, 1)
 			instruction.Text = if e == 1.5 then "Tap Quake again in gold: +50% damage" else "Tap Quake again in gold"
 			status.Text = "Normal damage if skipped"
+			button.Active = true
 			panel.Visible = true
 		elseif kind == "quakeTimingResult" and panel.Visible then
 			status.Text = if a == true then "Perfect! +50% damage" else "Normal damage (no penalty)"
