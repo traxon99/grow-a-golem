@@ -1,0 +1,15 @@
+-- Deterministic boundaries and fixed refund rules for optional forging.
+local cfg = Config.ForgeStrike
+assert(cfg.delaySeconds > cfg.halfWindowSeconds)
+assert(cfg.halfWindowSeconds > 0 and cfg.latencySlackSeconds >= 0)
+assert(cfg.refundFraction == 0.1)
+assert(ForgeStrike.isPerfect(100, 100, cfg.halfWindowSeconds))
+assert(ForgeStrike.isPerfect(100 - cfg.halfWindowSeconds, 100, cfg.halfWindowSeconds))
+assert(ForgeStrike.isPerfect(100 + cfg.halfWindowSeconds, 100, cfg.halfWindowSeconds))
+assert(not ForgeStrike.isPerfect(100 - cfg.halfWindowSeconds - 0.01, 100, cfg.halfWindowSeconds))
+assert(not ForgeStrike.isPerfect(100 + cfg.halfWindowSeconds + 0.01, 100, cfg.halfWindowSeconds))
+assert(not ForgeStrike.isPerfect(100, 100, 0))
+local refund = ForgeStrike.refund({ stone = 5, copper = 25, iron = 100 }, 0.1)
+assert(refund.stone == 1 and refund.copper == 2 and refund.iron == 10)
+assert(next(ForgeStrike.refund({ stone = 5 }, 0)) == nil)
+print("forge-strike: timing boundaries and fixed refund passed")

@@ -14,11 +14,13 @@ local Tutorial = require(script:WaitForChild("Tutorial"))
 local WorldBeatHud = require(script:WaitForChild("WorldBeatHud"))
 local QuakeTimingHud = require(script:WaitForChild("QuakeTimingHud"))
 local RuneCastingHud = require(script:WaitForChild("RuneCastingHud"))
+local ForgeTimingHud = require(script:WaitForChild("ForgeTimingHud"))
 
 Hud.start() -- sets up the toast handler State uses
 WorldBeatHud.start() -- separate gameplay banner; no overlap with #175's HUD restyle
 QuakeTimingHud.start() -- separate timing cue; no overlap with the claimed HUD restyle
 RuneCastingHud.start() -- separate optional rune activity; touch, PC and gamepad
+ForgeTimingHud.start() -- after manual forging, a fixed-refund optional strike
 Menus.start()
 Moments.start()
 Tutorial.start()
