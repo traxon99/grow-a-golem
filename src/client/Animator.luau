@@ -47,6 +47,7 @@ type Rig = {
 	cheerAt: number,
 	lastCheer: number,
 	idleOffset: number,
+	lookVersion: any, -- the model's LookVersion when scanned (golems restyle in place)
 }
 
 local MAX_DISTANCE = 260 -- don't animate models farther than this from the camera
@@ -108,6 +109,7 @@ local function makeRig(model: Model): Rig?
 		cheerAt = 0,
 		lastCheer = (model:GetAttribute("Cheer") :: number?) or 0,
 		idleOffset = math.random() * 10,
+		lookVersion = model:GetAttribute("LookVersion"),
 	}
 end
 
@@ -318,11 +320,24 @@ function Animator.start()
 			if folder then
 				for _, model in folder:GetChildren() do
 					if model:IsA("Model") then
-						local rig = rigs[model]
+						local rig: Rig? = rigs[model]
+						-- A forge upgrade or new look swaps a golem's body parts
+						-- on the same model; scan the new joints and stride, and
+						-- carry on mid-step so the walk doesn't restart.
+						local before: Rig? = nil
+						if rig and rig.lookVersion ~= model:GetAttribute("LookVersion") then
+							before = rig
+							rig = nil
+						end
 						if not rig then
 							local made = makeRig(model)
 							if not made then
 								continue
+							end
+							if before then
+								made.phase, made.walk, made.speed, made.sprint =
+									before.phase, before.walk, before.speed, before.sprint
+								made.lastPosition = before.lastPosition
 							end
 							rigs[model] = made
 							rig = made

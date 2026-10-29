@@ -1,7 +1,8 @@
 --!strict
 -- The game-logic heartbeat. Ten times a second it decides, for every golem,
--- whether to follow the rider's steering, chase an enemy, or walk to a node,
--- and resolves auto-attacks, mining, and rider spells.
+-- whether to follow the rider's steering, walk back to a dismounted rider,
+-- chase an enemy, or walk to a node, and resolves auto-attacks, mining, and
+-- rider spells.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -117,10 +118,26 @@ local function updateGolem(player: Player, golem: GolemService.Golem, dt: number
 	local position = golem.root.Position
 	local aggro = Config.Golem.aggroRange * stats.scale
 
+	-- Dismounted, the golem is a companion on a leash: it walks back to its
+	-- rider when it strays, and only fights and mines inside the leash.
+	if GolemService.followRider(golem, now) then
+		return
+	end
+	local center = GolemService.leashCenter(golem)
+	local leash = GolemService.leashRadius(golem)
+
 	local enemy, enemyDistance = EnemyService.findNearest(position, aggro, golem.zoneId)
+	if enemy and center and not GolemService.inLeash(golem, enemy.root.Position) then
+		enemy = EnemyService.findNearest(center, leash, golem.zoneId)
+		enemyDistance = if enemy then (enemy.root.Position - position).Magnitude else math.huge
+	end
 	local node, nodeDistance = nil, math.huge
 	if not enemy then
 		node, nodeDistance = MiningService.findNearest(position, Config.Golem.seekRange, golem.zoneId)
+		if node and center and not GolemService.inLeash(golem, node.part.Position) then
+			node = MiningService.findNearest(center, leash, golem.zoneId)
+			nodeDistance = if node then (node.part.Position - position).Magnitude else math.huge
+		end
 	end
 
 	-- Act: enemies first, mining when the area is clear.

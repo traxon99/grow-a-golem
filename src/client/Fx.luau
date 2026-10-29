@@ -68,6 +68,41 @@ local function blast(position: Vector3, radius: number)
 	end
 end
 
+-- A soft cloud of dust where a golem puffs away and where it reappears
+-- beside its rider (the dismounted leash, see GolemService.followRider).
+-- `scale` is the golem's size. Skipped with Reduced Motion.
+local function puff(position: Vector3, scale: number)
+	if GuiService.ReducedMotionEnabled or not near(position) then
+		return
+	end
+	for index = 1, 3 do
+		local cloud = Instance.new("Part")
+		cloud.Name = "GolemPuff"
+		cloud.Shape = Enum.PartType.Ball
+		cloud.Anchored = true
+		cloud.CanCollide = false
+		cloud.CanQuery = false
+		cloud.CanTouch = false
+		cloud.Material = Enum.Material.SmoothPlastic
+		cloud.Color = Color3.fromRGB(205, 195, 180)
+		cloud.Transparency = 0.35
+		cloud.Size = Vector3.new(2, 2, 2) * scale
+		local spread = Vector3.new(math.random() * 2 - 1, 0, math.random() * 2 - 1) * 2 * scale
+		cloud.Position = position + spread + Vector3.new(0, (1 + index) * scale, 0)
+		cloud.Parent = folder
+		local size = (7 + index * 2) * scale
+		local tween = TweenService:Create(
+			cloud,
+			TweenInfo.new(0.5 + index * 0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{ Size = Vector3.new(size, size, size), Transparency = 1 }
+		)
+		tween:Play()
+		tween.Completed:Once(function()
+			cloud:Destroy()
+		end)
+	end
+end
+
 -- Throws `count` little cubes out from `position`, then shrinks them away.
 local function burst(
 	position: Vector3,
@@ -493,6 +528,10 @@ function Fx.start()
 	-- A Quake slam landing: everyone nearby sees a blast, and the caster's rocks
 	-- fly. The server only says so if the slam really lands.
 	Remotes.Notify.OnClientEvent:Connect(function(kind: string, position: Vector3?, radius: number?, ownerId: number?)
+		if kind == "golemPuff" and position and radius then
+			puff(position, radius)
+			return
+		end
 		if kind ~= "quakeImpact" or not position or not radius then
 			return
 		end

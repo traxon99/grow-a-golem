@@ -38,6 +38,20 @@ Config.Golem = {
 	respawnTime = 5,
 	mountCooldown = 1, -- seconds between mount/dismount requests
 	dismountOffset = 7, -- studs beside the golem (at scale 1) where a dismounted rider stands
+	mountRange = 16, -- a rider must be this close to their golem (at scale 1) to climb on
+	riderSeatHeight = 1.6, -- the rider's root sits this far above the golem's RiderMount point
+	mountBlendTime = 0.35, -- seconds the rider and camera take to move over (instant with Reduced Motion)
+	-- Dismounted, the golem is a companion on a leash around its rider. All
+	-- distances are at scale 1 and grow with the golem's size.
+	followRadius = 30, -- it fights and mines inside this; beyond it, it walks back
+	followStop = 0.5, -- once walking back, it stops at this share of the radius
+	leashTeleportRadius = 90, -- farther than this, it puffs back beside the rider
+	stuckTime = 3, -- seconds of walking back without getting closer before it puffs back
+	-- Mounted, the camera orbits the golem. Players can still zoom between the limits.
+	cameraHeight = 4, -- camera focus above the golem's root
+	cameraDistance = 30, -- the zoom you get on climbing on
+	cameraMinZoom = 14,
+	cameraMaxZoom = 80,
 	fallDepth = 4, -- feet below the island surface: immediately knock out
 	maxLevel = 100,
 	baseArtifactSlots = 3,

@@ -1,8 +1,17 @@
 --!strict
 -- Owns each player's golem: building the model from its parts and size,
--- seating the rider, health, knock-outs, travel, and the steering intent sent
--- by the client. The golem is server-owned so its position can't be spoofed.
+-- carrying the rider, the dismounted leash, health, knock-outs, travel, and
+-- the steering intent sent by the client. The golem is server-owned so its
+-- position can't be spoofed.
+--
+-- Mounted, the rider's HumanoidRootPart is welded to the golem's RiderMount
+-- attachment. There is no Seat: sitting is run by the client's Humanoid,
+-- which is the likeliest reason riders fell off during rebuilds (see
+-- restyle). Looks and size changes are made on the same model, root,
+-- humanoid and mount, so a forge upgrade never touches the rider, the camera
+-- subject or anything in flight.
 
+local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -23,7 +32,8 @@ export type Golem = {
 	model: Model,
 	humanoid: Humanoid,
 	root: BasePart,
-	seat: Seat,
+	mount: Attachment, -- RiderMount on the root, where the rider sits
+	rider: Weld?, -- the weld holding the rider on, while there is one
 	groundOffset: number, -- root height above the ground
 	visualKey: string,
 	stats: Stats.GolemStats,
@@ -31,7 +41,10 @@ export type Golem = {
 	hp: number,
 	downedUntil: number, -- 0 when standing
 	fallRecovery: boolean,
-	mounted: boolean, -- the rider is on the shoulder; steering and spells only count then
+	mounted: boolean, -- the rider is on the shoulder; steering, sprint and spells only count then
+	following: boolean, -- dismounted and walking back inside the leash
+	followBest: number, -- closest it has got while walking back
+	followProgressAt: number, -- when it last got closer
 	sprinting: boolean, -- the rider asked to sprint; it only speeds the golem while they steer
 	nextMountChange: number,
 	nextSprintChange: number,
@@ -58,6 +71,16 @@ local HIP_HEIGHT = 4
 local ROOT_SIZE = Vector3.new(6, 8, 4)
 local BARE_COLOR = CosmeticLooks.BARE_COLOR
 local PET_OFFSET = Vector3.new(-8.5, 3, 1.5) -- beside the left shoulder, at scale 1
+local MOUNT_OFFSET = Vector3.new(5, 5.3, 0) -- top of the right shoulder, at scale 1
+local RIDER_WELD = "GolemRiderWeld"
+local RIDER_GROUP = "GolemRider" -- a carried rider collides with nothing
+
+pcall(function()
+	PhysicsService:RegisterCollisionGroup(RIDER_GROUP)
+	for _, group in PhysicsService:GetRegisteredCollisionGroups() do
+		PhysicsService:CollisionGroupSetCollidable(RIDER_GROUP, group.name, false)
+	end
+end)
 
 function GolemService.context(player: Player): Stats.Context
 	return { passes = PassService.passes(player), now = os.time() }
@@ -86,15 +109,6 @@ local function makePart(name: string, size: Vector3, color: Color3, material: En
 	return part
 end
 
-local function attach(root: BasePart, part: BasePart, offset: CFrame, model: Model)
-	part.CFrame = root.CFrame * offset
-	local weld = Instance.new("WeldConstraint")
-	weld.Part0 = root
-	weld.Part1 = part
-	weld.Parent = part
-	part.Parent = model
-end
-
 local function visualKey(player: Player, data: any, stats: Stats.GolemStats): string
 	local key = tostring(stats.size)
 	for _, slot in Config.SlotOrder do
@@ -118,27 +132,99 @@ local function hasMeshArt(tier: string, slotName: string): boolean
 	return template ~= nil and template:GetAttribute("ReplacesExtras") == true
 end
 
--- Builds the golem standing on `ground`, facing `facing`.
-local function buildModel(
+-- Root height above the ground at a golem scale.
+local function groundOffsetFor(scale: number): number
+	return (HIP_HEIGHT + ROOT_SIZE.Y / 2) * scale
+end
+
+-- Makes what a golem keeps for life: the model, its root, humanoid, rider
+-- mount and inspect prompt, standing on `ground`, facing `facing`. Its looks
+-- come from dress(), which can run again on the same shell.
+local function buildShell(
 	player: Player,
-	data: any,
 	stats: Stats.GolemStats,
 	ground: Vector3,
 	facing: Vector3
-): (Model, Humanoid, BasePart, Seat, number)
+): (Model, Humanoid, BasePart, Attachment)
 	local s = stats.scale
 	local model = Instance.new("Model")
 	model.Name = player.Name .. "_Golem"
+	model:SetAttribute("OwnerId", player.UserId)
 
-	local groundOffset = (HIP_HEIGHT + ROOT_SIZE.Y / 2) * s
 	local root = makePart("HumanoidRootPart", ROOT_SIZE * s, BARE_COLOR, Enum.Material.Slate)
 	root.Transparency = 1
 	root.CanCollide = true
 	root.Massless = false
-	local position = ground + Vector3.new(0, groundOffset, 0)
+	local position = ground + Vector3.new(0, groundOffsetFor(s), 0)
 	root.CFrame = CFrame.lookAt(position, position + Vector3.new(facing.X, 0, facing.Z))
 	root.Parent = model
 	model.PrimaryPart = root
+
+	-- In the hub, anyone can walk up to a golem and inspect it. The prompt is
+	-- only on while the golem is in the hub (see publishHealth).
+	local inspect = Instance.new("ProximityPrompt")
+	inspect.Name = "InspectPrompt"
+	inspect.ActionText = "Inspect"
+	inspect.ObjectText = player.DisplayName
+	inspect.RequiresLineOfSight = false
+	inspect.Enabled = false
+	inspect.Parent = root
+
+	-- The rider perches on the right shoulder; dress() moves this with the size.
+	local mount = Instance.new("Attachment")
+	mount.Name = "RiderMount"
+	mount.Parent = root
+
+	local humanoid = Instance.new("Humanoid")
+	humanoid.RigType = Enum.HumanoidRigType.R15
+	humanoid.WalkSpeed = stats.walkSpeed
+	humanoid.MaxHealth = stats.maxHealth
+	humanoid.Health = stats.maxHealth
+	humanoid.BreakJointsOnDeath = false
+	humanoid.RequiresNeck = false
+	humanoid.Parent = model
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+	return model, humanoid, root, mount
+end
+
+-- Gives a golem shell the look and size for `data` and `stats`, replacing
+-- any earlier look. The root, humanoid, mount and anything welded to the
+-- root (the rider) stay put; only body parts, pet and trail are swapped.
+-- Returns the new ground offset.
+local function dress(
+	model: Model,
+	root: BasePart,
+	humanoid: Humanoid,
+	mount: Attachment,
+	player: Player,
+	data: any,
+	stats: Stats.GolemStats
+): number
+	local s = stats.scale
+	for _, child in model:GetChildren() do
+		if child ~= root and not child:IsA("Humanoid") then
+			child:Destroy()
+		end
+	end
+	for _, child in root:GetChildren() do
+		if child:GetAttribute("Look") then
+			child:Destroy()
+		end
+	end
+	-- A new size keeps the feet where they are: the root grows about its
+	-- centre, so lift it by the change in hip height. Velocity and facing stay.
+	local groundOffset = groundOffsetFor(s)
+	local oldOffset = root.Size.Y / ROOT_SIZE.Y * groundOffsetFor(1)
+	if root.Size ~= ROOT_SIZE * s then
+		root.Size = ROOT_SIZE * s
+		root.CFrame = root.CFrame + Vector3.new(0, groundOffset - oldOffset, 0)
+	end
+	humanoid.HipHeight = HIP_HEIGHT * s
+	mount.Position = MOUNT_OFFSET * s
+	local inspect = root:FindFirstChild("InspectPrompt")
+	if inspect and inspect:IsA("ProximityPrompt") then
+		inspect.MaxActivationDistance = Config.Hub.inspectRange * s
+	end
 
 	-- Each slot's forged tier sets the color and material of its body parts,
 	-- tinted by the equipped skin (looks only, see CosmeticLooks).
@@ -304,10 +390,12 @@ local function buildModel(
 		local footY = -(HIP_HEIGHT + ROOT_SIZE.Y / 2) * s + 0.4
 		local left = Instance.new("Attachment")
 		left.Name = "TrailLeft"
+		left:SetAttribute("Look", true)
 		left.Position = Vector3.new(-3 * s, footY, 1 * s)
 		left.Parent = root
 		local right = Instance.new("Attachment")
 		right.Name = "TrailRight"
+		right:SetAttribute("Look", true)
 		right.Position = Vector3.new(3 * s, footY, 1 * s)
 		right.Parent = root
 		local trail = Instance.new("Trail")
@@ -318,46 +406,14 @@ local function buildModel(
 		trail.Lifetime = trailLook.lifetime
 		trail.LightEmission = trailLook.glow
 		trail.MinLength = 0.2
+		trail:SetAttribute("Look", true)
 		trail.Parent = root
 	end
 
-	-- In the hub, anyone can walk up to a golem and inspect it. The prompt is
-	-- only on while the golem is in the hub (see publishHealth).
-	local inspect = Instance.new("ProximityPrompt")
-	inspect.Name = "InspectPrompt"
-	inspect.ActionText = "Inspect"
-	inspect.ObjectText = player.DisplayName
-	inspect.MaxActivationDistance = Config.Hub.inspectRange * s
-	inspect.RequiresLineOfSight = false
-	inspect.Enabled = false
-	inspect.Parent = root
-
-	-- The rider sits on the right shoulder.
-	local seat = Instance.new("Seat")
-	seat.Name = "ShoulderSeat"
-	seat.Size = Vector3.new(2, 1, 2)
-	seat.Transparency = 1
-	seat.CanCollide = false
-	seat.Massless = true
-	attach(root, seat, CFrame.new(Vector3.new(5, 4.8, 0) * s + Vector3.new(0, 0.5, 0)), model)
-
-	local humanoid = Instance.new("Humanoid")
-	humanoid.RigType = Enum.HumanoidRigType.R15
-	humanoid.HipHeight = HIP_HEIGHT * s
-	humanoid.WalkSpeed = stats.walkSpeed
-	humanoid.MaxHealth = stats.maxHealth
-	humanoid.Health = stats.maxHealth
-	humanoid.BreakJointsOnDeath = false
-	humanoid.RequiresNeck = false
-	humanoid.DisplayName = displayName(player, data)
-	humanoid.Parent = model
-	humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-
-	model.Parent = WorldService.getFolder("Golems")
-	pcall(function()
-		root:SetNetworkOwner(nil)
-	end)
-	return model, humanoid, root, seat, groundOffset
+	-- Clients rescan the joints and reframe the camera when these change.
+	model:SetAttribute("Scale", s)
+	model:SetAttribute("LookVersion", ((model:GetAttribute("LookVersion") :: number?) or 0) + 1)
+	return groundOffset
 end
 
 local function publishHealth(golem: Golem)
@@ -376,71 +432,225 @@ local function publishHealth(golem: Golem)
 	golem.humanoid.Health = math.max(golem.hp, 1)
 end
 
-local function seatRider(golem: Golem)
-	local character = golem.player.Character
-	if not golem.mounted or not character or not golem.model.Parent then
-		return
-	end
-	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	if not humanoid or humanoid.Health <= 0 or golem.seat.Occupant == humanoid then
-		return
-	end
-	character:PivotTo(golem.seat.CFrame * CFrame.new(0, 3, 0))
-	golem.seat:Sit(humanoid)
-	task.defer(function()
-		pcall(function()
-			golem.root:SetNetworkOwner(nil)
-		end)
+local FLAT = Vector3.new(1, 0, 1)
+
+local function claimPhysics(golem: Golem)
+	-- The golem (and a rider welded to it) is simulated by the server.
+	pcall(function()
+		golem.root:SetNetworkOwner(nil)
 	end)
 end
 
-local function hookSeat(golem: Golem, seat: Seat)
-	-- Put the rider back if they get knocked off.
-	seat:GetPropertyChangedSignal("Occupant"):Connect(function()
-		if seat.Occupant == nil and golem.seat == seat and golem.mounted then
-			task.delay(0.5, seatRider, golem)
+-- A carried rider collides with nothing, so it can't fight the golem's
+-- physics, and weighs nothing. The original Massless is kept to put back.
+local function carryPart(part: Instance, carried: boolean)
+	if not part:IsA("BasePart") then
+		return
+	end
+	if carried then
+		if part:GetAttribute("RiderMassless") == nil then
+			part:SetAttribute("RiderMassless", part.Massless)
+		end
+		part.Massless = true
+		part.CollisionGroup = RIDER_GROUP
+	else
+		local massless = part:GetAttribute("RiderMassless")
+		if massless ~= nil then
+			part.Massless = massless == true
+			part:SetAttribute("RiderMassless", nil)
+		end
+		if part.CollisionGroup == RIDER_GROUP then
+			part.CollisionGroup = "Default"
+		end
+	end
+end
+
+local function carryCharacter(character: Model, carried: boolean)
+	for _, part in character:GetDescendants() do
+		carryPart(part, carried)
+	end
+end
+
+local attachRider: (golem: Golem) -> ()
+
+-- Welds a mounted rider's HumanoidRootPart to the golem's RiderMount. Safe to
+-- call any time: it does nothing unless the rider is mounted, alive and in
+-- the world, and only refreshes the offset when they are already on. The
+-- client blends the rider and camera over (see the client Riding module).
+-- The weld lives in the character, so a copy of the golem (the Wardrobe
+-- preview) never carries a weld to the real rider.
+attachRider = function(golem: Golem)
+	local character = golem.player.Character
+	if not golem.mounted or not character or not golem.model.Parent or not character:IsDescendantOf(workspace) then
+		return
+	end
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	local riderRoot = character:FindFirstChild("HumanoidRootPart")
+	if not humanoid or humanoid.Health <= 0 or not riderRoot or not riderRoot:IsA("BasePart") then
+		return
+	end
+	local weld = golem.rider
+	if weld and weld.Part1 == riderRoot and weld.Parent == riderRoot then
+		weld.Part0 = golem.root
+		weld.C0 = golem.mount.CFrame
+		claimPhysics(golem)
+		return
+	end
+	golem.rider = nil
+	for _, old in riderRoot:GetChildren() do
+		if old.Name == RIDER_WELD then
+			old:Destroy()
+		end
+	end
+	carryCharacter(character, true)
+	local newWeld = Instance.new("Weld")
+	newWeld.Name = RIDER_WELD
+	newWeld.Part0 = golem.root
+	newWeld.Part1 = riderRoot
+	newWeld.C0 = golem.mount.CFrame
+	newWeld.C1 = CFrame.new(0, -Config.Golem.riderSeatHeight, 0)
+	newWeld.Parent = riderRoot
+	golem.rider = newWeld
+	-- Accessories that load after climbing on are carried too.
+	local added = character.DescendantAdded:Connect(function(part)
+		if golem.rider == newWeld then
+			carryPart(part, true)
 		end
 	end)
+	-- Lost without a dismount (the character died or was replaced): forget
+	-- it, and put a living rider straight back on.
+	newWeld.AncestryChanged:Connect(function()
+		if newWeld:IsDescendantOf(workspace) then
+			return
+		end
+		added:Disconnect()
+		if golem.rider == newWeld then
+			golem.rider = nil
+			task.defer(attachRider, golem)
+		end
+	end)
+	claimPhysics(golem)
+end
+
+local function detachRider(golem: Golem)
+	local weld = golem.rider
+	golem.rider = nil -- first, so the weld's own handler doesn't put the rider back
+	if weld then
+		weld:Destroy()
+	end
+	local character = golem.player.Character
+	if character then
+		carryCharacter(character, false)
+	end
 end
 
 local function groundUnder(golem: Golem): Vector3
 	return golem.root.Position - Vector3.new(0, golem.groundOffset, 0)
 end
 
--- Stands a dismounted rider on the ground beside their golem.
+-- Rays for finding ground skip golems, enemies, effects and characters.
+local function groundParams(): RaycastParams
+	local ignore: { Instance } = {}
+	for _, name in { "Golems", "Enemies", "Effects", "Relics" } do
+		local folder = WorldService.getFolder(name)
+		if folder then
+			table.insert(ignore, folder)
+		end
+	end
+	for _, other in Players:GetPlayers() do
+		if other.Character then
+			table.insert(ignore, other.Character)
+		end
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = ignore
+	return params
+end
+
+-- Solid ground `distance` out from `center` in the first of `directions`
+-- that has nothing in the way at chest height and a floor near `floorY`.
+local function findGround(center: Vector3, floorY: number, directions: { Vector3 }, distance: number): Vector3?
+	local params = groundParams()
+	local chest = Vector3.new(0, 3, 0)
+	local base = Vector3.new(center.X, floorY, center.Z)
+	local reach = 6 + distance * 0.5 -- how far up or down the floor may be
+	for _, direction in directions do
+		local flat = direction * FLAT
+		if flat.Magnitude < 0.01 then
+			continue
+		end
+		local target = base + flat.Unit * distance
+		if workspace:Raycast(base + chest, target - base, params) then
+			continue -- a wall or rock in the way
+		end
+		local hit = workspace:Raycast(target + Vector3.new(0, reach, 0), Vector3.new(0, -2 * reach, 0), params)
+		if hit and hit.Normal.Y > 0.6 then
+			return hit.Position
+		end
+	end
+	return nil
+end
+
+-- Stands a dismounted rider on solid ground beside their golem: the right
+-- side first, then the left, behind and in front. With no clear spot, under
+-- the golem's own feet, which is always solid.
 local function placeRiderBeside(golem: Golem)
 	local character = golem.player.Character
 	if not character or not golem.model.Parent then
 		return
 	end
-	local side = golem.root.CFrame.RightVector * Config.Golem.dismountOffset * golem.stats.scale
-	character:PivotTo(CFrame.new(groundUnder(golem) + side + Vector3.new(0, 3, 0)))
+	local riderRoot = character:FindFirstChild("HumanoidRootPart")
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	local cf = golem.root.CFrame
+	local ground = groundUnder(golem)
+	local spot = findGround(
+		golem.root.Position,
+		ground.Y,
+		{ cf.RightVector, -cf.RightVector, -cf.LookVector, cf.LookVector },
+		Config.Golem.dismountOffset * golem.stats.scale
+	) or ground
+	local height = 3
+	if humanoid and riderRoot and riderRoot:IsA("BasePart") then
+		height = math.max(humanoid.HipHeight + riderRoot.Size.Y / 2, 3)
+		riderRoot.AssemblyLinearVelocity = Vector3.zero
+	end
+	local position = spot + Vector3.new(0, height + 0.2, 0)
+	character:PivotTo(CFrame.lookAt(position, position + cf.LookVector * FLAT))
 end
 
--- Mounts or dismounts the rider. Dismounted, the golem ignores steering and
--- spells and plays itself while the rider walks on their own.
+-- Mounts or dismounts the rider. Dismounted, the golem ignores steering,
+-- sprint and spells and plays itself on a leash while the rider walks.
 function GolemService.setMounted(golem: Golem, mounted: boolean)
 	if golem.mounted == mounted then
 		return
 	end
 	golem.mounted = mounted
 	golem.steer = Vector3.zero
+	golem.following = false
 	if not mounted then
 		golem.sprinting = false
 		GolemService.applySpeed(golem)
 	end
 	golem.player:SetAttribute("GolemMounted", mounted)
 	if mounted then
-		seatRider(golem)
+		attachRider(golem)
 		return
 	end
+	detachRider(golem)
+	placeRiderBeside(golem)
+end
+
+-- Whether the rider is alive and standing close enough to climb on.
+function GolemService.canClimbOn(golem: Golem): boolean
 	local character = golem.player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	if humanoid and golem.seat.Occupant == humanoid then
-		humanoid.Sit = false
-		humanoid.Jump = true
+	local riderRoot = character and character:FindFirstChild("HumanoidRootPart")
+	if not humanoid or humanoid.Health <= 0 or not riderRoot or not riderRoot:IsA("BasePart") then
+		return false
 	end
-	placeRiderBeside(golem)
+	local reach = Config.Golem.mountRange * golem.stats.scale
+	return ((riderRoot.Position - golem.root.Position) * FLAT).Magnitude <= reach
 end
 
 local function onMount(player: Player, wantMounted: any)
@@ -453,28 +663,31 @@ local function onMount(player: Player, wantMounted: any)
 		return
 	end
 	golem.nextMountChange = now + Config.Golem.mountCooldown
+	if wantMounted and not GolemService.canClimbOn(golem) then
+		Remotes.Notify:FireClient(player, "message", "Walk up to your golem to climb on.")
+		return
+	end
 	GolemService.setMounted(golem, wantMounted)
 end
 
--- Rebuilds the model in place (new parts or a new size). Seats the rider on
--- the new model before tearing down the old one: Seat:Sit() on a different
--- seat moves the humanoid's weld directly, seat to seat, with no gap where
--- gravity could take over. Destroying the old (by then unoccupied) seat
--- first would otherwise drop the rider for a frame before seatRider() got a
--- chance to teleport them back, which is what "booted off the golem" was.
-local function rebuild(golem: Golem, data: any)
-	local ground = groundUnder(golem)
-	local look = golem.root.CFrame.LookVector
-	local oldModel = golem.model
-	local model, humanoid, root, seat, groundOffset = buildModel(golem.player, data, golem.stats, ground, look)
-	golem.model, golem.humanoid, golem.root, golem.seat, golem.groundOffset = model, humanoid, root, seat, groundOffset
-	hookSeat(golem, seat)
-	seatRider(golem)
-	oldModel:Destroy()
+-- Gives the golem its new look or size on the same model. Nothing the rider
+-- is welded to, and nothing the camera or the game state points at, is
+-- replaced, so the rider stays on through any number of forge upgrades,
+-- cosmetics and mesh-art loads: no drop, camera snap or sprint reset. (The
+-- old rebuild made a new model, moved the rider across with Seat:Sit() and
+-- destroyed the old seat. The rider's sitting state belongs to their client,
+-- which then saw its seat vanish and could stand up, dropping them until the
+-- 0.5 s reseat. A rebuild also teleported the old golem along with its rider.)
+local function restyle(golem: Golem, data: any)
+	golem.groundOffset = dress(golem.model, golem.root, golem.humanoid, golem.mount, golem.player, data, golem.stats)
+	if golem.rider then
+		golem.rider.C0 = golem.mount.CFrame -- a new size moves the shoulder
+	end
+	claimPhysics(golem)
 	publishHealth(golem)
 end
 
--- Recalculates stats after any data change; rebuilds the model if it looks different.
+-- Recalculates stats after any data change; restyles the model if it looks different.
 function GolemService.refresh(player: Player)
 	local golem = golems[player]
 	local data = DataService.get(player)
@@ -493,7 +706,7 @@ function GolemService.refresh(player: Player)
 	local key = visualKey(player, data, golem.stats)
 	if key ~= golem.visualKey then
 		golem.visualKey = key
-		rebuild(golem, data)
+		restyle(golem, data)
 	else
 		publishHealth(golem)
 	end
@@ -506,14 +719,19 @@ local function spawnGolem(player: Player)
 	end
 	local zoneId = 1
 	local stats = Stats.compute(data, GolemService.context(player))
-	local model, humanoid, root, seat, groundOffset =
-		buildModel(player, data, stats, WorldService.getSpawnPoint(zoneId), Vector3.new(0, 0, -1))
+	local model, humanoid, root, mount =
+		buildShell(player, stats, WorldService.getSpawnPoint(zoneId), Vector3.new(0, 0, -1))
+	local groundOffset = dress(model, root, humanoid, mount, player, data, stats)
+	humanoid.DisplayName = displayName(player, data)
+	model.Parent = WorldService.getFolder("Golems")
+	-- A new session starts on the golem, as it always has: riding is the game.
 	local golem: Golem = {
 		player = player,
 		model = model,
 		humanoid = humanoid,
 		root = root,
-		seat = seat,
+		mount = mount,
+		rider = nil,
 		groundOffset = groundOffset,
 		visualKey = visualKey(player, data, stats),
 		stats = stats,
@@ -522,6 +740,9 @@ local function spawnGolem(player: Player)
 		downedUntil = 0,
 		fallRecovery = false,
 		mounted = true,
+		following = false,
+		followBest = 0,
+		followProgressAt = 0,
 		sprinting = false,
 		nextMountChange = 0,
 		nextSprintChange = 0,
@@ -536,14 +757,14 @@ local function spawnGolem(player: Player)
 		steerCount = 0,
 	}
 	golems[player] = golem
-	hookSeat(golem, seat)
+	claimPhysics(golem)
 	player:SetAttribute("GolemMounted", true)
 	player:SetAttribute("GolemSprint", false)
 	publishHealth(golem)
 
 	local function placeRider()
 		if golem.mounted then
-			seatRider(golem)
+			attachRider(golem)
 		else
 			placeRiderBeside(golem)
 		end
@@ -556,10 +777,10 @@ local function spawnGolem(player: Player)
 		character:WaitForChild("HumanoidRootPart")
 		placeRider()
 		task.wait(0.2)
-		placeRider() -- the first seat attempt can lose to the spawn; both are idempotent
+		placeRider() -- the first try can come before the character is in the world; both are idempotent
 	end)
 	if player.Character then
-		seatRider(golem)
+		attachRider(golem)
 	end
 end
 
@@ -646,6 +867,113 @@ end
 
 function GolemService.isActive(golem: Golem): boolean
 	return golem.downedUntil == 0 and golem.model.Parent ~= nil
+end
+
+-- The dismounted leash. The golem is tied to its rider while they are alive
+-- and in the world; with no rider to follow (mounted, dead, respawning) there
+-- is no leash.
+function GolemService.leashCenter(golem: Golem): Vector3?
+	if golem.mounted then
+		return nil
+	end
+	local character = golem.player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local riderRoot = character and character:FindFirstChild("HumanoidRootPart")
+	if not humanoid or humanoid.Health <= 0 or not riderRoot or not riderRoot:IsA("BasePart") then
+		return nil
+	end
+	return riderRoot.Position
+end
+
+function GolemService.leashRadius(golem: Golem): number
+	return Config.Golem.followRadius * golem.stats.scale
+end
+
+-- Whether a dismounted golem may go to `position` to fight or mine.
+function GolemService.inLeash(golem: Golem, position: Vector3): boolean
+	local center = GolemService.leashCenter(golem)
+	return center == nil or ((position - center) * FLAT).Magnitude <= GolemService.leashRadius(golem)
+end
+
+-- Puffs the golem back beside its rider (clients play the puff, see Fx).
+-- Waits, returning false, while the rider is in the air or there's no room.
+local function puffToRider(golem: Golem, center: Vector3): boolean
+	local character = golem.player.Character
+	local riderRoot = character and character:FindFirstChild("HumanoidRootPart")
+	if not riderRoot or not riderRoot:IsA("BasePart") then
+		return false
+	end
+	local floor = workspace:Raycast(center, Vector3.new(0, -12, 0), groundParams())
+	if not floor then
+		return false
+	end
+	local cf = riderRoot.CFrame
+	local spot = findGround(
+		center,
+		floor.Position.Y,
+		{ -cf.LookVector, cf.RightVector, -cf.RightVector, cf.LookVector },
+		Config.Golem.dismountOffset * golem.stats.scale
+	)
+	if not spot then
+		return false
+	end
+	local from = groundUnder(golem)
+	local position = spot + Vector3.new(0, golem.groundOffset, 0)
+	local facing = (center - spot) * FLAT
+	if facing.Magnitude < 0.01 then
+		facing = cf.LookVector * FLAT
+	end
+	golem.humanoid:Move(Vector3.zero)
+	golem.model:PivotTo(CFrame.lookAt(position, position + facing))
+	golem.root.AssemblyLinearVelocity = Vector3.zero
+	golem.root.AssemblyAngularVelocity = Vector3.zero
+	golem.following = false
+	Remotes.Notify:FireAllClients("golemPuff", from, golem.stats.scale, golem.player.UserId)
+	Remotes.Notify:FireAllClients("golemPuff", spot, golem.stats.scale, golem.player.UserId)
+	return true
+end
+
+-- Keeps a dismounted golem near its rider. Inside the radius it is free to
+-- fight and mine (CombatService); outside it walks back until it is well
+-- inside, so it doesn't jitter on the edge. Very far away, or stuck for a
+-- few seconds, it puffs back beside the rider. Returns true while it is
+-- walking back, when it should do nothing else.
+function GolemService.followRider(golem: Golem, now: number): boolean
+	local center = GolemService.leashCenter(golem)
+	if not center then
+		golem.following = false
+		return false
+	end
+	local scale = golem.stats.scale
+	local radius = GolemService.leashRadius(golem)
+	local offset = (golem.root.Position - center) * FLAT
+	local distance = offset.Magnitude
+	if distance > Config.Golem.leashTeleportRadius * scale and puffToRider(golem, center) then
+		return false
+	end
+	if golem.following then
+		if distance < radius * Config.Golem.followStop then
+			golem.following = false
+			return false
+		end
+	elseif distance > radius then
+		golem.following = true
+		golem.followBest = distance
+		golem.followProgressAt = now
+	else
+		return false
+	end
+	if distance < golem.followBest - 1 then
+		golem.followBest = distance
+		golem.followProgressAt = now
+	elseif now - golem.followProgressAt > Config.Golem.stuckTime then
+		if puffToRider(golem, center) then
+			return false
+		end
+		golem.followProgressAt = now -- no room to puff yet; try again later
+	end
+	golem.humanoid:MoveTo(center + offset.Unit * radius * 0.3)
+	return true
 end
 
 -- The player's current steering, or zero if they've let go.
@@ -753,7 +1081,7 @@ function GolemService.start()
 	Remotes.MoveGolem.OnServerEvent:Connect(onSteer)
 	Remotes.MountGolem.OnServerEvent:Connect(onMount)
 	Remotes.SprintGolem.OnServerEvent:Connect(onSprint)
-	-- Uploaded mesh art loads in the background, a tier at a time; rebuild
+	-- Uploaded mesh art loads in the background, a tier at a time; restyle
 	-- golems that wear that tier (unforged slots wear stone) once it arrives.
 	GolemMeshes.install(function(tier)
 		for player, golem in golems do
