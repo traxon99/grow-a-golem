@@ -47,6 +47,30 @@ Config.ForgeStrike = {
 	refundFraction = 0.1, -- 10% of each spent mineral, minimum 1
 }
 
+-- Free, optional solo obstacle run. Fixed payouts per checkpoint, never a
+-- random reward or a paid entry. No progression gate; generous time to steer.
+Config.Gauntlet = {
+	enabled = true,
+	zoneId = 200, -- outside the six islands and TowerZoneBase range
+	center = Vector3.new(0, 60, 2100),
+	arenaSize = Vector3.new(160, 6, 280),
+	startZ = -115,
+	laneHalfWidth = 27,
+	durationSeconds = 90,
+	cooldownSeconds = 120,
+	tickSeconds = 0.1,
+	checkpointHalfWidth = 10,
+	checkpointHalfDepth = 7,
+	boulderRadius = 8,
+	lavaHalfDepth = 5,
+	lavaGapHalfWidth = 9,
+	checkpoints = {
+		{ z = -50, reward = { stone = 50 } },
+		{ z = 20, reward = { stone = 40, copper = 5 } },
+		{ z = 108, reward = { stone = 30, copper = 10 } },
+	},
+}
+
 ---------------------------------------------------------------- minerals
 
 Config.MineralOrder = { "stone", "copper", "iron", "crystal" }
