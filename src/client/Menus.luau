@@ -972,8 +972,14 @@ local function renderParty(list: ScrollingFrame, snap: any)
 		{ text = `Friend bonus +{party.friendBonus}%` },
 	})
 	local inviteMode = if snap.data and snap.data.social then snap.data.social.partyInvites or "friends" else "friends"
-	local inviteLabel = if inviteMode == "everyone" then "Everyone" elseif inviteMode == "off" then "Off" else "Friends only"
-	local nextInviteMode = if inviteMode == "friends" then "everyone" elseif inviteMode == "everyone" then "off" else "friends"
+	local inviteLabel = if inviteMode == "everyone"
+		then "Everyone"
+		elseif inviteMode == "off" then "Off"
+		else "Friends only"
+	local nextInviteMode = if inviteMode == "friends"
+		then "everyone"
+		elseif inviteMode == "everyone" then "off"
+		else "friends"
 	Ui.item(list, nextOrder(), {
 		title = `Party invites: {inviteLabel}`,
 		subtitle = "Choose who can send you party invitations.",
@@ -1552,8 +1558,14 @@ local function renderHub(list: ScrollingFrame, snap: any)
 		},
 	})
 	local inviteMode = if snap.data and snap.data.social then snap.data.social.partyInvites or "friends" else "friends"
-	local inviteLabel = if inviteMode == "everyone" then "Everyone" elseif inviteMode == "off" then "Off" else "Friends only"
-	local nextInviteMode = if inviteMode == "friends" then "everyone" elseif inviteMode == "everyone" then "off" else "friends"
+	local inviteLabel = if inviteMode == "everyone"
+		then "Everyone"
+		elseif inviteMode == "off" then "Off"
+		else "Friends only"
+	local nextInviteMode = if inviteMode == "friends"
+		then "everyone"
+		elseif inviteMode == "everyone" then "off"
+		else "friends"
 	Ui.item(list, nextOrder(), {
 		title = `Party invites: {inviteLabel}`,
 		subtitle = "Choose who can send you party invitations.",
