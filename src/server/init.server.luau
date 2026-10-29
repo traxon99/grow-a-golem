@@ -32,6 +32,7 @@ local RuneService = load("RuneService")
 local SocialService = load("SocialService")
 local TradeService = load("TradeService")
 local TowerService = load("TowerService")
+local GauntletService = load("GauntletService")
 
 WorldService.start()
 ActionService.start()
