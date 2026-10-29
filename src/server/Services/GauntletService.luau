@@ -159,7 +159,7 @@ local function buildCourse(): (ProximityPrompt, ProximityPrompt)
 	folder.Parent = workspace
 
 	-- Portal stays on the public Hub. No Travel/menu UI files are touched.
-	gatePosition = WorldService.getSpawnPoint(Config.HubZone) + Vector3.new(55, 3, 0)
+	gatePosition = WorldService.getSpawnPoint(Config.HubZone) + Vector3.new(24, 3, 0)
 	local gate = part(
 		folder,
 		"GolemRunPortal",
