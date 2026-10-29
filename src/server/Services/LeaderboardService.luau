@@ -95,9 +95,7 @@ local function refresh()
 			end
 		end
 	end
-	for _, player in Players:GetPlayers() do
-		DataService.markChanged(player)
-	end
+	DataService.invalidateProvider("leaderboards")
 end
 
 function LeaderboardService.start()
@@ -110,9 +108,10 @@ function LeaderboardService.start()
 			lastWritten[board.id] = {}
 		end
 	end
+	-- Board values only change after refresh(), which invalidates the cache.
 	DataService.addProvider("leaderboards", function()
 		return boards
-	end)
+	end, math.huge)
 	if next(stores) == nil then
 		return
 	end
