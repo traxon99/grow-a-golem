@@ -37,7 +37,8 @@ function EconomyService.grant(player: Player, reward: Reward, source: string): R
 	local given: Reward = {}
 	if reward.minerals then
 		local mult = EconomyService.mineralMultiplier(player)
-		local beatMultiplier, beatRun = 1, nil
+		local beatMultiplier: number = 1
+		local beatRun: number? = nil
 		if source == "mining" then
 			beatMultiplier, beatRun = WorldBeat.miningMultiplier(os.time())
 		end
