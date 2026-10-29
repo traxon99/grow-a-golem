@@ -156,6 +156,16 @@ function Tutorial.start()
 	keyRim.Color = Ui.Colors.outline
 	keyRim.Thickness = 3
 	keyRim.Parent = keyCap
+	-- A darker lip along the bottom makes it a raised key.
+	local keyLip = Instance.new("Frame")
+	keyLip.Name = "Lip"
+	keyLip.Size = UDim2.new(1, -4, 0, 6)
+	keyLip.Position = UDim2.new(0, 2, 1, -8)
+	keyLip.BackgroundColor3 = Ui.Colors.bubble:Lerp(Color3.new(0, 0, 0), 0.3)
+	keyLip.BorderSizePixel = 0
+	keyLip.ZIndex = 0
+	keyLip.Parent = keyCap
+	Ui.corner(keyLip, 3)
 	local keyPadding = Instance.new("UIPadding")
 	keyPadding.PaddingLeft = UDim.new(0, 10)
 	keyPadding.PaddingRight = UDim.new(0, 10)
