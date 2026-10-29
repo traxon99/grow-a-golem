@@ -14,10 +14,35 @@ local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 
 local SEND_INTERVAL = 0.1
+local SPRINT_KEY = Enum.KeyCode.LeftShift
+local SPRINT_GAMEPAD_KEY = Enum.KeyCode.ButtonL3
 
 local Controls = {}
 
 local player = Players.LocalPlayer
+
+-- Sprinting is held (Shift, L3) or toggled (the HUD Sprint button, for touch).
+-- The server only speeds the golem up while the rider is steering.
+local sprinting = false
+local sprintChanged = Instance.new("BindableEvent")
+Controls.SprintChanged = sprintChanged.Event
+
+function Controls.isSprinting(): boolean
+	return sprinting
+end
+
+function Controls.setSprint(on: boolean)
+	if on == sprinting then
+		return
+	end
+	sprinting = on
+	Remotes.SprintGolem:FireServer(on)
+	sprintChanged:Fire(on)
+end
+
+function Controls.toggleSprint()
+	Controls.setSprint(not sprinting)
+end
 
 function Controls.castSpell(spellId: string)
 	Remotes.CastSpell:FireServer(spellId)
@@ -115,6 +140,12 @@ function Controls.start()
 		end
 		elapsed = 0
 
+		-- The server drops sprint requests that come too fast and resets sprint
+		-- when the golem is knocked out; ask again until it agrees with us.
+		if (player:GetAttribute("GolemSprint") == true) ~= sprinting and Controls.isMounted() then
+			Remotes.SprintGolem:FireServer(sprinting)
+		end
+
 		-- Dismounted, the stick walks the rider, not the golem.
 		local direction = if Controls.isMounted() then cameraRelative(getMoveVector()) else Vector3.zero
 		-- Keep sending while steering (the server times out after 0.5 s),
@@ -130,6 +161,10 @@ function Controls.start()
 	end
 	player.CharacterAdded:Connect(onCharacter)
 	player:GetAttributeChangedSignal("GolemMounted"):Connect(function()
+		-- Dismounting ends the sprint; the rider starts a new one after mounting.
+		if not Controls.isMounted() then
+			Controls.setSprint(false)
+		end
 		if player.Character then
 			task.spawn(onCharacter, player.Character)
 		end
@@ -141,6 +176,15 @@ function Controls.start()
 		end
 		return Enum.ContextActionResult.Sink
 	end, false, Enum.KeyCode.F, Enum.KeyCode.ButtonR1)
+
+	ContextActionService:BindAction("Sprint", function(_, state)
+		if state == Enum.UserInputState.Begin then
+			Controls.setSprint(true)
+		elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
+			Controls.setSprint(false)
+		end
+		return Enum.ContextActionResult.Sink
+	end, false, SPRINT_KEY, SPRINT_GAMEPAD_KEY)
 
 	local gamepadButtons = { Enum.KeyCode.ButtonX, Enum.KeyCode.ButtonY, Enum.KeyCode.ButtonB }
 	for index, spellId in Config.SpellOrder do

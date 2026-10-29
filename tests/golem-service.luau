@@ -13,6 +13,7 @@ local Vector3 = {
 	end,
 }
 Vector3.zero = Vector3.new(0, 0, 0)
+Vector3.zero.Magnitude = 0 -- the engine's Vector3 has it; the steering checks read it
 local shared = {
 	WaitForChild = function(self)
 		return self
@@ -86,8 +87,8 @@ local function fixture(offset)
 				attributes[key] = value
 			end,
 		},
-		humanoid = { Move = function() end },
-		stats = { maxHealth = 200, regenPerSecond = 2 },
+		humanoid = { Move = function() end, WalkSpeed = 14 },
+		stats = { maxHealth = 200, regenPerSecond = 2, walkSpeed = 14 },
 		groundOffset = offset,
 		zoneId = 1,
 		hp = 120,
@@ -95,6 +96,10 @@ local function fixture(offset)
 		fallRecovery = false,
 		mounted = true,
 		riderGraceUntil = 0,
+		sprinting = false,
+		nextSprintChange = 0,
+		lastSteerAt = 0,
+		steer = Vector3.zero,
 	},
 		attributes
 end
@@ -190,3 +195,42 @@ assert(service.getSteer(mountGolem) == Vector3.zero)
 service.setMounted(mountGolem, true)
 assert(mountGolem.mounted and mountAttributes.GolemMounted == true)
 print("GolemService mount checks passed")
+
+-- Sprinting: faster only while a mounted rider steers; never for a golem playing itself.
+local runner, runnerAttributes = fixture(8)
+local sprintSpeed = 14 * Config.Golem.sprintMult
+runner.steer = Vector3.new(1, 0, 0)
+runner.steer.Magnitude = 1
+runner.lastSteerAt = now
+service.setSprinting(runner, true)
+assert(runner.humanoid.WalkSpeed == sprintSpeed and runnerAttributes.Sprinting == true)
+now += 1 -- the steering input has timed out: the golem is playing itself again
+service.update(runner, 0)
+assert(runner.humanoid.WalkSpeed == 14 and runnerAttributes.Sprinting == false)
+runner.lastSteerAt = now
+service.update(runner, 0)
+assert(runner.humanoid.WalkSpeed == sprintSpeed) -- steering again, sprint still wanted
+runner.mounted = false
+service.update(runner, 0)
+assert(runner.humanoid.WalkSpeed == 14 and runnerAttributes.Sprinting == false) -- dismounted: no sprint
+service.setSprinting(runner, true)
+assert(not runner.sprinting) -- and it can't be switched on while dismounted
+
+-- The sprint request: booleans only, rate limited, and the server publishes what it honours.
+local asker, askerAttributes = fixture(8)
+assert(not service.requestSprint(asker, "yes") and not service.requestSprint(asker, nil))
+assert(not service.requestSprint(asker, false)) -- already off: nothing to change
+assert(service.requestSprint(asker, true) and asker.sprinting and askerAttributes.GolemSprint == true)
+-- Dropped inside the cooldown; GolemSprint still says on, which is how the client knows to ask again.
+assert(not service.requestSprint(asker, false) and asker.sprinting and askerAttributes.GolemSprint == true)
+now += 1
+assert(service.requestSprint(asker, false) and not asker.sprinting and askerAttributes.GolemSprint == false)
+asker.mounted = false
+now += 1
+assert(not service.requestSprint(asker, true) and not asker.sprinting) -- no sprinting on foot
+asker.mounted = true
+now += 1
+service.requestSprint(asker, true)
+service.damage(asker, asker.hp) -- knocked out while sprinting
+assert(not asker.sprinting and askerAttributes.Sprinting == false and askerAttributes.GolemSprint == false)
+print("GolemService sprint checks passed")
