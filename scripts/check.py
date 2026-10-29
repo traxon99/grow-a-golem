@@ -194,6 +194,14 @@ cosmetic_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = depen
 bundle += "\nlocal function loadCosmeticService(dependencies, game, task)\n"
 bundle += 'local script = { Parent = {} }\n' + cosmetic_service + "\nend\n"
 bundle += (ROOT / "tests/cosmetic-service.luau").read_text()
+# The real SocialService with mocked services; task.spawn is a no-op so the
+# golem-hook loop (needs Instance/ProximityPrompt) and the hub-refresh timer
+# (an infinite while-loop) never run in this test.
+social_service = (ROOT / "src/server/Services/SocialService.luau").read_text()
+social_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', social_service)
+bundle += "\nlocal function loadSocialService(dependencies, game, task)\n"
+bundle += 'local script = { Parent = {} }\n' + social_service + "\nend\n"
+bundle += (ROOT / "tests/social-service.luau").read_text()
 with tempfile.TemporaryDirectory(prefix="golem-check-") as folder:
     path = Path(folder) / "regression.luau"
     path.write_text(bundle)
