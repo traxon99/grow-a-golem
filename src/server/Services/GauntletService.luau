@@ -314,8 +314,12 @@ function GauntletService.tick()
 	moving.Position = point(math.sin(now * 1.5) * 15, 82, 5)
 	for player, run in runs do
 		local golem = GolemService.get(player)
-		if not player.Parent or not golem or golem.zoneId ~= cfg.zoneId then
-			runs[player] = nil -- travel/disconnect forfeits unpaid checkpoints
+		if not player.Parent then
+			runs[player] = nil
+			continue
+		end
+		if not golem or golem.zoneId ~= cfg.zoneId then
+			finish(player, "You left the run. Earned checkpoint rewards are yours to keep.")
 			continue
 		end
 		if not golem.mounted or not GolemService.isActive(golem) then
