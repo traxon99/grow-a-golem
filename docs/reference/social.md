@@ -26,7 +26,7 @@ Last updated: 2026-10-28. Read [safety-compliance.md](safety-compliance.md) firs
 
 ## Grow A Golem today
 
-- Co-op parties up to 4; kills within 80 studs are shared.
+- Co-op parties up to 4; kills within 80 studs are shared. Party invites default to Roblox friends only, with Everyone / Friends only / Off privacy controls in Party and Hub, per-target cooldowns, a pending-invite cap and silent refreshes to prevent notification spam. Accepting a full party never removes you from your current one.
 - Friend bonus +10% per friend, up to +30%.
 - Global leaderboards (level, Awakenings, artifacts found) show Roblox display names, falling back to "Player" when unavailable. They skip sessions that cannot save and skip writes when a player's score is unchanged.
 - **Golem Hub (#13):** a safe island (zone id 0, `Config.Hub`, Travel tab) with no enemies. Golems idle there on show. Walking up to a golem shows an Inspect prompt (also the Hub tab list): level, size, Awakenings, parts, equipped artifacts, found count, bosses beaten. No hangout, drawing or free-text features.
