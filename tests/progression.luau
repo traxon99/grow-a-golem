@@ -74,3 +74,52 @@ do
 	assert(data.ascension.points == 1)
 	print("PASS: real Ascension handlers reset, preserve, reject repeats, validate IDs, enforce funds and max rank")
 end
+
+-- Awakening names what it unlocked, and the auto-forge loop runs for players
+-- who unlocked it by Awakening as well as for pass owners.
+do
+	local data = {
+		golem = { xp = Stats.xpForLevel(Config.Awakening.minLevel), parts = { torso = "stone" } },
+		minerals = { stone = 10 },
+		skills = {},
+		bossesDefeated = {},
+		artifacts = { found = {} },
+		awakening = { count = 0, shards = 0, upgrades = {} },
+		ascension = { count = 0, points = 0, upgrades = {} },
+	}
+	local actions = {}
+	local service = loadProgression({
+		Config = Config,
+		Stats = Stats,
+		Remotes = {},
+		ActionService = {
+			register = function(name, handler)
+				actions[name] = handler
+			end,
+		},
+		DataService = {
+			get = function()
+				return data
+			end,
+			update = function(_, fn)
+				fn(data)
+			end,
+		},
+		Events = { fire = function() end },
+		GolemService = {
+			get = function()
+				return {}
+			end,
+			sendToZone = function() end,
+		},
+		PassService = {},
+	})
+	service.start()
+	local ok, message = actions.awaken({})
+	assert(ok and data.awakening.count == 1)
+	assert(string.find(message, Config.AwakeningUnlocks[1].name, 1, true), "Awakening 1 names its unlock")
+	data.golem.xp = Stats.xpForLevel(Config.Awakening.minLevel)
+	ok, message = actions.awaken({})
+	assert(ok and string.find(message, Config.AwakeningUnlocks[2].name, 1, true))
+	print("PASS: Awakening reports the unlock it gives")
+end

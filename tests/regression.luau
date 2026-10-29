@@ -139,4 +139,37 @@ record._session = nil
 assert(SessionLease.canAcquire(record, "C", 181))
 record._session = { token = "B" }
 assert(not SessionLease.canAcquire(record, "C", 999), "Malformed leases fail closed")
-print("PASS: level boundaries, free gate/forge reachability, six-zone content, Ascension, odds/bags, session leases")
+-- Awakening unlocks (#151): earned by lifetime count, the free slot stacks
+-- with the paid pass, and the title row matches its Titles entry.
+do
+	local awakened = fresh()
+	local base = Config.Golem.baseArtifactSlots
+	assert(Stats.nextAwakeningUnlock(awakened).kind == "autoForge")
+	assert(not Stats.awakeningUnlocked(awakened, "autoForge"))
+	awakened.awakening.count = 1
+	assert(Stats.awakeningUnlocked(awakened, "autoForge") and not Stats.awakeningUnlocked(awakened, "artifactSlot"))
+	assert(Stats.compute(awakened, ctx).artifactSlots == base)
+	awakened.awakening.count = 2
+	assert(Stats.compute(awakened, ctx).artifactSlots == base + 1)
+	local withPass = { passes = { extraSlot = true }, now = 0 }
+	assert(Stats.compute(awakened, withPass).artifactSlots == base + 2, "the free slot stacks with the paid pass")
+	assert(Stats.nextAwakeningUnlock(awakened).kind == "title" and not Stats.titleEarned(awakened, "runebound"))
+	awakened.awakening.count = 3
+	assert(Stats.titleEarned(awakened, "runebound") and Stats.nextAwakeningUnlock(awakened) == nil)
+	awakened.ascension.spentAwakenings = 3
+	assert(Stats.awakeningUnlocked(awakened, "artifactSlot"), "Ascending never takes an unlock away")
+	local seen = {}
+	for _, unlock in Config.AwakeningUnlocks do
+		assert(not seen[unlock.count], "one unlock per Awakening")
+		seen[unlock.count] = true
+		if unlock.kind == "title" then
+			local title = Config.Titles[unlock.title]
+			assert(title and title.unlock.kind == "awaken" and title.unlock.count == unlock.count)
+			assert(table.find(Config.TitleOrder, unlock.title))
+		end
+		assert(unlock.pass == nil or Config.GamePasses[unlock.pass])
+	end
+end
+print(
+	"PASS: level boundaries, free gate/forge reachability, six-zone content, Ascension, Awakening unlocks, odds/bags, session leases"
+)

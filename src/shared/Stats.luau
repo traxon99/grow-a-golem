@@ -477,6 +477,26 @@ function Stats.equippedCosmetic(data: any, slot: string): string?
 	return nil
 end
 
+-- Whether an Awakening unlock of this kind is earned (Config.AwakeningUnlocks).
+function Stats.awakeningUnlocked(data: any, kind: string): boolean
+	for _, unlock in Config.AwakeningUnlocks do
+		if unlock.kind == kind and data.awakening.count >= unlock.count then
+			return true
+		end
+	end
+	return false
+end
+
+-- The unlock the next Awakening gives, or nil once they're all earned.
+function Stats.nextAwakeningUnlock(data: any): any?
+	for _, unlock in Config.AwakeningUnlocks do
+		if unlock.count == data.awakening.count + 1 then
+			return unlock
+		end
+	end
+	return nil
+end
+
 -- Sums every % bonus a player has, plus extra slots and offline hours.
 function Stats.bonuses(data: any, ctx: Context): ({ [string]: number }, number, number)
 	local total: { [string]: number } = {}
@@ -509,6 +529,9 @@ function Stats.bonuses(data: any, ctx: Context): ({ [string]: number }, number, 
 	total.minerals = (total.minerals or 0) + data.awakening.count * Config.Awakening.mineralBonusPerAwakening
 
 	if ctx.passes.extraSlot then
+		extraSlots += 1
+	end
+	if Stats.awakeningUnlocked(data, "artifactSlot") then
 		extraSlots += 1
 	end
 	local slots = Config.Golem.baseArtifactSlots + extraSlots

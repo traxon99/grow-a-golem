@@ -47,7 +47,8 @@ local function craft(player: Player, slot: any, tier: any): (boolean, string?)
 	return true, `Forged a {Config.Tiers[tier].displayName} {Config.Slots[slot].displayName}!`
 end
 
--- The Auto-Forge pass crafts the best affordable upgrade for one slot.
+-- Auto-Forge (the pass, or the first Awakening's unlock) crafts the best
+-- affordable upgrade for one slot.
 local function autoForge(player: Player)
 	local data = DataService.get(player)
 	if not data then
@@ -141,6 +142,7 @@ local function awaken(player: Player): (boolean, string?)
 		return false, `Reach level {Config.Awakening.minLevel} to Awaken`
 	end
 	local shards = Stats.awakeningShards(level)
+	local unlock = Stats.nextAwakeningUnlock(data)
 	local wiped = table.clone(data.minerals)
 	DataService.update(player, function(d)
 		d.awakening.count += 1
@@ -156,7 +158,8 @@ local function awaken(player: Player): (boolean, string?)
 	GolemService.sendToZone(golem, 1)
 	Events.fire("mineralsSpent", player, wiped, "awaken")
 	Events.fire("awakened", player, data.awakening.count)
-	return true, `Your golem Awakens! +{shards} Awakening Shards`
+	local unlocked = if unlock then ` Unlocked: {unlock.name}!` else ""
+	return true, `Your golem Awakens! +{shards} Awakening Shards.{unlocked}`
 end
 
 local function buyUpgrade(player: Player, upgradeId: any): (boolean, string?)
@@ -239,7 +242,8 @@ function ProgressionService.start()
 		while true do
 			task.wait(AUTO_FORGE_INTERVAL)
 			for player in GolemService.all() do
-				if PassService.owns(player, "autoForge") then
+				local data = DataService.get(player)
+				if PassService.owns(player, "autoForge") or (data and Stats.awakeningUnlocked(data, "autoForge")) then
 					task.spawn(autoForge, player)
 				end
 			end
