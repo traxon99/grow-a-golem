@@ -79,7 +79,8 @@ function WorldBeatHud.start()
 			local phase, remaining = WorldBeat.phase(workspace:GetServerTimeNow())
 			frame.Visible = phase ~= "idle"
 			if phase == "active" then
-				label.Text = `MINERAL SURGE! {Config.WorldBeat.miningMultiplier}x node yields · {clock(remaining)} left`
+				label.Text =
+					`MINERAL SURGE! {Config.WorldBeat.miningMultiplier}x node yields · {clock(remaining)} left`
 			elseif phase == "warning" then
 				label.Text = `Mineral surge in {clock(remaining)} · {Config.WorldBeat.miningMultiplier}x node yields`
 			end
