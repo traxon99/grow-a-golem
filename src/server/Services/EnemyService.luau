@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
+local BossPattern = require(Shared:WaitForChild("BossPattern"))
 local MarbleBag = require(Shared:WaitForChild("MarbleBag"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 
@@ -35,6 +36,9 @@ export type Enemy = {
 	nextSlam: number,
 	slamAt: number, -- 0 when no slam is winding up
 	slamPosition: Vector3,
+	slamDirection: Vector3,
+	slamPattern: any,
+	slamIndex: number,
 	slamMarker: BasePart?,
 	contributors: { [Player]: number }, -- actual damage per player, capped at remaining health
 	lastHitPosition: Vector3?, -- party sharing stays at the fight, not below the island
@@ -104,6 +108,9 @@ local function makeEnemy(id: string, def: any, zoneId: number, at: Vector3, isBo
 		nextSlam = os.clock() + (if def.slam then def.slam.every else 0),
 		slamAt = 0,
 		slamPosition = Vector3.zero,
+		slamDirection = Vector3.new(0, 0, -1),
+		slamPattern = nil,
+		slamIndex = 0,
 		slamMarker = nil,
 		contributors = {},
 		lastHitPosition = nil,
@@ -194,6 +201,7 @@ local function clearSlam(enemy: Enemy)
 		enemy.slamMarker = nil
 	end
 	enemy.slamAt = 0
+	enemy.slamPattern = nil
 end
 
 local function remove(enemy: Enemy)
@@ -420,10 +428,14 @@ local function updateSlam(enemy: Enemy, now: number)
 	local slam = enemy.def.slam
 	if enemy.slamAt > 0 then
 		if now >= enemy.slamAt then
-			for _, golem in GolemService.all() do
-				if golem.zoneId == enemy.zoneId and GolemService.isActive(golem) then
-					local flat = (golem.root.Position - enemy.slamPosition) * Vector3.new(1, 0, 1)
-					if flat.Magnitude <= slam.radius then
+			local pattern = enemy.slamPattern
+			if pattern then
+				for _, golem in GolemService.all() do
+					if
+						golem.zoneId == enemy.zoneId
+						and GolemService.isActive(golem)
+						and BossPattern.hits(pattern, enemy.slamPosition, enemy.slamDirection, golem.root.Position)
+					then
 						GolemService.damage(golem, slam.damage)
 					end
 				end
@@ -439,25 +451,48 @@ local function updateSlam(enemy: Enemy, now: number)
 	if not target then
 		return
 	end
+
+	-- Cycle in a learnable order: circle, narrow forward lane, wide close
+	-- sweep. Tower bosses without patterns keep their old circular slam.
+	local patterns = slam.patterns
+	local pattern: any = { kind = "circle", radius = slam.radius }
+	if patterns and #patterns > 0 then
+		pattern = patterns[(enemy.slamIndex % #patterns) + 1]
+	end
+	enemy.slamIndex += 1
 	enemy.nextSlam = now + slam.every
 	enemy.slamAt = now + slam.warning
-	-- Clients raise the boss's arms during the warning (see the client Animator).
+	enemy.slamPattern = pattern
 	enemy.model:SetAttribute("SlamAt", workspace:GetServerTimeNow() + slam.warning)
-	local ground = target.root.Position - Vector3.new(0, target.groundOffset, 0)
-	enemy.slamPosition = ground
+	enemy.model:SetAttribute("SlamPattern", pattern.kind)
 
-	-- A red disc on the ground shows where the slam will land.
+	local ground = target.root.Position - Vector3.new(0, target.groundOffset, 0)
+	local bossGround = Vector3.new(enemy.root.Position.X, ground.Y, enemy.root.Position.Z)
+	local direction = BossPattern.direction(bossGround, ground)
+	local origin = if pattern.kind == "circle" then ground else bossGround
+	enemy.slamPosition = origin
+	enemy.slamDirection = direction
+
+	-- The warning part has exactly the same dimensions and center as the
+	-- hit test; stepping outside the visible red shape always dodges it.
+	local center = BossPattern.center(pattern, origin, direction) + Vector3.new(0, 0.2, 0)
 	local marker = Instance.new("Part")
 	marker.Name = "SlamWarning"
-	marker.Shape = Enum.PartType.Cylinder
 	marker.Anchored = true
 	marker.CanCollide = false
+	marker.CanTouch = false
 	marker.CanQuery = false
 	marker.Material = Enum.Material.Neon
 	marker.Color = Color3.fromRGB(255, 60, 40)
 	marker.Transparency = 0.45
-	marker.Size = Vector3.new(0.3, slam.radius * 2, slam.radius * 2)
-	marker.CFrame = CFrame.new(ground + Vector3.new(0, 0.2, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	if pattern.kind == "circle" then
+		marker.Shape = Enum.PartType.Cylinder
+		marker.Size = Vector3.new(0.3, pattern.radius * 2, pattern.radius * 2)
+		marker.CFrame = CFrame.new(center) * CFrame.Angles(0, 0, math.rad(90))
+	else
+		marker.Size = Vector3.new(pattern.width, 0.3, pattern.length)
+		marker.CFrame = CFrame.lookAt(center, center + direction)
+	end
 	marker.Parent = WorldService.getFolder("Effects")
 	enemy.slamMarker = marker
 end

@@ -172,8 +172,17 @@ Config.Enemies = {
 	},
 }
 
--- One boss per zone. It slams the ground: a red circle appears, then hits
--- every golem still inside it. Steer out of the circle to dodge.
+-- Each boss cycles three attacks. Every warning lasts the existing slam
+-- windup and the server checks the same footprint shown on the ground.
+-- The first circle preserves the original radius; the other shapes scale with it.
+local function bossPatterns(radius: number): { any }
+	return {
+		{ kind = "circle", radius = radius },
+		{ kind = "line", length = radius * 2.5, width = radius * 0.6, offset = radius * 1.25 },
+		{ kind = "sweep", length = radius * 0.75, width = radius * 2.2, offset = radius * 0.5 },
+	}
+end
+
 -- A typed local, so entries of different shapes are accepted (see the top).
 local bosses: { [any]: any } = {
 	[1] = {
@@ -188,7 +197,13 @@ local bosses: { [any]: any } = {
 		color = Color3.fromRGB(96, 90, 80),
 		xp = 150,
 		drops = { stone = 150, copper = 40 },
-		slam = { every = 6, warning = 1.5, radius = 14, damage = 60 },
+		slam = {
+			every = 6,
+			warning = 1.5,
+			radius = 14,
+			damage = 60,
+			patterns = bossPatterns(14),
+		},
 		respawn = 60,
 	},
 	[2] = {
@@ -203,7 +218,13 @@ local bosses: { [any]: any } = {
 		color = Color3.fromRGB(150, 50, 30),
 		xp = 500,
 		drops = { copper = 150, iron = 60 },
-		slam = { every = 5, warning = 1.3, radius = 16, damage = 140 },
+		slam = {
+			every = 5,
+			warning = 1.3,
+			radius = 16,
+			damage = 140,
+			patterns = bossPatterns(16),
+		},
 		respawn = 75,
 	},
 	[3] = {
@@ -218,7 +239,13 @@ local bosses: { [any]: any } = {
 		color = Color3.fromRGB(190, 170, 255),
 		xp = 1400,
 		drops = { iron = 150, crystal = 60 },
-		slam = { every = 4.5, warning = 1.2, radius = 18, damage = 260 },
+		slam = {
+			every = 4.5,
+			warning = 1.2,
+			radius = 18,
+			damage = 260,
+			patterns = bossPatterns(18),
+		},
 		respawn = 90,
 	},
 }
@@ -1170,7 +1197,13 @@ Config.Bosses[4] = {
 	color = Color3.fromRGB(100, 190, 255),
 	xp = 1750,
 	drops = { stormglass = 100 },
-	slam = { every = 5, warning = 1.5, radius = 18, damage = 340 },
+	slam = {
+		every = 5,
+		warning = 1.5,
+		radius = 18,
+		damage = 340,
+		patterns = bossPatterns(18),
+	},
 	respawn = 90,
 }
 table.insert(Config.ArtifactOrder, "stormglassCharm")
@@ -1232,7 +1265,13 @@ Config.Bosses[5] = {
 	color = Color3.fromRGB(55, 175, 160),
 	xp = 3150,
 	drops = { abyssite = 100 },
-	slam = { every = 5, warning = 1.5, radius = 18, damage = 425 },
+	slam = {
+		every = 5,
+		warning = 1.5,
+		radius = 18,
+		damage = 425,
+		patterns = bossPatterns(18),
+	},
 	respawn = 90,
 }
 table.insert(Config.ArtifactOrder, "abyssiteCharm")
@@ -1298,7 +1337,13 @@ Config.Bosses[6] = {
 	color = Color3.fromRGB(255, 190, 70),
 	xp = 5250,
 	drops = { sunsteel = 100 },
-	slam = { every = 5, warning = 1.5, radius = 18, damage = 510 },
+	slam = {
+		every = 5,
+		warning = 1.5,
+		radius = 18,
+		damage = 510,
+		patterns = bossPatterns(18),
+	},
 	respawn = 90,
 }
 table.insert(Config.ArtifactOrder, "sunsteelCharm")

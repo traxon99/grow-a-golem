@@ -91,6 +91,11 @@ stats = (ROOT / "src/shared/Stats.luau").read_text().replace(
 marble_bag = (ROOT / "src/shared/MarbleBag.luau").read_text()
 lease = (ROOT / "src/shared/SessionLease.luau").read_text()
 bundle = prelude + '\nlocal Config = (function()\n' + config + '\nend)()\n'
+# Boss telegraph geometry is pure XZ math; run it against the real six-boss
+# configuration before loading services that need Roblox instances.
+boss_pattern = (ROOT / "src/shared/BossPattern.luau").read_text()
+bundle += 'local BossPattern = (function()\n' + boss_pattern + '\nend)()\n'
+bundle += (ROOT / "tests/boss-patterns.luau").read_text()
 world_beat = (ROOT / "src/shared/WorldBeat.luau").read_text().replace(
     'local Config = require(script.Parent:WaitForChild("Config"))', '')
 bundle += 'local WorldBeat = (function()\n' + world_beat + '\nend)()\n'
