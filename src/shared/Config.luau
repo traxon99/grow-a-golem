@@ -370,6 +370,35 @@ Config.Awakening = {
 	shardBaseLevel = 15,
 	mineralBonusPerAwakening = 10, -- % minerals for each Awakening, forever
 }
+-- Each of the first Awakenings unlocks something new, free and forever
+-- (#151). They count every Awakening ever made, so Ascending never takes one
+-- away. `pass` names the game pass an unlock makes unnecessary, so the Shop
+-- can say so instead of selling it. The free slot stacks with the Extra
+-- Artifact Slot pass, so nothing a player paid for loses its effect. A typed
+-- local, so entries of different shapes are accepted (see the top).
+local awakeningUnlocks: { [any]: any } = {
+	{
+		count = 1,
+		kind = "autoForge",
+		pass = "autoForge",
+		name = "Free Auto-Forge",
+		description = "Forges and equips the best part you can afford.",
+	},
+	{
+		count = 2,
+		kind = "artifactSlot",
+		name = "Extra Artifact Slot",
+		description = "+1 artifact slot, on top of any others.",
+	},
+	{
+		count = 3,
+		kind = "title",
+		title = "runebound",
+		name = "Runebound title",
+		description = "A nametag title for golems that have Awakened 3 times.",
+	},
+}
+Config.AwakeningUnlocks = awakeningUnlocks
 Config.AwakenUpgradeOrder = { "might", "prospector", "longRest", "relicSlot" }
 Config.AwakenUpgrades = {
 	might = {
@@ -447,6 +476,7 @@ Config.TitleOrder = {
 	"collectorEmber",
 	"collectorGlasswood",
 	"awakened",
+	"runebound",
 	"veteran",
 }
 Config.Titles = {
@@ -457,6 +487,7 @@ Config.Titles = {
 	collectorEmber = { name = "Collector: Ember Flats", unlock = { kind = "zoneSet", zone = 2 } },
 	collectorGlasswood = { name = "Collector: Glasswood", unlock = { kind = "zoneSet", zone = 3 } },
 	awakened = { name = "Awakened", unlock = { kind = "awaken", count = 1 } },
+	runebound = { name = "Runebound", unlock = { kind = "awaken", count = 3 } },
 	veteran = { name = "Veteran", unlock = { kind = "level", level = 30 } },
 }
 

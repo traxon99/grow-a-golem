@@ -701,9 +701,11 @@ local function renderAwaken(list: ScrollingFrame, snap: any)
 	local canAwaken = level >= Config.Awakening.minLevel
 	local shards = Stats.awakeningShards(level)
 	local gain = Config.Awakening.mineralBonusPerAwakening
+	local nextUnlock = Stats.nextAwakeningUnlock(data)
+	local unlockText = if nextUnlock then ` This Awakening also unlocks {nextUnlock.name}.` else ""
 	Ui.item(list, nextOrder(), {
 		title = if canAwaken then `Awaken now for {shards} shards!` else "Awaken",
-		subtitle = `You start again at level 1 with no parts, skills or minerals. You keep artifacts, shards and upgrades, and get +{gain}% minerals forever.`,
+		subtitle = `You start again at level 1 with no parts, skills or minerals. You keep artifacts, shards and upgrades, and get +{gain}% minerals forever.{unlockText}`,
 		ready = canAwaken,
 		progress = if canAwaken
 			then nil
@@ -714,13 +716,33 @@ local function renderAwaken(list: ScrollingFrame, snap: any)
 			onClick = function()
 				confirmReset(
 					"Awaken?",
-					`This resets your level, parts, skills, minerals and bosses. You keep artifacts, shards and upgrades, and get {shards} shards.`,
+					`This resets your level, parts, skills, minerals and bosses. You keep artifacts, shards and upgrades, and get {shards} shards.{unlockText}`,
 					"Awaken!",
 					"awaken"
 				)
 			end,
 		},
 	})
+
+	-- What each of the first Awakenings unlocks, earned ones ticked.
+	Ui.heading(list, nextOrder(), "Awakening unlocks", "awaken")
+	for _, unlock in Config.AwakeningUnlocks do
+		local earned = count >= unlock.count
+		local isNext = nextUnlock == unlock
+		Ui.item(list, nextOrder(), {
+			title = unlock.name,
+			subtitle = unlock.description,
+			icon = if earned then "tick" else "awaken",
+			chips = {
+				if earned
+					then { text = "Unlocked", color = CHIP.good }
+					else {
+						text = if isNext then "Next Awakening" else `Awakening {unlock.count}`,
+						color = CHIP.gray,
+					},
+			},
+		})
+	end
 
 	local ascension = data.ascension or { count = 0, points = 0, upgrades = {} }
 	local unspent = data.awakening.count - (ascension.spentAwakenings or 0)
@@ -1133,14 +1155,31 @@ local function renderShop(list: ScrollingFrame, snap: any)
 	for _, key in Config.GamePassOrder do
 		local pass = Config.GamePasses[key]
 		local owned = passes[key] == true
+		-- An Awakening unlock that does what this pass does: say so, and don't
+		-- sell the pass to someone who already has its effect for free.
+		local free: any = nil
+		for _, unlock in Config.AwakeningUnlocks do
+			if unlock.pass == key then
+				free = unlock
+			end
+		end
+		local freeNow = not owned and free ~= nil and data.awakening.count >= free.count
+		local subtitle = pass.description
+		if free then
+			subtitle ..= ` Free after Awakening {free.count}.`
+		end
 		Ui.item(list, nextOrder(), {
 			title = pass.name,
-			subtitle = pass.description,
-			icon = if owned then "tick" else "shop",
+			subtitle = subtitle,
+			icon = if owned or freeNow then "tick" else "shop",
 			tint = Ui.Colors.card,
-			chips = if owned then { { text = "Owned", color = CHIP.good } } else nil,
+			chips = if owned
+				then { { text = "Owned", color = CHIP.good } }
+				elseif freeNow then { { text = "Unlocked by Awakening", color = CHIP.good } }
+				else nil,
 			action = if owned
 				then { text = "Owned", enabled = false }
+				elseif freeNow then { text = "Unlocked", enabled = false }
 				elseif pass.id == 0 then { text = "Soon", enabled = false }
 				else {
 					text = tostring(pass.price),
