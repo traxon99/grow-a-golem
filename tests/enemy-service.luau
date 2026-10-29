@@ -156,6 +156,7 @@ local function spawn(boss, callback)
 		displayName = "Test enemy",
 		size = v(4, 6, 4),
 		maxHealth = 100,
+		walkSpeed = 10,
 		xp = 10,
 		drops = { stone = 3 },
 		respawn = 30,
@@ -271,7 +272,7 @@ local warning = {
 }
 staggerBoss.slamMarker = warning
 assert(enemies.stagger(staggerBoss, attacker))
-assert(staggerBoss.model:GetAttribute("Staggered") == true)
+assert(staggerBoss.model:GetAttribute("Staggered") == true and staggerBoss.humanoid.WalkSpeed == 0)
 assert(staggerBoss.slamAt == 0 and warning.destroyed)
 assert(staggerBoss.nextAttack == now + Config.BossStagger.duration)
 assert(staggerBoss.nextSlam >= now + Config.BossStagger.duration + Config.BossStagger.recovery)
@@ -281,7 +282,7 @@ enemies.update()
 assert(staggerBoss.model:GetAttribute("Staggered") == true)
 now += 0.01
 enemies.update()
-assert(staggerBoss.model:GetAttribute("Staggered") == false)
+assert(staggerBoss.model:GetAttribute("Staggered") == false and staggerBoss.humanoid.WalkSpeed == 10)
 assert(staggerBoss.staggerGlow == nil)
 assert(not enemies.stagger(staggerBoss, attacker), "per-boss cooldown persists after recovery")
 now = 100 + Config.BossStagger.cooldown
