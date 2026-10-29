@@ -21,9 +21,14 @@ end
 
 -- A lava strip has a visible, safe opening. Only the golem's ground-plane
 -- center counts, so large cosmetic/level models don't get unfair hitboxes.
-function GauntletRules.inLava(position: Vector3, centerZ: number, gapX: number, halfDepth: number, gapHalfWidth: number): boolean
-	return math.abs(position.Z - centerZ) <= halfDepth
-		and math.abs(position.X - gapX) > gapHalfWidth
+function GauntletRules.inLava(
+	position: Vector3,
+	centerZ: number,
+	gapX: number,
+	halfDepth: number,
+	gapHalfWidth: number
+): boolean
+	return math.abs(position.Z - centerZ) <= halfDepth and math.abs(position.X - gapX) > gapHalfWidth
 end
 
 function GauntletRules.canClaim(
