@@ -22,7 +22,14 @@ if compiled.returncode != 0:
         for line in (compiled.stdout + compiled.stderr).strip().splitlines()[:8]:
             print(f"::error title=Luau compile::{line}")
     sys.exit(compiled.returncode)
-prelude = '''local Color3 = { fromRGB = function(r, g, b) return { R = r/255, G = g/255, B = b/255 } end }
+prelude = '''local Color3Mt
+Color3Mt = { __index = { Lerp = function(self, other, alpha)
+ return setmetatable(
+  { R = self.R + (other.R - self.R) * alpha, G = self.G + (other.G - self.G) * alpha, B = self.B + (other.B - self.B) * alpha },
+  Color3Mt
+ )
+end } }
+local Color3 = { fromRGB = function(r, g, b) return setmetatable({ R = r/255, G = g/255, B = b/255 }, Color3Mt) end }
 local Vector3 = {}
 do
  local mt = {}
@@ -89,6 +96,13 @@ bundle += 'local Stats = (function()\n' + stats + '\nend)()\n'
 bundle += 'local SessionLease = (function()\n' + lease + '\nend)()\n'
 journal = (ROOT / "src/shared/TradeJournal.luau").read_text()
 bundle += 'local TradeJournal = (function()\n' + journal + '\nend)()\n'
+# CosmeticLooks only requires Config, so it bundles the same way; only its
+# pure partLook/accent color math is ever called below (buildPet/dress
+# construct real Part/Model/CFrame instances well beyond this harness).
+cosmetic_looks = (ROOT / "src/shared/CosmeticLooks.luau").read_text().replace(
+    'local Config = require(script.Parent:WaitForChild("Config"))', '')
+bundle += 'local CosmeticLooks = (function()\n' + cosmetic_looks + '\nend)()\n'
+bundle += (ROOT / "tests/cosmetic-looks.luau").read_text()
 bundle += (ROOT / "tests/regression.luau").read_text()
 # Exercise the actual server handlers with mocked services, including repeated
 # requests. This avoids a test that merely repeats the Ascension implementation.
