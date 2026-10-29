@@ -216,6 +216,7 @@ local function clearStagger(enemy: Enemy)
 		enemy.staggerGlow = nil
 	end
 	enemy.staggerUntil = 0
+	enemy.humanoid.WalkSpeed = enemy.def.walkSpeed
 	enemy.model:SetAttribute("Staggered", false)
 end
 
@@ -300,6 +301,7 @@ function EnemyService.stagger(enemy: Enemy, player: Player): boolean
 	enemy.model:SetAttribute("SlamAt", 0)
 	enemy.model:SetAttribute("SlamPattern", nil)
 	enemy.model:SetAttribute("Staggered", true)
+	enemy.humanoid.WalkSpeed = 0
 	enemy.humanoid:Move(Vector3.zero)
 
 	local glow = Instance.new("Highlight")
