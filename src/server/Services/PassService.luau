@@ -61,9 +61,37 @@ local function checkPasses(player: Player)
 		end
 	end
 	if player.Parent then
-		owned[player] = passes
+		-- A purchase may have been verified while these slower initial
+		-- ownership lookups were running. Never overwrite a confirmed grant.
+		local current = owned[player] or {}
+		for key, has in passes do
+			if current[key] ~= true then
+				current[key] = has
+			end
+		end
+		owned[player] = current
 		DataService.markChanged(player)
 	end
+end
+
+-- The prompt callback is not proof of payment. Roblox's ownership cache
+-- can lag a fresh purchase, so retry briefly but always fail closed.
+local function confirmPassPurchase(player: Player, passId: number): boolean
+	for attempt = 1, 3 do
+		if not player.Parent then
+			return false
+		end
+		local ok, has = pcall(function()
+			return MarketplaceService:UserOwnsGamePassAsync(player.UserId, passId)
+		end)
+		if ok and has == true then
+			return true
+		end
+		if attempt < 3 then
+			task.wait(attempt)
+		end
+	end
+	return false
 end
 
 local function grantProduct(player: Player, key: string)
@@ -170,12 +198,23 @@ function PassService.start()
 
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, purchased)
 		local key = passKeyById[passId]
-		if purchased and key and owned[player] then
-			owned[player][key] = true
+		if not purchased or not key then
+			return
+		end
+		task.spawn(function()
+			if not confirmPassPurchase(player, passId) or not DataService.get(player) then
+				return
+			end
+			local passes = owned[player] or {}
+			if passes[key] then
+				return
+			end
+			passes[key] = true
+			owned[player] = passes
 			DataService.markChanged(player)
 			Events.fire("purchased", player, "pass", key)
 			Remotes.Notify:FireClient(player, "message", `Thanks! {Config.GamePasses[key].name} is active.`)
-		end
+		end)
 	end)
 
 	MarketplaceService.ProcessReceipt = processReceipt
