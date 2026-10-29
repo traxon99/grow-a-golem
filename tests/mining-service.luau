@@ -80,9 +80,21 @@ local Instance = {
 	end,
 }
 local Enum = { Material = { Slate = "Slate", Neon = "Neon" } }
-local Color3 = { fromRGB = function() return {} end }
-local shared = { WaitForChild = function(self) return self end }
-local game = { GetService = function() return shared end }
+local Color3 = {
+	fromRGB = function()
+		return {}
+	end,
+}
+local shared = {
+	WaitForChild = function(self)
+		return self
+	end,
+}
+local game = {
+	GetService = function()
+		return shared
+	end,
+}
 local task = { delay = function() end }
 local Config = {
 	Zones = {
@@ -100,38 +112,45 @@ local b = { UserId = 2, Parent = true }
 local paid = {}
 local mined = {}
 local notices = {}
-local mining = loadMiningService(
-	{
-		Config = Config,
-		MarbleBag = { new = function() return { draw = function() return "stone" end } end },
-		Remotes = { Notify = { FireClient = function(_, player) notices[player] = (notices[player] or 0) + 1 end } },
-		DataService = {
-			update = function(player, callback)
-				local data = mined[player] or { totals = { nodes = 0 } }
-				mined[player] = data
-				callback(data)
-			end,
-		},
-		EconomyService = {
-			grant = function(player, reward)
-				paid[player] = (paid[player] or 0) + reward.minerals.stone
-				return reward
-			end,
-		},
-		Events = { fire = function() end },
-		WorldService = {
-			randomPoint = function() return v(0, 0, 0) end,
-			getFolder = function() return {} end,
-		},
+local mining = loadMiningService({
+	Config = Config,
+	MarbleBag = {
+		new = function()
+			return {
+				draw = function()
+					return "stone"
+				end,
+			}
+		end,
 	},
-	game,
-	Instance,
-	Vector3,
-	CFrame,
-	Enum,
-	Color3,
-	task
-)
+	Remotes = { Notify = {
+		FireClient = function(_, player)
+			notices[player] = (notices[player] or 0) + 1
+		end,
+	} },
+	DataService = {
+		update = function(player, callback)
+			local data = mined[player] or { totals = { nodes = 0 } }
+			mined[player] = data
+			callback(data)
+		end,
+	},
+	EconomyService = {
+		grant = function(player, reward)
+			paid[player] = (paid[player] or 0) + reward.minerals.stone
+			return reward
+		end,
+	},
+	Events = { fire = function() end },
+	WorldService = {
+		randomPoint = function()
+			return v(0, 0, 0)
+		end,
+		getFolder = function()
+			return {}
+		end,
+	},
+}, game, Instance, Vector3, CFrame, Enum, Color3, task)
 local function spawnNode()
 	mining.start()
 	local node = mining.findNearest(v(0, 2, 0), 100, 1)

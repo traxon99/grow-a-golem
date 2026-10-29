@@ -156,7 +156,9 @@ function MiningService.damage(node: Node, amount: number, player: Player)
 	local winner: Player? = nil
 	local best = 0
 	for contributor, damage in node.contributors do
-		if contributor.Parent and (damage > best or (damage == best and winner and contributor.UserId < winner.UserId)) then
+		if
+			contributor.Parent and (damage > best or (damage == best and winner and contributor.UserId < winner.UserId))
+		then
 			winner = contributor
 			best = damage
 		end

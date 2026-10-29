@@ -267,7 +267,13 @@ local function rewardKill(enemy: Enemy, position: Vector3)
 			local golem = GolemService.get(player)
 			-- A single early hit cannot unlock an island from the Hub or while
 			-- the contributor's golem is knocked out.
-			if damage > 0 and player.Parent and golem and golem.zoneId == enemy.zoneId and GolemService.isActive(golem) then
+			if
+				damage > 0
+				and player.Parent
+				and golem
+				and golem.zoneId == enemy.zoneId
+				and GolemService.isActive(golem)
+			then
 				addRecipient(player)
 			end
 		end
@@ -293,12 +299,14 @@ local function rewardKill(enemy: Enemy, position: Vector3)
 			table.insert(qualified, top)
 		end
 		for _, player in qualified do
-			for _, member in PartyService.shareWith(player, function(member)
-				local golem = GolemService.get(member)
-				return golem ~= nil
-					and golem.zoneId == enemy.zoneId
-					and (golem.root.Position - position).Magnitude <= Config.Party.shareRange
-			end) do
+			for _, member in
+				PartyService.shareWith(player, function(member)
+					local golem = GolemService.get(member)
+					return golem ~= nil
+						and golem.zoneId == enemy.zoneId
+						and (golem.root.Position - position).Magnitude <= Config.Party.shareRange
+				end)
+			do
 				addRecipient(member)
 			end
 		end
