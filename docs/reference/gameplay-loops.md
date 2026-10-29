@@ -1,6 +1,6 @@
 # Gameplay loops
 
-Last updated: 2026-10-27. See also [progression.md](progression.md) and [retention.md](retention.md).
+Last updated: 2026-10-29. See also [progression.md](progression.md) and [retention.md](retention.md).
 
 ## Rules for agents
 
@@ -56,7 +56,7 @@ Details:
 - **Sprint (#172).** Hold Shift (gamepad L3) or tap the HUD Sprint button to raise walk speed by `Config.Golem.sprintMult` (1.6x). It is a validated client request (`SprintGolem`, boolean only, 0.1 s between changes) and only counts while a mounted rider is steering, so a golem playing itself never sprints; dismounting or a knock-out ends it. The server publishes what it honours as the `GolemSprint` player attribute and the client repeats its request until they agree, so a dropped request never leaves them out of step. It has no cost or cooldown.
 - A detached rider also dies immediately below the kill plane, even when their golem is still on land. The character respawns normally, and its golem uses the same fall recovery.
 - **Golem Tower (#62, off until playtested):** a session-layer side mode. Ten waves of an unlocked island's enemies in a private arena, with fixed, pre-shown rewards per cleared wave instead of drops. It gives parties a shared goal without a new random reward table.
-- No global shared timer (restock, world boss) yet; nothing pulls players to a shared moment every few minutes.
+- **Shared mineral surge (#150):** every 15 minutes on a UTC-aligned schedule, mineral nodes on every island pay exactly 2x their normal rounded mining yield for 90 seconds. A gameplay-only HUD banner counts down during the preceding 60 seconds and while active. The server computes payouts; the client clock is display-only. Participation is logged once per player per surge. No purchase prompts, paid skips, random rewards or entry gates. This is a shared rhythm, not yet a co-op world boss.
 - Each island now has weighted swarmer/tank spawns; every twentieth successful spawn is an elite with more fixed XP/minerals. The 20-hour completion goal is unmeasured.
 - Unknown until playtest (#9): whether the first forge feels like a power jump, and how long each zone takes.
 
