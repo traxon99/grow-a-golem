@@ -100,6 +100,10 @@ world_beat = (ROOT / "src/shared/WorldBeat.luau").read_text().replace(
     'local Config = require(script.Parent:WaitForChild("Config"))', '')
 bundle += 'local WorldBeat = (function()\n' + world_beat + '\nend)()\n'
 bundle += (ROOT / "tests/world-beat.luau").read_text()
+# Quake timing is pure server elapsed-time math; exercise one-shot grading.
+quake_timing = (ROOT / "src/shared/QuakeTiming.luau").read_text()
+bundle += 'local QuakeTiming = (function()\n' + quake_timing + '\nend)()\n'
+bundle += (ROOT / "tests/quake-timing.luau").read_text()
 bundle += 'local MarbleBag = (function()\n' + marble_bag + '\nend)()\n'
 bundle += 'local Stats = (function()\n' + stats + '\nend)()\n'
 bundle += 'local SessionLease = (function()\n' + lease + '\nend)()\n'

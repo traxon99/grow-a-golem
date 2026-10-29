@@ -123,7 +123,17 @@ Config.FullSetBonus = 0.15 -- all five slots the same tier: +15% health and dama
 Config.SpellOrder = { "quake", "mend", "magnet" }
 -- Quake's windup is the seconds of raised arms before the slam lands and hits.
 Config.Spells = {
-	quake = { displayName = "Quake", key = Enum.KeyCode.Q, cooldown = 8, damage = 40, radius = 20, windup = 0.45 },
+	quake = {
+		displayName = "Quake",
+		key = Enum.KeyCode.Q,
+		cooldown = 8,
+		damage = 40,
+		radius = 20,
+		windup = 0.9,
+		timingLead = 0.25, -- aim this many seconds before impact
+		timingWindow = 0.22, -- +/- generous server-side timing tolerance
+		perfectMultiplier = 1.5, -- fixed +50% damage, never a random roll
+	},
 	mend = { displayName = "Mend", key = Enum.KeyCode.E, cooldown = 20, healFraction = 0.35 },
 	magnet = { displayName = "Magnet", key = Enum.KeyCode.R, cooldown = 30, duration = 10, mineralBonus = 1.0 },
 }
