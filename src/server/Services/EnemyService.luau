@@ -455,9 +455,10 @@ local function updateSlam(enemy: Enemy, now: number)
 	-- Cycle in a learnable order: circle, narrow forward lane, wide close
 	-- sweep. Tower bosses without patterns keep their old circular slam.
 	local patterns = slam.patterns
-	local pattern = if patterns and #patterns > 0
-		then patterns[(enemy.slamIndex % #patterns) + 1]
-		else { kind = "circle", radius = slam.radius }
+	local pattern: any = { kind = "circle", radius = slam.radius }
+	if patterns and #patterns > 0 then
+		pattern = patterns[(enemy.slamIndex % #patterns) + 1]
+	end
 	enemy.slamIndex += 1
 	enemy.nextSlam = now + slam.every
 	enemy.slamAt = now + slam.warning
