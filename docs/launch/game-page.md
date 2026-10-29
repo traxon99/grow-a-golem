@@ -8,17 +8,26 @@ because its code has merged.
 
 Ride your own golem from a tiny rock guardian into a towering titan!
 
-Mine minerals, forge stronger parts and explore six floating islands. Let your
-golem battle on its own, or steer it and dodge a boss's ground slam. Collect
-36 artifacts, build your skills and Awaken for permanent upgrades. Conquer the
-Sky Forge to begin Ascension and choose a new permanent upgrade path.
+Mine minerals, forge stronger parts and explore six floating islands.
+Your golem battles on its own, or you can steer it, dodge three boss attack
+patterns and time a second Quake press for extra damage and a brief boss
+stagger. Tap glowing mineral weakspots, cast a three-rune combo for a short
+attack boost, or land an optional anvil strike for a fixed mineral refund.
+Try the free solo Golem Run obstacle course for checkpoint rewards. Idle
+mining and fighting still work without these challenges.
+
+Collect 36 artifacts, build your skills and Awaken for permanent upgrades.
+Conquer the Sky Forge to begin Ascension and choose a new permanent upgrade
+path.
 
 Play together: party up, share nearby battles and inspect your friends' golems.
 Dress your golem, wizard and pet in the Wardrobe; preview every paid cosmetic
 before choosing it. Cosmetics change looks, not power.
 
 Controls: WASD / left stick / mobile joystick to steer. Q / X for Quake,
-E / Y for Mend, R / B for Magnet. Mobile spell buttons are on screen.
+E / Y for Mend, R / B for Magnet. Follow the on-screen prompts for optional
+Quake timing, rune casting and anvil strikes; the Golem Run starts at the
+Hub. Mobile spell buttons are on screen.
 
 Free code: GOLEM100 — enter it in the Shop's Codes box for 100 Stone.
 No purchase, follow or off-platform account required.
@@ -29,11 +38,20 @@ No purchase, follow or off-platform account required.
 - Tank enemies, golden elites, four new minerals and eight total forge tiers.
 - Eighteen new artifacts, later growth milestones and a level cap of 100.
 - Ascension: five unspent Awakenings plus the Solar Colossus open permanent upgrades.
+- Bosses now telegraph three dodge patterns; a perfectly timed Quake can
+  stagger an island boss briefly.
+- Optional three-rune casting, mineral weakspot rushes and timed anvil
+  strikes reward active play without replacing idle progress.
+- Free solo Golem Run with three obstacle checkpoints and fixed mineral rewards.
+- Server-wide Mineral Surge doubles normal node yields for 90 seconds every
+  15 minutes, with an advance warning.
 - Original model templates, icon alternatives and sound files prepared.
 - Save-session protection and automated Luau/Rojo checks.
 
 Replace "unreleased" with the actual publication date only when the place is
-published and verified. Do not list source WAVs as in-game audio until uploaded.
+published and verified. Confirm the active activities and world event in
+Studio, including phone/gamepad and multiplayer behavior, before using this
+copy publicly. Do not list source WAVs as in-game audio until uploaded.
 
 ## Visual manifest and capture plan
 
