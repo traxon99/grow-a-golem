@@ -34,7 +34,7 @@ for(const id of [...minerals,...order('SpellOrder'),...tabs]) assert(ids.has(id)
   assert(expected.equals(actual),`${icon.id}: does not match original crop`);
   for(const sheet of [m.sheet,m.tintableSheet]) {
    const input = sheet===m.sheet ? sharp(expected) : sharp(expected).greyscale().toColourspace('srgb');
-   const pixels = await input.raw().toBuffer();
+   const pixels = await sharp(await input.png().toBuffer()).raw().toBuffer();
    const packed = await sharp(path.join(root,sheet)).extract({left:icon.offset[0],top:icon.offset[1],width:128,height:128}).raw().toBuffer();
    assert(pixels.equals(packed),`${icon.id}: atlas differs from original crop`);
   }
