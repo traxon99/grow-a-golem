@@ -160,11 +160,12 @@ function Tutorial.start()
 	local keyLip = Instance.new("Frame")
 	keyLip.Name = "Lip"
 	keyLip.Size = UDim2.new(1, -4, 0, 6)
-	keyLip.Position = UDim2.new(0, 2, 1, -8)
 	keyLip.BackgroundColor3 = Ui.Colors.bubble:Lerp(Color3.new(0, 0, 0), 0.3)
 	keyLip.BorderSizePixel = 0
 	keyLip.ZIndex = 0
 	keyLip.Parent = keyCap
+	keyLip.AnchorPoint = Vector2.new(0.5, 0)
+	keyLip.Position = UDim2.new(0.5, 0, 1, -8)
 	Ui.corner(keyLip, 3)
 	local keyPadding = Instance.new("UIPadding")
 	keyPadding.PaddingLeft = UDim.new(0, 10)

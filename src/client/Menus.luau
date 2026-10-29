@@ -2270,7 +2270,7 @@ function Menus.open(id: string)
 end
 
 local COMPACT_WIDTH = 900
-local COMPACT_HEIGHT = 520
+local COMPACT_HEIGHT = 600
 
 local function makeTabButton(parent: Instance, index: number, tab: { id: string, name: string }): TextButton
 	local b = Ui.button(parent, "", UDim2.fromOffset(176, 56), UDim2.new(), true, function()

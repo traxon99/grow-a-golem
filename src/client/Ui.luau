@@ -216,6 +216,15 @@ function Ui.pressable(target: GuiButton, hover: number?, press: number?)
 		down = false
 		update()
 	end)
+	-- A button hidden or moved while hovered never gets MouseLeave.
+	target:GetPropertyChangedSignal("Visible"):Connect(function()
+		hovering, down = false, false
+		update()
+	end)
+	target.AncestryChanged:Connect(function()
+		hovering, down = false, false
+		update()
+	end)
 end
 
 -- A panel opening: it grows from 85% to full size with a little overshoot.
@@ -722,7 +731,9 @@ function Ui.button(
 		label.TextSize = 22
 	end
 	if enabled then
-		b.AutoButtonColor = false
+		-- Hover and press feedback is the scale; with Reduced Motion on, the
+		-- built-in color change stays instead.
+		b.AutoButtonColor = Ui.reducedMotion()
 		Ui.pressable(b)
 		b.Activated:Connect(function()
 			Sfx.play("click")
