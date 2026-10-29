@@ -120,6 +120,50 @@ local function cloudSea()
 	end
 end
 
+-- Characters spawn on Mossy Quarry, a little behind where the golem stands.
+local SPAWN_ZONE = 1
+local SPAWN_OFFSET = Vector3.new(0, 0, 16)
+
+-- The Baseplate template's SpawnLocation, and Roblox's fallback when there is
+-- none, are at the world origin: inside zone 1's hanging underside rock. Any
+-- spawn that isn't standing on an island moves up onto zone 1, and if the
+-- place has none, an invisible one is made there.
+local function placeSpawns()
+	local top = WorldService.getSpawnPoint(SPAWN_ZONE) + SPAWN_OFFSET
+	-- Hidden and walk-through, so it doesn't read as a pad on the meadow.
+	local function standOnIsland(spawn: SpawnLocation)
+		spawn.Anchored = true
+		spawn.CanCollide = false
+		spawn.Transparency = 1
+		for _, child in spawn:GetChildren() do
+			if child:IsA("Decal") or child:IsA("Texture") then
+				child.Transparency = 1
+			end
+		end
+		spawn.CFrame = CFrame.new(top + Vector3.new(0, spawn.Size.Y / 2, 0))
+	end
+	local found = false
+	for _, item in workspace:GetDescendants() do
+		if item:IsA("SpawnLocation") then
+			found = true
+			local zoneId = WorldService.zoneAt(item.Position)
+			local itemTop = item.Position.Y + item.Size.Y / 2
+			if not zoneId or itemTop < WorldService.getSurfaceY(zoneId) - 0.5 then
+				standOnIsland(item)
+			end
+		end
+	end
+	if not found then
+		local spawn = Instance.new("SpawnLocation")
+		spawn.Name = "IslandSpawn"
+		spawn.Size = Vector3.new(8, 1, 8)
+		spawn.Neutral = true
+		spawn.Duration = 0
+		standOnIsland(spawn)
+		spawn.Parent = workspace
+	end
+end
+
 function WorldService.start()
 	if Config.Visuals.controlLighting then
 		setupLighting()
@@ -171,6 +215,7 @@ function WorldService.start()
 	for _, name in { "Golems", "Enemies", "Nodes", "Effects", "Relics" } do
 		folders[name] = getOrMakeFolder(name)
 	end
+	placeSpawns()
 end
 
 -- Builds (once) a flat arena ground that works like any island: spawn points,
