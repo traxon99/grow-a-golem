@@ -104,6 +104,9 @@ bundle += (ROOT / "tests/world-beat.luau").read_text()
 quake_timing = (ROOT / "src/shared/QuakeTiming.luau").read_text()
 bundle += 'local QuakeTiming = (function()\n' + quake_timing + '\nend)()\n'
 bundle += (ROOT / "tests/quake-timing.luau").read_text()
+forge_strike = (ROOT / "src/shared/ForgeStrike.luau").read_text()
+bundle += 'local ForgeStrike = (function()\n' + forge_strike + '\nend)()\n'
+bundle += (ROOT / "tests/forge-strike.luau").read_text()
 # The rune challenge uses the same server-side sequence validator in Studio.
 rune_sequence = (ROOT / "src/shared/RuneSequence.luau").read_text()
 bundle += 'local RuneSequence = (function()\n' + rune_sequence + '\nend)()\n'
@@ -125,11 +128,14 @@ bundle += (ROOT / "tests/regression.luau").read_text()
 # requests. This avoids a test that merely repeats the Ascension implementation.
 progression = (ROOT / "src/server/Services/ProgressionService.luau").read_text()
 progression = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', progression)
-bundle += "\nlocal task = { spawn = function() end }\nlocal function loadProgression(dependencies)\n"
-bundle += 'local game = { GetService = function() return { WaitForChild = function() return {} end } end }\n'
+bundle += "\nlocal task = { spawn = function() end }\nlocal forgeClock = 100\n"
+bundle += "local workspace = { GetServerTimeNow = function() return forgeClock end }\n"
+bundle += "local function loadProgression(dependencies)\n"
+bundle += 'local game = { GetService = function(_, name) if name == "Players" then return { PlayerRemoving = { Connect = function() end } } end return { WaitForChild = function() return {} end } end }\n'
 bundle += 'local script = { Parent = {} }\n'
 bundle += progression + "\nend\n"
 bundle += (ROOT / "tests/progression.luau").read_text()
+bundle += (ROOT / "tests/forge-strike-service.luau").read_text()
 data_service = (ROOT / "src/server/Services/DataService.luau").read_text()
 data_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', data_service)
 bundle += "\nlocal function loadDataService(dependencies, game, Instance, taskOverride)\n"
