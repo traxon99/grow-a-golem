@@ -1759,7 +1759,7 @@ local function renderTrade(list: ScrollingFrame, snap: any)
 			spareSort,
 			function(id: string)
 				spareSort = id
-				Menus.refresh()
+				Menus.refresh(true)
 			end
 		)
 		local any = false
@@ -1835,7 +1835,7 @@ local function renderTrade(list: ScrollingFrame, snap: any)
 			spareSort,
 			function(id: string)
 				spareSort = id
-				Menus.refresh()
+				Menus.refresh(true)
 			end
 		)
 	end
@@ -2019,7 +2019,7 @@ local function tabSignature(tabId: string, snap: any): string
 	local fields: any
 	if tabId == "forge" then
 		fields = {
-			golem = data.golem,
+			golem = { level = Stats.levelForXp(data.golem.xp), parts = data.golem.parts },
 			minerals = data.minerals,
 			skills = data.skills,
 			awakening = data.awakening,
@@ -2029,11 +2029,10 @@ local function tabSignature(tabId: string, snap: any): string
 			passes = snap.passes,
 		}
 	elseif tabId == "travel" then
-		fields = { xp = data.golem.xp, bosses = data.bossesDefeated, golem = snap.golem, tower = snap.tower }
+		fields = { level = Stats.levelForXp(data.golem.xp), bosses = data.bossesDefeated, golem = snap.golem, tower = snap.tower }
 	elseif tabId == "artifacts" then
 		fields = {
 			artifacts = data.artifacts,
-			xp = data.golem.xp,
 			skills = data.skills,
 			awakening = data.awakening,
 			ascension = data.ascension,
@@ -2042,9 +2041,9 @@ local function tabSignature(tabId: string, snap: any): string
 			zone = snap.golem and snap.golem.zoneId,
 		}
 	elseif tabId == "skills" then
-		fields = { xp = data.golem.xp, skills = data.skills }
+		fields = { level = Stats.levelForXp(data.golem.xp), skills = data.skills }
 	elseif tabId == "awaken" then
-		fields = { xp = data.golem.xp, awakening = data.awakening, ascension = data.ascension, bosses = data.bossesDefeated }
+		fields = { level = Stats.levelForXp(data.golem.xp), awakening = data.awakening, ascension = data.ascension, bosses = data.bossesDefeated }
 	elseif tabId == "quests" then
 		fields = { rewards = snap.rewards, sessionStart = snap.sessionStart }
 	elseif tabId == "events" then
@@ -2055,7 +2054,7 @@ local function tabSignature(tabId: string, snap: any): string
 		fields = {
 			hub = snap.hub,
 			social = data.social,
-			xp = data.golem.xp,
+			level = Stats.levelForXp(data.golem.xp),
 			bosses = data.bossesDefeated,
 			found = data.artifacts.found,
 			awakening = data.awakening.count,
@@ -2068,7 +2067,7 @@ local function tabSignature(tabId: string, snap: any): string
 		fields = {
 			cosmetics = data.cosmetics,
 			parts = data.golem.parts,
-			xp = data.golem.xp,
+			level = Stats.levelForXp(data.golem.xp),
 			bosses = data.bossesDefeated,
 			found = data.artifacts.found,
 			awakening = data.awakening.count,
@@ -2089,7 +2088,7 @@ local function tabSignature(tabId: string, snap: any): string
 	elseif tabId == "ranks" then
 		fields = {
 			boards = snap.leaderboards,
-			xp = data.golem.xp,
+			level = Stats.levelForXp(data.golem.xp),
 			awakening = data.awakening.count,
 			found = data.artifacts.found,
 		}
