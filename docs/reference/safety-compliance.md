@@ -70,6 +70,7 @@ Testable checks: grep for `PolicyService` in server code before any shop/trade f
 - No ads. No subscriptions. Group join reward exists (group id not set).
 - Server-authoritative: client only sends intents. New Ascension actions recheck requirements, currency and rank caps on the server. Expanded zones retain the same artifact marble bags and paid-luck binding. Elites occur deterministically every 20 successful spawns and grant fixed bonus XP/minerals, not a new random reward table.
 - Save-session ownership now uses token-checked atomic DataStore updates. Mocked server tests pass, but published-place validation and draining pre-lease servers remain required; see `docs/playtest.md`.
+- **RTBF preparation (#137):** `scripts/rtbf.py` can delete a specified UserId from the player save and all configured ordered leaderboards through Open Cloud, dry-run first. New trade records omit partner UserIds; older records are redacted when their owners load. The owner still must configure API permissions, check requests daily and perform actual deletion. Historical trade logs in inactive players\' saves need a separate audited backfill before complete erasure can be certified; see `docs/launch/plan.md`.
 - Analytics (#11) and Studio playtest (#9) not done; maturity questionnaire not yet answered.
 
 ## Gaps worth closing
@@ -81,7 +82,7 @@ Testable checks: grep for `PolicyService` in server code before any shop/trade f
 5. **P1 (#14): Cosmetics/pets direct purchase only.** No eggs or crates for Robux.
 6. **P1 (#12): Codes** stay free, posted in-game and on the Roblox group page, never "follow us for codes".
 7. **P1: Questionnaire and Select eligibility plan** (honest Mild/Minimal, 2FA/ID, seeding to 250 engaged plays).
-8. **P2: RTBF readiness:** confirm DataStore keys are per UserId and leaderboards can drop a user.
+8. **P2: RTBF readiness (#137):** key deletion and load-time partner-ID redaction are implemented; owner-operated deletion and a legacy inactive-save backfill remain necessary for verified end-to-end erasure.
 
 ## Sources
 
