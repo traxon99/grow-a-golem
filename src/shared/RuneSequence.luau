@@ -34,7 +34,13 @@ function RuneSequence.press(session: Session, rune: any, now: number): string
 		session.finished = true
 		return "expired"
 	end
-	if type(rune) ~= "number" or rune % 1 ~= 0 or rune < 1 or rune > 3 or session.sequence[session.nextIndex] ~= rune then
+	if
+		type(rune) ~= "number"
+		or rune % 1 ~= 0
+		or rune < 1
+		or rune > 3
+		or session.sequence[session.nextIndex] ~= rune
+	then
 		session.finished = true
 		return "wrong"
 	end
