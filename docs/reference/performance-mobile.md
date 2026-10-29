@@ -31,6 +31,9 @@ Last updated: 2026-10-27. See also [ui-ux.md](ui-ux.md) for touch layout and saf
 
 ## Grow A Golem today
 
+- #133: State snapshots are capped at 2 per second (previously 4); server-only receipt IDs, redeemed-code history, trade logs, pending trade escrow and session leases are omitted. Expensive `DataService.Changed` listeners are coalesced once per player per scheduler tick. Hub inspect cards refresh every 5 seconds (or on join/leave/title change), and leaderboards are sent after their own refresh rather than on each mineral tick. The client retains slow provider fields when a sparse packet omits them; party and trade providers still run with regular state pushes. Offline regression tests cover redaction, coalescing, invalidation and client merging. Real snapshot byte counts, mobile bandwidth and HUD responsiveness still need Studio measurement.
+
+
 - #109: The existing HUD and menus now consume `Icons.create`: XP/minerals/spells, all 13 tabs, the current window header, close, travel guide/locks, quests and event points/reward status. Icons retain adjacent words and zero-ID text fallbacks. No new animation, remote, rarity assignment or purchase behavior is added. Approved sprite uploads still require the owner (#83); broader menu restyles remain separate.
 
 - Server-authoritative; client sends intents only.
