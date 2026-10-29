@@ -13,6 +13,20 @@ Last updated: 2026-10-29. See also [progression.md](progression.md) and [retenti
 7. **Server owns the loop.** Client sends intents only; kills, drops and rewards are computed on the server.
 8. **Readability over polish:** a clear loop matters more than art for this genre (inference from Grow a Garden's reception).
 
+## Grow A Golem today: active mineral rush
+
+Mineral nodes occasionally show a glowing **Vein Rush** weakspot after spawning. A
+nearby player can tap the first and then the second marked ore chunk using the
+native Roblox proximity prompt (keyboard, gamepad or touch). The first prompt
+lasts 7 seconds and the follow-up lasts 4 seconds. Completing both earns a
+**fixed +50% of that node's base mineral yield** (rounded down, minimum 1),
+processed through the usual mineral multipliers. Each node pays this bonus
+at most once; a missed attempt can reappear after 45 seconds. Other players
+cannot finish somebody else's sequence. Automatic mining, node ownership and
+normal node rewards continue unchanged. No purchase, retry fee or progression
+gate is involved. Server validates the deadlines and proximity. Studio phone
+and gamepad playtesting is still required.
+
 ## What top games do
 
 All top genres share one skeleton: a fast action that pays (click, cast, plant, kill) → a cash-out (sell/collect) → reinvest in a multiplier (upgrade, rod, seed, pet) → the multiplier opens a gate (zone, sea, island, rebirth). Timers (restocks, weather, nights, payouts) pace the 5-minute layer. Loop-duration readings below are interpretations of mechanics; no source measures them.

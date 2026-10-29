@@ -63,7 +63,7 @@ end
 local Instance = {
 	new = function(class)
 		local attributes = {}
-		return setmetatable({
+		local instance = setmetatable({
 			ClassName = class,
 			Position = v(0, 0, 0),
 			SetAttribute = function(_, key, value)
@@ -77,9 +77,17 @@ local Instance = {
 				self.Parent = nil
 			end,
 		}, partMeta)
+		if class == "ProximityPrompt" then
+			instance.Triggered = {
+				Connect = function(_, callback)
+					instance.onTriggered = callback
+				end,
+			}
+		end
+		return instance
 	end,
 }
-local Enum = { Material = { Slate = "Slate", Neon = "Neon" } }
+local Enum = { Material = { Slate = "Slate", Neon = "Neon" }, HighlightDepthMode = { Occluded = "Occluded" } }
 local Color3 = {
 	fromRGB = function()
 		return {}
@@ -95,7 +103,12 @@ local game = {
 		return shared
 	end,
 }
-local task = { delay = function() end }
+local scheduled = {}
+local task = {
+	delay = function(seconds, callback)
+		table.insert(scheduled, { seconds = seconds, callback = callback })
+	end,
+}
 local Config = {
 	Zones = {
 		[1] = {
@@ -106,9 +119,31 @@ local Config = {
 	},
 	Nodes = { stone = { size = v(4, 4, 4), maxHealth = 100, yield = 10, material = "Slate" } },
 	Minerals = { stone = { displayName = "Stone", color = {} } },
+	WeakspotRush = {
+		firstDelaySeconds = 18,
+		firstWindowSeconds = 7,
+		followupSeconds = 4,
+		cooldownSeconds = 45,
+		range = 14,
+		bonusFraction = 0.5,
+	},
 }
 local a = { UserId = 1, Parent = true }
 local b = { UserId = 2, Parent = true }
+local function characterAt(position)
+	return {
+		FindFirstChild = function()
+			return {
+				Position = position,
+				IsA = function(_, class)
+					return class == "BasePart"
+				end,
+			}
+		end,
+	}
+end
+a.Character = characterAt(v(0, 2, 0))
+b.Character = characterAt(v(0, 2, 0))
 local paid = {}
 local mined = {}
 local notices = {}
@@ -185,4 +220,37 @@ mining.damage(node, 0, a)
 mining.damage(node, 1000, b)
 assert(paid[a] == 20 and paid[b] == 20)
 assert(mined[b].totals.nodes == 2 and notices[b] == 2)
-print("MiningService damage ownership, tie, disconnect and overkill checks passed")
+
+-- Optional two-tap rush: the first tap changes the active ore chunk. Only the
+-- same nearby player can finish; the reward is fixed and never repeats.
+node = spawnNode()
+scheduled[#scheduled].callback()
+assert(node.weakspotStage == 1 and node.weakspotPrompt.Enabled and node.weakspotGlow.Enabled)
+node.weakspotPrompt.onTriggered(a)
+assert(node.weakspotStage == 2 and node.weakspotPlayer == a)
+node.weakspotPrompt.onTriggered(b)
+assert(paid[b] == 20 and node.weakspotStage == 2, "another player cannot finish the sequence")
+node.weakspotPrompt.onTriggered(a)
+assert(paid[a] == 25 and node.weakspotClaimed and not node.weakspotPrompt.Enabled)
+node.weakspotPrompt.onTriggered(a)
+assert(paid[a] == 25, "a completed rush cannot pay twice")
+
+-- Spoofed/out-of-range triggers and expired windows never pay.
+node = spawnNode()
+scheduled[#scheduled].callback()
+a.Character = characterAt(v(500, 2, 0))
+node.weakspotPrompt.onTriggered(a)
+assert(node.weakspotStage == 1)
+a.Character = characterAt(v(0, 2, 0))
+node.weakspotDeadline = os.clock() - 1
+node.weakspotPrompt.onTriggered(a)
+assert(paid[a] == 25)
+scheduled[#scheduled].callback() -- first window expires; queue one retry
+assert(node.weakspotStage == 0 and not node.weakspotPrompt.Enabled)
+scheduled[#scheduled].callback() -- retry after cooldown
+assert(node.weakspotStage == 1)
+mining.damage(node, 100, b)
+node.weakspotPrompt.onTriggered(a)
+assert(paid[a] == 25, "a destroyed node cannot pay")
+
+print("MiningService ownership and two-tap weakspot rush checks passed")

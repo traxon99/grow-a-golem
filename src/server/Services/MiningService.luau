@@ -22,6 +22,12 @@ export type Node = {
 	hp: number,
 	chunks: { { part: BasePart, offset: CFrame, size: Vector3 } }, -- ore bits, kept relative to `part`
 	contributors: { [Player]: number }, -- actual damage, capped at remaining node health
+	weakspotStage: number, -- 0 = inactive, 1/2 = next glowing ore to tap
+	weakspotDeadline: number,
+	weakspotPlayer: Player?,
+	weakspotClaimed: boolean, -- a node can pay the rush bonus only once
+	weakspotPrompt: ProximityPrompt,
+	weakspotGlow: Highlight,
 }
 
 local ROCK_COLOR = Color3.fromRGB(112, 106, 100)
@@ -44,6 +50,82 @@ local function pickMineral(zone: any): string
 		mineralBags[zone] = bag
 	end
 	return bag:draw()
+end
+
+-- A two-tap skill beat on the existing ore chunks. Roblox's proximity prompt
+-- supplies E, gamepad and touch controls without a second HUD or client remote.
+-- All deadlines, proximity checks and the reward are owned by the server.
+local function clearWeakspot(node: Node)
+	node.weakspotStage = 0
+	node.weakspotDeadline = 0
+	node.weakspotPlayer = nil
+	node.weakspotPrompt.Enabled = false
+	node.weakspotGlow.Enabled = false
+end
+
+local startWeakspot: (Node) -> ()
+
+local function retryWeakspot(node: Node)
+	clearWeakspot(node)
+	task.delay(Config.WeakspotRush.cooldownSeconds, function()
+		if nodes[node.part] == node and not node.weakspotClaimed then
+			startWeakspot(node)
+		end
+	end)
+end
+
+local function showWeakspot(node: Node, stage: number)
+	local duration = if stage == 1 then Config.WeakspotRush.firstWindowSeconds else Config.WeakspotRush.followupSeconds
+	node.weakspotStage = stage
+	node.weakspotDeadline = os.clock() + duration
+	node.weakspotPrompt.ActionText = if stage == 1 then "Tap weakspot 1/2" else "Tap weakspot 2/2"
+	node.weakspotPrompt.Parent = node.chunks[stage].part
+	node.weakspotPrompt.Enabled = true
+	node.weakspotGlow.Adornee = node.chunks[stage].part
+	node.weakspotGlow.Enabled = true
+	task.delay(duration, function()
+		if nodes[node.part] == node and node.weakspotStage == stage and os.clock() >= node.weakspotDeadline then
+			retryWeakspot(node)
+		end
+	end)
+end
+
+startWeakspot = function(node: Node)
+	if nodes[node.part] ~= node or node.weakspotClaimed or node.weakspotStage ~= 0 then
+		return
+	end
+	showWeakspot(node, 1)
+end
+
+local function tapWeakspot(node: Node, player: Player)
+	if
+		nodes[node.part] ~= node
+		or node.weakspotClaimed
+		or node.weakspotStage == 0
+		or os.clock() > node.weakspotDeadline
+		or not player.Parent
+	then
+		return
+	end
+	local character = player.Character
+	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+	if not (root and root:IsA("BasePart")) then
+		return
+	end
+	local range = Config.WeakspotRush.range + math.max(node.part.Size.X, node.part.Size.Z) / 2
+	if (root.Position - node.part.Position).Magnitude > range then
+		return
+	end
+	if node.weakspotStage == 1 then
+		node.weakspotPlayer = player
+		showWeakspot(node, 2)
+	elseif node.weakspotStage == 2 and node.weakspotPlayer == player then
+		node.weakspotClaimed = true
+		clearWeakspot(node) -- retire before granting; callbacks may re-enter
+		local bonus = math.max(1, math.floor(node.def.yield * Config.WeakspotRush.bonusFraction))
+		local given = EconomyService.grant(player, { minerals = { [node.mineral] = bonus } }, "mining")
+		Remotes.Notify:FireClient(player, "mined", node.mineral, given.minerals and given.minerals[node.mineral] or 0)
+	end
 end
 
 local function placeNode(zoneId: number)
@@ -100,7 +182,26 @@ local function placeNode(zoneId: number)
 	end
 	part.Parent = WorldService.getFolder("Nodes")
 
-	nodes[part] = {
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "WeakspotRush"
+	prompt.ObjectText = "Vein Rush: +50% minerals"
+	prompt.ActionText = "Tap weakspot 1/2"
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = Config.WeakspotRush.range
+	prompt.RequiresLineOfSight = false
+	prompt.Enabled = false
+	prompt.Parent = chunks[1].part
+	local glow = Instance.new("Highlight")
+	glow.Name = "WeakspotGlow"
+	glow.FillColor = Color3.fromRGB(255, 208, 80)
+	glow.OutlineColor = Color3.fromRGB(255, 240, 160)
+	glow.FillTransparency = 0.4
+	glow.OutlineTransparency = 0
+	glow.DepthMode = Enum.HighlightDepthMode.Occluded
+	glow.Enabled = false
+	glow.Parent = part
+
+	local node: Node = {
 		mineral = mineral,
 		def = def,
 		zoneId = zoneId,
@@ -108,7 +209,20 @@ local function placeNode(zoneId: number)
 		hp = def.maxHealth,
 		chunks = chunks,
 		contributors = {},
+		weakspotStage = 0,
+		weakspotDeadline = 0,
+		weakspotPlayer = nil,
+		weakspotClaimed = false,
+		weakspotPrompt = prompt,
+		weakspotGlow = glow,
 	}
+	nodes[part] = node
+	prompt.Triggered:Connect(function(player)
+		tapWeakspot(node, player)
+	end)
+	task.delay(Config.WeakspotRush.firstDelaySeconds + math.random(0, 10), function()
+		startWeakspot(node)
+	end)
 end
 
 function MiningService.findNearest(position: Vector3, range: number, zoneId: number): (Node?, number)
