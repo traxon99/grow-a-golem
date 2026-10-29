@@ -202,6 +202,13 @@ social_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = depende
 bundle += "\nlocal function loadSocialService(dependencies, game, task)\n"
 bundle += 'local script = { Parent = {} }\n' + social_service + "\nend\n"
 bundle += (ROOT / "tests/social-service.luau").read_text()
+# The real TutorialService with mocked services; task.spawn is a no-op so the
+# steering-poll loop (the only way the "steer" step completes) never runs.
+tutorial_service = (ROOT / "src/server/Services/TutorialService.luau").read_text()
+tutorial_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', tutorial_service)
+bundle += "\nlocal function loadTutorialService(dependencies, game, task)\n"
+bundle += 'local script = { Parent = {} }\n' + tutorial_service + "\nend\n"
+bundle += (ROOT / "tests/tutorial-service.luau").read_text()
 with tempfile.TemporaryDirectory(prefix="golem-check-") as folder:
     path = Path(folder) / "regression.luau"
     path.write_text(bundle)
