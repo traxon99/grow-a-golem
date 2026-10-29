@@ -18,7 +18,6 @@ Config.WorldBeat = {
 	miningMultiplier = 2,
 }
 
-
 ---------------------------------------------------------------- minerals
 
 Config.MineralOrder = { "stone", "copper", "iron", "crystal" }
