@@ -38,6 +38,15 @@ Config.WeakspotRush = {
 	bonusFraction = 0.5, -- 50% of the node's normal base yield (rounded down, min 1)
 }
 
+-- A successful manual forge can be followed by one optional anvil strike.
+-- The part is already crafted; missing or skipping never removes it.
+Config.ForgeStrike = {
+	delaySeconds = 1.5,
+	halfWindowSeconds = 0.45,
+	latencySlackSeconds = 0.15,
+	refundFraction = 0.1, -- 10% of each spent mineral, minimum 1
+}
+
 ---------------------------------------------------------------- minerals
 
 Config.MineralOrder = { "stone", "copper", "iron", "crystal" }
