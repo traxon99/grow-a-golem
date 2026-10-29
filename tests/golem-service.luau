@@ -1,11 +1,33 @@
 -- Executes the real GolemService, including damage, travel and recovery.
 local vector = {}
-vector.__index = vector
+local function vec(x, y, z)
+	return setmetatable({ X = x, Y = y, Z = z }, vector)
+end
+vector.__index = function(v, key)
+	local length = math.sqrt(v.X * v.X + v.Y * v.Y + v.Z * v.Z)
+	if key == "Magnitude" then
+		return length
+	elseif key == "Unit" then
+		return vec(v.X / length, v.Y / length, v.Z / length)
+	end
+	return nil
+end
 vector.__add = function(a, b)
-	return setmetatable({ X = a.X + b.X, Y = a.Y + b.Y, Z = a.Z + b.Z }, vector)
+	return vec(a.X + b.X, a.Y + b.Y, a.Z + b.Z)
 end
 vector.__sub = function(a, b)
-	return setmetatable({ X = a.X - b.X, Y = a.Y - b.Y, Z = a.Z - b.Z }, vector)
+	return vec(a.X - b.X, a.Y - b.Y, a.Z - b.Z)
+end
+vector.__unm = function(a)
+	return vec(-a.X, -a.Y, -a.Z)
+end
+vector.__mul = function(a, b)
+	if type(b) == "number" then
+		return vec(a.X * b, a.Y * b, a.Z * b)
+	elseif type(a) == "number" then
+		return vec(b.X * a, b.Y * a, b.Z * a)
+	end
+	return vec(a.X * b.X, a.Y * b.Y, a.Z * b.Z)
 end
 local Vector3 = {
 	new = function(x, y, z)
@@ -18,6 +40,9 @@ local shared = {
 	WaitForChild = function(self)
 		return self
 	end,
+	GetPlayers = function()
+		return {}
+	end,
 }
 local game = {
 	GetService = function()
@@ -26,15 +51,23 @@ local game = {
 }
 local now = 100
 local messages = 0
+local puffs = 0
 local service = loadGolemService(
 	{
 		Config = Config,
 		CosmeticLooks = {},
-		Remotes = { Notify = {
-			FireClient = function()
-				messages += 1
-			end,
-		} },
+		Remotes = {
+			Notify = {
+				FireClient = function()
+					messages += 1
+				end,
+				FireAllClients = function(_, kind)
+					if kind == "golemPuff" then
+						puffs += 1
+					end
+				end,
+			},
+		},
 		Stats = {},
 		WorldService = {
 			getSurfaceY = function()
@@ -43,12 +76,21 @@ local service = loadGolemService(
 			getSpawnPoint = function()
 				return Vector3.new(0, 50, 0)
 			end,
+			getFolder = function()
+				return nil
+			end,
+			zoneAt = function()
+				return 1
+			end,
 		},
 	},
 	game,
 	Vector3,
 	{
 		new = function(position)
+			return position
+		end,
+		lookAt = function(position)
 			return position
 		end,
 	},
@@ -188,7 +230,6 @@ mountGolem.player.SetAttribute = function(_, key, value)
 	mountAttributes[key] = value
 end
 mountGolem.player.Character = nil
-mountGolem.seat = { Occupant = nil }
 service.setMounted(mountGolem, false)
 assert(not mountGolem.mounted and mountAttributes.GolemMounted == false)
 assert(service.getSteer(mountGolem) == Vector3.zero)
@@ -234,3 +275,118 @@ service.requestSprint(asker, true)
 service.damage(asker, asker.hp) -- knocked out while sprinting
 assert(not asker.sprinting and askerAttributes.Sprinting == false and askerAttributes.GolemSprint == false)
 print("GolemService sprint checks passed")
+
+-- The dismounted leash: the golem fights and mines inside followRadius, walks
+-- back once beyond it (until well inside, so it doesn't jitter on the edge),
+-- and puffs back beside the rider when very far or stuck.
+local floorHits = true
+workspace = {
+	Raycast = function(_, _origin, direction)
+		if direction.Y ~= 0 and floorHits then
+			return { Position = Vector3.new(0, 50, 0), Normal = Vector3.new(0, 1, 0) }
+		end
+		return nil -- no walls
+	end,
+}
+RaycastParams = {
+	new = function()
+		return {}
+	end,
+}
+Enum = { RaycastFilterType = { Exclude = "Exclude" } }
+
+local function leashFixture()
+	local golem = fixture(8)
+	golem.mounted = false
+	golem.following = false
+	golem.stats.scale = 1
+	local moves = {}
+	golem.humanoid.MoveTo = function(_, target)
+		table.insert(moves, target)
+	end
+	local riderHumanoid = { Health = 100, HipHeight = 2 }
+	local riderRoot = {
+		Position = Vector3.new(0, 53, 0),
+		CFrame = { LookVector = Vector3.new(0, 0, -1), RightVector = Vector3.new(1, 0, 0) },
+		IsA = function(_, class)
+			return class == "BasePart"
+		end,
+	}
+	golem.player.Character = {
+		FindFirstChildOfClass = function()
+			return riderHumanoid
+		end,
+		FindFirstChild = function()
+			return riderRoot
+		end,
+	}
+	golem.player.UserId = 1
+	return golem, moves, riderRoot, riderHumanoid
+end
+
+local radius = Config.Golem.followRadius
+local leashed, moves, leashRider, leashHumanoid = leashFixture()
+leashed.root.Position = Vector3.new(radius - 1, 58, 0)
+assert(not service.followRider(leashed, now) and not leashed.following and #moves == 0) -- inside: free
+assert(service.inLeash(leashed, Vector3.new(0, 50, radius - 1)))
+assert(not service.inLeash(leashed, Vector3.new(0, 50, radius + 1)))
+leashed.root.Position = Vector3.new(radius + 1, 58, 0)
+assert(service.followRider(leashed, now) and leashed.following and #moves == 1) -- strayed: walks back
+assert(moves[1].X > 0 and moves[1].X < radius * Config.Golem.followStop) -- to well inside the leash
+leashed.root.Position = Vector3.new(radius * 0.8, 58, 0)
+assert(service.followRider(leashed, now) and leashed.following) -- still walking: no edge jitter
+leashed.root.Position = Vector3.new(radius * Config.Golem.followStop - 1, 58, 0)
+assert(not service.followRider(leashed, now) and not leashed.following) -- arrived
+
+-- A faster rider pulling ahead isn't "stuck" while the golem keeps walking.
+leashed.root.Position = Vector3.new(radius + 5, 58, 0)
+assert(service.followRider(leashed, now))
+now += Config.Golem.stuckTime * 0.9
+leashed.root.Position = Vector3.new(radius + 5 - Config.Golem.stuckTime, 58, 0)
+local walkingPuffs = puffs
+assert(service.followRider(leashed, now))
+now += Config.Golem.stuckTime * 0.9
+assert(service.followRider(leashed, now) and puffs == walkingPuffs)
+leashed.following = false
+
+-- A new character still on its way from the SpawnLocation isn't followed.
+leashed.riderGraceUntil = now + 1
+assert(service.leashCenter(leashed) == nil and not service.followRider(leashed, now))
+leashed.riderGraceUntil = 0
+
+-- Stuck walking back: no closer after stuckTime, so it puffs beside the rider.
+leashed.root.Position = Vector3.new(radius + 5, 58, 0)
+assert(service.followRider(leashed, now))
+now += Config.Golem.stuckTime + 0.1
+local puffsBefore = puffs
+assert(not service.followRider(leashed, now) and not leashed.following)
+assert(puffs == puffsBefore + 2) -- where it left and where it lands
+assert(((leashed.root.Position - leashRider.Position) * Vector3.new(1, 0, 1)).Magnitude < radius)
+assert(leashed.root.AssemblyLinearVelocity == Vector3.zero)
+
+-- Very far: puffs back at once. While the rider is in the air it waits.
+leashed.root.Position = Vector3.new(Config.Golem.leashTeleportRadius + 10, 58, 0)
+floorHits = false
+assert(service.followRider(leashed, now) and leashed.root.Position.X > radius) -- walking, no puff yet
+floorHits = true
+puffsBefore = puffs
+service.followRider(leashed, now)
+assert(puffs == puffsBefore + 2 and leashed.root.Position.X < radius)
+
+-- No leash while mounted or while the rider is dead.
+leashed.mounted = true
+assert(service.leashCenter(leashed) == nil and service.inLeash(leashed, Vector3.new(999, 50, 0)))
+leashed.mounted = false
+leashHumanoid.Health = 0
+assert(not service.followRider(leashed, now) and service.leashCenter(leashed) == nil)
+leashHumanoid.Health = 100
+
+-- Climbing on needs the rider alive and close to the golem.
+leashed.root.Position = Vector3.new(Config.Golem.mountRange - 1, 58, 0)
+assert(service.canClimbOn(leashed))
+leashed.root.Position = Vector3.new(Config.Golem.mountRange + 1, 58, 0)
+assert(not service.canClimbOn(leashed))
+leashed.root.Position = Vector3.new(1, 58, 0)
+leashHumanoid.Health = 0
+assert(not service.canClimbOn(leashed))
+print("GolemService leash and climb-on checks passed")

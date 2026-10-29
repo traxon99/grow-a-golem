@@ -1,7 +1,10 @@
 --!strict
 -- Turns the player's normal movement input (WASD, thumbstick, or the mobile
 -- joystick) into a camera-relative steering direction for their golem.
--- Only the intent is sent; the server moves the golem.
+-- Only the intent is sent; the server moves the golem. Dismounted, nothing
+-- here reaches the golem: the stick walks the character, and sprint and
+-- spells are not sent (the server ignores them too). See Riding for the
+-- camera and the rider's pose.
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
@@ -31,7 +34,13 @@ function Controls.isSprinting(): boolean
 	return sprinting
 end
 
+-- The server publishes whether the rider is on the golem; it starts mounted.
+function Controls.isMounted(): boolean
+	return player:GetAttribute("GolemMounted") ~= false
+end
+
 function Controls.setSprint(on: boolean)
+	on = on and Controls.isMounted()
 	if on == sprinting then
 		return
 	end
@@ -45,12 +54,9 @@ function Controls.toggleSprint()
 end
 
 function Controls.castSpell(spellId: string)
-	Remotes.CastSpell:FireServer(spellId)
-end
-
--- The server publishes whether the rider is on the golem; it starts mounted.
-function Controls.isMounted(): boolean
-	return player:GetAttribute("GolemMounted") ~= false
+	if Controls.isMounted() then
+		Remotes.CastSpell:FireServer(spellId)
+	end
 end
 
 function Controls.toggleMount()
