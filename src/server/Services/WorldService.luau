@@ -136,7 +136,7 @@ local function placeSpawns()
 		spawn.CanCollide = false
 		spawn.Transparency = 1
 		for _, child in spawn:GetChildren() do
-			if child:IsA("Decal") or child:IsA("Texture") then
+			if child:IsA("Decal") then -- Texture is a Decal too
 				child.Transparency = 1
 			end
 		end
