@@ -3,7 +3,7 @@
 -- Config; no marketplace request or real purchase is made. The boost watcher
 -- runs in a coroutine with a controlled clock, one tick at a time.
 -- Out of scope: Roblox receipts across servers, persistence after a crash,
--- real ownership-cache lag and the purchase-verification fix tracked in #131.
+-- real ownership-cache lag and platform purchase confirmation.
 do
 	local config = table.clone(Config)
 	config.Products = {}
@@ -40,6 +40,7 @@ do
 		local profiles, sessions, players, changed = {}, {}, {}, {}
 		local events, notifications, mineralGrants, saved, ownershipCalls = {}, {}, {}, {}, {}
 		local ownership = {}
+		local duringLookupId, duringLookup
 		local policyReady, allowed = true, true
 		local saveSucceeds = true
 		local loaded, removing, purchased = signal(), signal(), signal()
@@ -49,10 +50,21 @@ do
 			PromptGamePassPurchaseFinished = purchased,
 			UserOwnsGamePassAsync = function(_, userId, id)
 				table.insert(ownershipCalls, { userId = userId, id = id })
-				if ownership[id] == "error" then
+				local response = ownership[id]
+				if type(response) == "table" then
+					response = table.remove(response, 1)
+				end
+				-- Trigger a confirmed purchase after an initial lookup has read
+				-- its stale result, before that result is merged into the cache.
+				if duringLookup and duringLookupId == id then
+					local callback = duringLookup
+					duringLookup = nil
+					callback()
+				end
+				if response == "error" then
 					error("simulated marketplace outage")
 				end
-				return ownership[id] == true
+				return response == true
 			end,
 		}
 		local playersService = {
@@ -197,6 +209,22 @@ do
 		end
 		function f.time(value)
 			now = value
+		end
+		function f.onLookup(id, callback)
+			duringLookupId, duringLookup = id, callback
+		end
+		function f.flushPurchases()
+			-- The first spawned thread is the endless boost watcher.
+			-- Resume purchase verification retries without advancing it.
+			for _ = 1, 4 do
+				for index = 2, #spawned do
+					local thread = spawned[index]
+					if coroutine.status(thread) == "suspended" then
+						local ok, err = coroutine.resume(thread)
+						assert(ok, err)
+					end
+				end
+			end
 		end
 		function f.tick()
 			local ok, err = coroutine.resume(spawned[1])
@@ -421,5 +449,64 @@ do
 		f.tick()
 		assert(f.changed[player] == 2, "disconnect also clears the watcher's baseline")
 	end
+
+	-- The prompt's purchased flag is not proof of payment. Reject unowned,
+	-- errored, cancelled and unknown passes without side effects.
+	do
+		local f = fixture()
+		local player = f.join()
+		local id = config.GamePasses.vip.id
+		f.marketplace.PromptGamePassPurchaseFinished:Fire(player, id, false)
+		f.marketplace.PromptGamePassPurchaseFinished:Fire(player, -1, true)
+		assert(#f.ownershipCalls == 0, "cancelled and unknown prompts do not query ownership")
+		f.marketplace.PromptGamePassPurchaseFinished:Fire(player, id, true)
+		f.flushPurchases()
+		assert(not f.service.owns(player, "vip"), "unowned pass must not be granted")
+		f.ownership[id] = "error"
+		f.marketplace.PromptGamePassPurchaseFinished:Fire(player, id, true)
+		f.flushPurchases()
+		assert(
+			not f.service.owns(player, "vip") and #f.events == 0 and #f.notifications == 0,
+			"failed ownership checks must not grant or announce a pass"
+		)
+	end
+
+	-- A newly purchased pass can take several ownership lookups to appear.
+	-- Grant once after a confirmed yes, including before initial load finishes.
+	do
+		local f = fixture()
+		local player = f.join()
+		local id = config.GamePasses.vip.id
+		f.ownership[id] = { false, "error", true }
+		f.marketplace.PromptGamePassPurchaseFinished:Fire(player, id, true)
+		f.flushPurchases()
+		assert(f.service.owns(player, "vip") and f.service.isReady(player))
+		assert(#f.ownershipCalls == 3, "fresh purchases retry ownership up to three times")
+		assert(#f.events == 1 and #f.notifications == 1, "verified purchase is granted once")
+		f.ownership[id] = true
+		f.marketplace.PromptGamePassPurchaseFinished:Fire(player, id, true)
+		assert(#f.events == 1 and #f.notifications == 1, "duplicate prompt does not double-grant")
+		f.loaded:Fire(player)
+		assert(f.service.owns(player, "vip"), "later initial checks preserve confirmed purchases")
+		f.removing:Fire(player)
+		player.Parent = nil
+		f.marketplace.PromptGamePassPurchaseFinished:Fire(player, id, true)
+		assert(not f.service.owns(player, "vip") and #f.events == 1, "departed players cannot be granted")
+	end
+
+	-- A stale initial lookup may finish after a purchase is confirmed.
+	do
+		local f = fixture()
+		local player = f.join()
+		local id = config.GamePasses.vip.id
+		f.onLookup(id, function()
+			f.ownership[id] = true
+			f.marketplace.PromptGamePassPurchaseFinished:Fire(player, id, true)
+		end)
+		f.loaded:Fire(player)
+		assert(f.service.owns(player, "vip"), "stale initial lookup must not undo verified purchase")
+		assert(#f.events == 1 and #f.notifications == 1, "race grants and announces only once")
+	end
+
 	print("pass-service: ok")
 end
