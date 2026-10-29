@@ -16,7 +16,7 @@ bundle = (
     "local Config = {}\n" + settings + "\n" + stagger
     + "\nlocal MarbleBag = (function()\n" + (ROOT / "src/shared/MarbleBag.luau").read_text() + "\nend)()\n"
     + "\nlocal function loadEnemyService(dependencies, game, Instance, Vector3, CFrame, Enum, clock)\n"
-    + "local os = { clock = clock }\n" + source + "\nend\n"
+    + "local os = { clock = clock }\nlocal Color3 = { fromRGB = function(r, g, b) return { R = r, G = g, B = b } end }\n" + source + "\nend\n"
     + (ROOT / "tests/enemy-service.luau").read_text()
 )
 with tempfile.TemporaryDirectory(prefix="golem-enemy-service-") as directory:
