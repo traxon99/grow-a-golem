@@ -93,7 +93,8 @@ function GauntletHud.start()
 				if left < -3 then
 					frame.Visible = false
 				else
-					label.Text = `GOLEM RUN {completed}/{total} · {clock(left)} left\n{nextReward(completed)} · Dodge red, use green gaps`
+					label.Text =
+						`GOLEM RUN {completed}/{total} · {clock(left)} left\n{nextReward(completed)} · Dodge red, use green gaps`
 				end
 			end
 			task.wait(0.2)
