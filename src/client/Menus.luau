@@ -2029,7 +2029,12 @@ local function tabSignature(tabId: string, snap: any): string
 			passes = snap.passes,
 		}
 	elseif tabId == "travel" then
-		fields = { level = Stats.levelForXp(data.golem.xp), bosses = data.bossesDefeated, golem = snap.golem, tower = snap.tower }
+		fields = {
+			level = Stats.levelForXp(data.golem.xp),
+			bosses = data.bossesDefeated,
+			golem = snap.golem,
+			tower = snap.tower,
+		}
 	elseif tabId == "artifacts" then
 		fields = {
 			artifacts = data.artifacts,
@@ -2043,7 +2048,12 @@ local function tabSignature(tabId: string, snap: any): string
 	elseif tabId == "skills" then
 		fields = { level = Stats.levelForXp(data.golem.xp), skills = data.skills }
 	elseif tabId == "awaken" then
-		fields = { level = Stats.levelForXp(data.golem.xp), awakening = data.awakening, ascension = data.ascension, bosses = data.bossesDefeated }
+		fields = {
+			level = Stats.levelForXp(data.golem.xp),
+			awakening = data.awakening,
+			ascension = data.ascension,
+			bosses = data.bossesDefeated,
+		}
 	elseif tabId == "quests" then
 		fields = { rewards = snap.rewards, sessionStart = snap.sessionStart }
 	elseif tabId == "events" then
@@ -2111,11 +2121,9 @@ function Menus.refresh(force: boolean?)
 		return
 	end
 	local tab = TABS[openTab]
-	local signatureOk, signature = pcall(tabSignature, tab.id, State.snapshot)
-	if not signatureOk then
-		-- Still render if an unexpected value cannot be serialized.
-		signature = nil
-	end
+	local signatureOk, result = pcall(tabSignature, tab.id, State.snapshot)
+	-- Still render if an unexpected value cannot be serialized.
+	local signature: string? = if signatureOk then result else nil
 	if not force and lastTabId == tab.id and signature ~= nil and signature == lastSignature then
 		return
 	end
@@ -2352,11 +2360,7 @@ function Menus.start()
 	UserInputService.InputBegan:Connect(function(input: InputObject)
 		if
 			openTab
-			and (
-				input.UserInputType == Enum.UserInputType.Touch
-				or input.UserInputType == Enum.UserInputType.MouseButton1
-				or input.KeyCode == Enum.KeyCode.ButtonA
-			)
+			and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 or input.KeyCode == Enum.KeyCode.ButtonA)
 			and not heldInputs[input]
 		then
 			heldInputs[input] = true
