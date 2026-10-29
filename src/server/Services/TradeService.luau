@@ -12,7 +12,7 @@
 --     (TradeJournal): offered spares go into escrow in both saves, one journal
 --     write decides the trade, and each save settles from that decision. A
 --     crash or failed save at any step can't duplicate or lose an artifact.
---   * Each trade is logged in both saves, keyed by UserId.
+--   * Each trade is logged in both saves without partner UserIds.
 -- There is no text input anywhere in a trade.
 
 local DataStoreService = game:GetService("DataStoreService")
@@ -364,7 +364,6 @@ local function commit(trade: Trade)
 	local function entry(player: Player, other: Player): any
 		return {
 			id = id,
-			with = other.UserId,
 			gave = give[player],
 			got = give[other],
 			day = day,
