@@ -107,6 +107,9 @@ bundle += (ROOT / "tests/quake-timing.luau").read_text()
 forge_strike = (ROOT / "src/shared/ForgeStrike.luau").read_text()
 bundle += 'local ForgeStrike = (function()\n' + forge_strike + '\nend)()\n'
 bundle += (ROOT / "tests/forge-strike.luau").read_text()
+gauntlet_rules = (ROOT / "src/shared/GauntletRules.luau").read_text()
+bundle += 'local GauntletRules = (function()\n' + gauntlet_rules + '\nend)()\n'
+bundle += (ROOT / "tests/gauntlet-rules.luau").read_text()
 # The rune challenge uses the same server-side sequence validator in Studio.
 rune_sequence = (ROOT / "src/shared/RuneSequence.luau").read_text()
 bundle += 'local RuneSequence = (function()\n' + rune_sequence + '\nend)()\n'
