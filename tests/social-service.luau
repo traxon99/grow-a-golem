@@ -148,7 +148,7 @@ do
 				foundCore = true
 			end
 		end
-		assert(foundBareStone and foundCore, "parts list a tier name or \"Bare stone\" per slot")
+		assert(foundBareStone and foundCore, 'parts list a tier name or "Bare stone" per slot')
 
 		local foundTitleRow, notEarnedRow = false, false
 		for _, row in snap.titles do
