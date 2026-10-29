@@ -13,6 +13,23 @@ do
 		}
 	end
 	local records, snapshots = {}, {}
+	local deferred = {}
+	local testTask = {
+		spawn = function() end,
+		wait = function() end,
+		defer = function(fn)
+			table.insert(deferred, fn)
+		end,
+	}
+	local function runDeferred()
+		while #deferred > 0 do
+			local jobs = deferred
+			deferred = {}
+			for _, fn in jobs do
+				fn()
+			end
+		end
+	end
 	local fail, studio, guid, afterWrite = false, false, 0, nil
 	local store = {
 		UpdateAsync = function(_, key, transform)
@@ -92,7 +109,7 @@ do
 				snapshots[who] = snap
 			end,
 		} },
-	}, mockGame, mockInstance)
+	}, mockGame, mockInstance, testTask)
 	dataService.start()
 	local function player(id)
 		return {
@@ -110,7 +127,42 @@ do
 	players.PlayerAdded:Fire(a)
 	assert(dataService.get(a) and not a.kicked)
 	assert(snapshots[a].data._session == nil, "Lease token must not reach clients")
+	assert(snapshots[a].data.receipts == nil and snapshots[a].data.codesRedeemed == nil)
+	assert(snapshots[a].data.trades.log == nil and snapshots[a].data.trades.pending == nil)
+	assert(dataService.get(a).receipts ~= nil and dataService.get(a).trades.log ~= nil, "save fields must remain")
 	assert(dataService.get(a).minerals.aether == 0 and dataService.get(a).ascension.spentAwakenings == 0)
+	-- Rapid mutations notify expensive listeners once per scheduler tick.
+	local changedCalls, fastCalls, slowCalls = 0, 0, 0
+	dataService.Changed:Connect(function(who)
+		if who == a then
+			changedCalls += 1
+		end
+	end)
+	dataService.addProvider("fast", function()
+		fastCalls += 1
+		return { tick = fastCalls }
+	end)
+	dataService.addProvider("slow", function()
+		slowCalls += 1
+		return { tick = slowCalls }
+	end, math.huge)
+	dataService.markChanged(a)
+	dataService.markChanged(a)
+	assert(#deferred == 1 and changedCalls == 0)
+	runDeferred()
+	assert(changedCalls == 1)
+	dataService.flushPending()
+	assert(fastCalls == 1 and slowCalls == 1)
+	assert(snapshots[a].fast.tick == 1 and snapshots[a].slow.tick == 1)
+	dataService.markChanged(a)
+	runDeferred()
+	dataService.flushPending()
+	assert(changedCalls == 2 and fastCalls == 2 and slowCalls == 1)
+	assert(snapshots[a].slow == nil, "unchanged slow providers are sparse")
+	dataService.invalidateProvider("slow", a)
+	runDeferred()
+	dataService.flushPending()
+	assert(slowCalls == 2 and snapshots[a].slow.tick == 2)
 	dataService.get(a).minerals.stone = 50
 	assert(dataService.saveNow(a))
 	assert(records.player_1.minerals.stone == 50)

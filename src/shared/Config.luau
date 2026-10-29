@@ -1007,7 +1007,7 @@ Config.Data = {
 	storeName = "PlayerData_v1",
 	autosaveInterval = 60,
 	sessionLeaseSeconds = 180,
-	pushInterval = 0.25, -- at most this often, state is sent to the client
+	pushInterval = 0.5, -- cap snapshots at 2/s; verify HUD feel in Studio
 }
 
 Config.Leaderboards = {

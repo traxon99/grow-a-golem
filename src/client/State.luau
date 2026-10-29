@@ -63,7 +63,15 @@ end
 
 function State.start()
 	Remotes.StateUpdate.OnClientEvent:Connect(function(snapshot)
-		State.snapshot = snapshot
+		-- Slow-moving providers are sparse: retain the last value when a
+		-- packet omits that field. Data and timestamps arrive every packet.
+		if State.snapshot then
+			for key, value in snapshot do
+				State.snapshot[key] = value
+			end
+		else
+			State.snapshot = snapshot
+		end
 		State.clockOffset = snapshot.serverTime - os.time()
 		changed:Fire()
 	end)

@@ -45,7 +45,11 @@ end
 
 local profiles: { [Player]: Profile } = {}
 local dirty: { [Player]: boolean } = {}
-local providers: { [string]: (Player) -> any } = {}
+local pendingChanged: { [Player]: boolean } = {}
+-- Slow providers are omitted from repeat packets; the client merges them
+-- into its last snapshot. Fast providers (interval 0) still run each push.
+local providers: { [string]: { get: (Player) -> any, interval: number } } = {}
+local providerNextAt: { [Player]: { [string]: number } } = {}
 
 local loadedEvent = Instance.new("BindableEvent")
 DataService.ProfileLoaded = loadedEvent.Event -- (player)
@@ -158,19 +162,36 @@ local function sendSnapshot(player: Player)
 	if not profile then
 		return
 	end
+	local clientData = SessionLease.copy(profile.data)
+	-- Receipt IDs, code history, trade logs and escrow are server-only.
+	clientData._session = nil
+	clientData.receipts = nil
+	clientData.codesRedeemed = nil
+	if clientData.trades then
+		clientData.trades.log = nil
+		clientData.trades.pending = nil
+	end
 	local snapshot: { [string]: any } = {
-		data = SessionLease.copy(profile.data),
+		data = clientData,
 		serverTime = os.time(),
 		sessionStart = profile.loadedAt,
 		canSave = profile.canSave,
 	}
-	snapshot.data._session = nil
+	local nextAt = providerNextAt[player]
+	if not nextAt then
+		nextAt = {}
+		providerNextAt[player] = nextAt
+	end
+	local now = os.clock()
 	for key, provider in providers do
-		local ok, value = pcall(provider, player)
-		if ok then
-			snapshot[key] = value
-		else
-			warn(`[DataService] snapshot provider {key} failed: {value}`)
+		if (nextAt[key] or 0) <= now then
+			local ok, value = pcall(provider.get, player)
+			if ok then
+				snapshot[key] = value
+				nextAt[key] = now + provider.interval
+			else
+				warn(`[DataService] snapshot provider {key} failed: {value}`)
+			end
 		end
 	end
 	Remotes.StateUpdate:FireClient(player, snapshot)
@@ -304,17 +325,52 @@ function DataService.getSession(player: Player): Profile?
 	return profiles[player]
 end
 
--- Adds a field to every snapshot sent to that player's client.
-function DataService.addProvider(key: string, provider: (Player) -> any)
-	providers[key] = provider
+-- Providers with an interval are sent only on first load, invalidation,
+-- or expiry. The client retains their last value between partial updates.
+function DataService.addProvider(key: string, provider: (Player) -> any, intervalSeconds: number?)
+	providers[key] = { get = provider, interval = intervalSeconds or 0 }
 end
 
--- Marks a player's data as changed: the client gets a fresh snapshot soon,
--- and listeners (like golem stats) recalculate.
+-- Recompute a slow provider for one player, or for every loaded player.
+function DataService.invalidateProvider(key: string, player: Player?)
+	if player then
+		if providerNextAt[player] then
+			providerNextAt[player][key] = nil
+		end
+		DataService.markChanged(player)
+	else
+		for other in profiles do
+			if providerNextAt[other] then
+				providerNextAt[other][key] = nil
+			end
+			DataService.markChanged(other)
+		end
+	end
+end
+
+-- Coalesce expensive Changed listeners once per player per scheduler tick.
 function DataService.markChanged(player: Player)
-	if profiles[player] then
-		dirty[player] = true
-		changedEvent:Fire(player)
+	if not profiles[player] then
+		return
+	end
+	dirty[player] = true
+	if pendingChanged[player] then
+		return
+	end
+	pendingChanged[player] = true
+	task.defer(function()
+		pendingChanged[player] = nil
+		if profiles[player] then
+			changedEvent:Fire(player)
+		end
+	end)
+end
+
+-- Flushes queued snapshots; also called by the periodic push loop.
+function DataService.flushPending()
+	for player in dirty do
+		dirty[player] = nil
+		sendSnapshot(player)
 	end
 end
 
@@ -390,6 +446,8 @@ function DataService.start()
 		save(player, true)
 		profiles[player] = nil
 		dirty[player] = nil
+		pendingChanged[player] = nil
+		providerNextAt[player] = nil
 	end)
 
 	game:BindToClose(function()
@@ -420,10 +478,7 @@ function DataService.start()
 	task.spawn(function()
 		while true do
 			task.wait(Config.Data.pushInterval)
-			for player in dirty do
-				dirty[player] = nil
-				sendSnapshot(player)
-			end
+			DataService.flushPending()
 		end
 	end)
 end
