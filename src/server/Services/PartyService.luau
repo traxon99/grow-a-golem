@@ -282,18 +282,21 @@ function PartyService.start()
 		if partyOf[player] then
 			leave(player)
 		end
-		if not party then
-			party = { leader = inviter, members = { inviter } }
-			partyOf[inviter] = party
+		local destination: Party
+		if party then
+			destination = party
+		else
+			destination = { leader = inviter, members = { inviter } }
+			partyOf[inviter] = destination
 		end
-		table.insert(party.members, player)
-		partyOf[player] = party
-		warmPartyFriends(party)
-		refreshAll(party)
-		for _, member in party.members do
+		table.insert(destination.members, player)
+		partyOf[player] = destination
+		warmPartyFriends(destination)
+		refreshAll(destination)
+		for _, member in destination.members do
 			Remotes.Notify:FireClient(member, "message", `{player.DisplayName} joined the party!`)
 		end
-		Events.fire("partyJoined", player, #party.members)
+		Events.fire("partyJoined", player, #destination.members)
 		return true, nil
 	end)
 
