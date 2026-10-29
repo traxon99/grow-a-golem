@@ -140,6 +140,12 @@ function Controls.start()
 		end
 		elapsed = 0
 
+		-- The server drops sprint requests that come too fast and resets sprint
+		-- when the golem is knocked out; ask again until it agrees with us.
+		if (player:GetAttribute("GolemSprint") == true) ~= sprinting and Controls.isMounted() then
+			Remotes.SprintGolem:FireServer(sprinting)
+		end
+
 		-- Dismounted, the stick walks the rider, not the golem.
 		local direction = if Controls.isMounted() then cameraRelative(getMoveVector()) else Vector3.zero
 		-- Keep sending while steering (the server times out after 0.5 s),
@@ -155,9 +161,9 @@ function Controls.start()
 	end
 	player.CharacterAdded:Connect(onCharacter)
 	player:GetAttributeChangedSignal("GolemMounted"):Connect(function()
-		-- Dismounting ends the server's sprint; say again if it is still wanted.
-		if sprinting and Controls.isMounted() then
-			Remotes.SprintGolem:FireServer(true)
+		-- Dismounting ends the sprint; the rider starts a new one after mounting.
+		if not Controls.isMounted() then
+			Controls.setSprint(false)
 		end
 		if player.Character then
 			task.spawn(onCharacter, player.Character)

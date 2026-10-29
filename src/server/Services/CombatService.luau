@@ -50,45 +50,12 @@ local function ringEffect(position: Vector3, radius: number, color: Color3)
 	end)
 end
 
--- A short flash of light where the slam lands: a ball that swells and fades,
--- with a smaller white core that goes faster.
-local function blastEffect(position: Vector3, radius: number, color: Color3)
-	local layers = {
-		{ color = color, size = radius * 0.8, time = 0.35 },
-		{ color = Color3.new(1, 1, 1), size = radius * 0.4, time = 0.2 },
-	}
-	for index, layer in layers do
-		local ball = Instance.new("Part")
-		ball.Name = "QuakeBlast" .. index
-		ball.Shape = Enum.PartType.Ball
-		ball.Anchored = true
-		ball.CanCollide = false
-		ball.CanQuery = false
-		ball.CanTouch = false
-		ball.Material = Enum.Material.Neon
-		ball.Color = layer.color
-		ball.Transparency = 0.25
-		ball.Size = Vector3.new(2, 2, 2)
-		ball.Position = position + Vector3.new(0, 1, 0)
-		ball.Parent = WorldService.getFolder("Effects")
-
-		local info = TweenInfo.new(layer.time, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-		local tween = TweenService:Create(ball, info, {
-			Size = Vector3.new(layer.size, layer.size, layer.size),
-			Transparency = 1,
-		})
-		tween:Play()
-		tween.Completed:Once(function()
-			ball:Destroy()
-		end)
-	end
-end
-
 -- Quake: the golem raises both arms (clients animate from QuakeAt, a server
--- time), then the slam lands `windup` seconds later with the damage, ring and
--- blast. A golem that was knocked out or removed in between slams nothing.
+-- time), then the slam lands `windup` seconds later with the damage and ring,
+-- and clients are told so they can play the blast, rocks and thud (gated on
+-- their own Reduced Motion). A golem knocked out or removed in between slams
+-- nothing, and nobody is told.
 local function quake(player: Player, golem: GolemService.Golem, spell: any)
-	golem.model:SetAttribute("QuakeWindup", spell.windup)
 	golem.model:SetAttribute("QuakeAt", workspace:GetServerTimeNow() + spell.windup)
 	task.delay(spell.windup, function()
 		if GolemService.get(player) ~= golem or not GolemService.isActive(golem) then
@@ -104,7 +71,7 @@ local function quake(player: Player, golem: GolemService.Golem, spell: any)
 		end
 		local ground = golem.root.Position - Vector3.new(0, golem.groundOffset, 0) + Vector3.new(0, 0.3, 0)
 		ringEffect(ground, radius, Color3.fromRGB(90, 200, 255))
-		blastEffect(ground, radius, Color3.fromRGB(150, 225, 255))
+		Remotes.Notify:FireAllClients("quakeImpact", ground, radius, player.UserId)
 	end)
 end
 

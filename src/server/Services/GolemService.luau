@@ -538,6 +538,7 @@ local function spawnGolem(player: Player)
 	golems[player] = golem
 	hookSeat(golem, seat)
 	player:SetAttribute("GolemMounted", true)
+	player:SetAttribute("GolemSprint", false)
 	publishHealth(golem)
 
 	local function placeRider()
@@ -611,6 +612,8 @@ function GolemService.applySpeed(golem: Golem)
 	if golem.model:GetAttribute("Sprinting") ~= sprinting then
 		golem.model:SetAttribute("Sprinting", sprinting)
 	end
+	-- What the server will honour, so the client can tell its request was dropped.
+	golem.player:SetAttribute("GolemSprint", golem.sprinting)
 end
 
 function GolemService.setSprinting(golem: Golem, sprinting: boolean)
@@ -618,17 +621,27 @@ function GolemService.setSprinting(golem: Golem, sprinting: boolean)
 	GolemService.applySpeed(golem)
 end
 
-local function onSprint(player: Player, wantSprint: any)
-	local golem = golems[player]
-	if not golem or type(wantSprint) ~= "boolean" or wantSprint == golem.sprinting then
-		return
+-- A rider's sprint request. Returns whether it changed anything. Requests
+-- inside the cooldown are dropped; the client sees GolemSprint disagree with
+-- what it wants and asks again, so a quick tap never leaves them out of step.
+function GolemService.requestSprint(golem: Golem, wantSprint: any): boolean
+	if type(wantSprint) ~= "boolean" or wantSprint == golem.sprinting then
+		return false
 	end
 	local now = os.clock()
 	if now < golem.nextSprintChange then
-		return
+		return false
 	end
 	golem.nextSprintChange = now + SPRINT_CHANGE_COOLDOWN
 	GolemService.setSprinting(golem, wantSprint)
+	return golem.sprinting == wantSprint
+end
+
+local function onSprint(player: Player, wantSprint: any)
+	local golem = golems[player]
+	if golem then
+		GolemService.requestSprint(golem, wantSprint)
+	end
 end
 
 function GolemService.isActive(golem: Golem): boolean
@@ -678,6 +691,8 @@ function GolemService.damage(golem: Golem, amount: number)
 	if golem.hp <= 0 then
 		-- Knocked out: carried back to the zone spawn to recover.
 		golem.downedUntil = os.clock() + Config.Golem.respawnTime
+		golem.sprinting = false
+		GolemService.applySpeed(golem)
 		GolemService.sendToZone(golem, golem.zoneId)
 		Remotes.Notify:FireClient(golem.player, "message", "Your golem crumbled! Reforming...")
 	end

@@ -97,6 +97,7 @@ local function fixture(offset)
 		mounted = true,
 		riderGraceUntil = 0,
 		sprinting = false,
+		nextSprintChange = 0,
 		lastSteerAt = 0,
 		steer = Vector3.zero,
 	},
@@ -214,4 +215,22 @@ service.update(runner, 0)
 assert(runner.humanoid.WalkSpeed == 14 and runnerAttributes.Sprinting == false) -- dismounted: no sprint
 service.setSprinting(runner, true)
 assert(not runner.sprinting) -- and it can't be switched on while dismounted
+
+-- The sprint request: booleans only, rate limited, and the server publishes what it honours.
+local asker, askerAttributes = fixture(8)
+assert(not service.requestSprint(asker, "yes") and not service.requestSprint(asker, nil))
+assert(not service.requestSprint(asker, false)) -- already off: nothing to change
+assert(service.requestSprint(asker, true) and asker.sprinting and askerAttributes.GolemSprint == true)
+-- Dropped inside the cooldown; GolemSprint still says on, which is how the client knows to ask again.
+assert(not service.requestSprint(asker, false) and asker.sprinting and askerAttributes.GolemSprint == true)
+now += 1
+assert(service.requestSprint(asker, false) and not asker.sprinting and askerAttributes.GolemSprint == false)
+asker.mounted = false
+now += 1
+assert(not service.requestSprint(asker, true) and not asker.sprinting) -- no sprinting on foot
+asker.mounted = true
+now += 1
+service.requestSprint(asker, true)
+service.damage(asker, asker.hp) -- knocked out while sprinting
+assert(not asker.sprinting and askerAttributes.Sprinting == false and askerAttributes.GolemSprint == false)
 print("GolemService sprint checks passed")

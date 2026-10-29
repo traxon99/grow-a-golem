@@ -6,14 +6,18 @@
 -- The server also sets model attributes that trigger one-off moves:
 --   Attack (counter)  punch with alternating arms, or lunge and bite
 --   SlamAt (time)     raise both arms, then slam down when the time comes
---   QuakeAt (time)    the golem's Quake slam lands then: arms rise (slowing as against
+--   QuakeAt (time)    the golem's Quake slam lands then (Config.Spells.quake.windup
+--                     after the cast): arms rise (slowing as against
 --                     gravity), then fall faster and faster into the slam
 --   Sprinting (bool)  longer stride, harder lean and heavier steps
 --   Downed (bool)     slump while the golem reforms
 --   Cheer (counter)   the golem's pet hops and spins
 
+local GuiService = game:GetService("GuiService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Sfx = require(script.Parent:WaitForChild("Sfx"))
 
 local Animator = {}
@@ -188,10 +192,11 @@ local function animate(rig: Rig, dt: number, now: number, serverNow: number)
 	-- gravity, then drop with growing speed so the slam lands hard.
 	local quakeAt = rig.model:GetAttribute("QuakeAt") :: number?
 	if quakeAt then
-		local windup = (rig.model:GetAttribute("QuakeWindup") :: number?) or 0.45
+		local windup = Config.Spells.quake.windup
 		local untilQuake = quakeAt - serverNow
+		-- Reduced Motion skips the wind-up and shows only the short slam pose.
 		if untilQuake > 0 and untilQuake <= windup then
-			local t = 1 - untilQuake / windup
+			local t = if GuiService.ReducedMotionEnabled then 1 else 1 - untilQuake / windup
 			if t < QUAKE_RISE then
 				local u = t / QUAKE_RISE
 				raise = math.max(raise, 1 - (1 - u) * (1 - u))

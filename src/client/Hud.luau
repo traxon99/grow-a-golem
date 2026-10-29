@@ -3,6 +3,7 @@
 -- the next-goal tracker, and pop-up messages. First-time guidance lives in
 -- Tutorial.luau.
 
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
@@ -422,7 +423,7 @@ function Hud.start()
 	sprintButton.Activated:Connect(Controls.toggleSprint)
 	local function refreshSprint()
 		local on = Controls.isSprinting()
-		sprintButton.BackgroundTransparency = if on then 0 else 0.35
+		sprintButton.BackgroundTransparency = (if on then 0 else 0.35) * GuiService.PreferredTransparency
 		local verb = if on then "Sprinting" else "Sprint"
 		sprintLabel.Text = if isTouch then verb else `{verb}\n[Shift]`
 	end

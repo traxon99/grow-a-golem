@@ -202,11 +202,14 @@ function Sfx.start()
 	Remotes.Notify.OnClientEvent:Connect(function(kind: string, ...)
 		local args = { ... }
 		if kind == "spellCast" then
-			-- Quake thuds when the slam lands, after the arms come up.
-			local delay = if args[1] == "quake" then Config.Spells.quake.windup else 0
-			task.delay(delay, function()
+			-- Quake's thud waits for the slam (quakeImpact below).
+			if args[1] ~= "quake" then
 				Sfx.play(args[1], myGolemRoot())
-			end)
+			end
+		elseif kind == "quakeImpact" then
+			if args[3] == player.UserId then
+				Sfx.play("quake", myGolemRoot())
+			end
 		elseif kind == "mined" then
 			Sfx.play("mineBreak", myGolemRoot())
 		elseif kind == "defeated" then
