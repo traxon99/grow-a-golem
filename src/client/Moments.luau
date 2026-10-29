@@ -404,6 +404,7 @@ end
 function Moments.start()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "GolemMoments"
+	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.ResetOnSpawn = false
 	gui.DisplayOrder = 5
 	gui.Parent = player:WaitForChild("PlayerGui")

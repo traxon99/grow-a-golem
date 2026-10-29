@@ -147,6 +147,7 @@ end
 function Hud.start()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "GolemHud"
+	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.ResetOnSpawn = false
 	gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 	gui.Parent = player:WaitForChild("PlayerGui")

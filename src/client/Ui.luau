@@ -425,14 +425,18 @@ local function addDetails(target: GuiObject, material: string, m: Material, base
 			c.Parent = stud
 		end
 	elseif material == "plate" then
-		-- Faint raised studs across the plate, in a loose grid.
-		for row = 0, 2 do
-			for column = 0, 5 do
+		-- Embossed studs across the whole plate: a staggered grid, lighter than
+		-- the plate and faint enough that text stays above 4.5:1. The public
+		-- stud tile (6927295847) loaded but drew blank in Studio (no permission
+		-- for our place), so they are drawn in code.
+		local columns, rows = 12, 9
+		for row = 0, rows - 1 do
+			for column = 0, columns - 1 do
 				local stud = detail(
 					target,
-					UDim2.fromOffset(14, 14),
-					UDim2.new((column + 0.5 + (row % 2) * 0.5) / 6.5, 0, (row + 0.6) / 3, 0),
-					base:Lerp(Color3.new(1, 1, 1), 0.08),
+					UDim2.fromOffset(16, 16),
+					UDim2.new((column + 0.5 + (row % 2) * 0.5) / (columns + 0.5), 0, (row + 0.5) / rows, 0),
+					base:Lerp(Color3.new(1, 1, 1), 0.3),
 					0.55,
 					true
 				)
@@ -452,7 +456,7 @@ local function addDetails(target: GuiObject, material: string, m: Material, base
 				UDim2.fromOffset(9, 9),
 				UDim2.new(x, if x == 0 then 9 else -9, 0.5, 0),
 				Color3.new(1, 1, 1),
-				0.6,
+				0.55,
 				false
 			)
 			rune.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -1534,6 +1538,7 @@ local function getDialogGui(): ScreenGui
 	end
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "GolemDialogs"
+	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.ResetOnSpawn = false
 	gui.DisplayOrder = 20
 	gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets

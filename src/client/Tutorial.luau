@@ -88,6 +88,7 @@ end
 function Tutorial.start()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "GolemTutorial"
+	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.ResetOnSpawn = false
 	gui.DisplayOrder = 4
 	gui.Parent = player:WaitForChild("PlayerGui")
