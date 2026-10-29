@@ -90,9 +90,9 @@ bundle += 'local script = { Parent = {} }\n' + data_service + "\nend\n"
 bundle += (ROOT / "tests/data-service.luau").read_text()
 # Client state must retain sparse provider fields between full data packets.
 client_state = (ROOT / "src/client/State.luau").read_text()
-client_state = re.sub(r'local (\\w+) = require\\([^\\n]+\\)', r'local \\1 = dependencies.\\1', client_state)
-bundle += "\\nlocal function loadClientState(dependencies, game, Instance)\\n"
-bundle += client_state + "\\nend\\n"
+client_state = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', client_state)
+bundle += "\nlocal function loadClientState(dependencies, game, Instance)\n"
+bundle += client_state + "\nend\n"
 bundle += (ROOT / "tests/state.luau").read_text()
 # The real TradeService, with its requires swapped for mocks; the test drives
 # its action handlers and simulates crashes by reloading from written saves.
