@@ -18,6 +18,17 @@ Config.WorldBeat = {
 	miningMultiplier = 2,
 }
 
+-- Optional two-tap vein rush. Native proximity prompts work with touch,
+-- keyboard and gamepad. Each node can pay this fixed bonus only once.
+Config.WeakspotRush = {
+	firstDelaySeconds = 18,
+	firstWindowSeconds = 7,
+	followupSeconds = 4,
+	cooldownSeconds = 45,
+	range = 14,
+	bonusFraction = 0.5, -- 50% of the node's normal base yield (rounded down, min 1)
+}
+
 ---------------------------------------------------------------- minerals
 
 Config.MineralOrder = { "stone", "copper", "iron", "crystal" }
