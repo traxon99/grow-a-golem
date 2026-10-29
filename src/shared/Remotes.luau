@@ -8,6 +8,7 @@ local RunService = game:GetService("RunService")
 local EVENTS = {
 	"MoveGolem", -- client -> server: Vector3 steering direction
 	"CastSpell", -- client -> server: spell id string
+	"RuneInput", -- client -> server: start or tap with a rune index
 	"MountGolem", -- client -> server: boolean, true to ride, false to dismount
 	"SprintGolem", -- client -> server: boolean, true while sprint is held or toggled on
 	"StateUpdate", -- server -> client: full state snapshot
@@ -54,6 +55,7 @@ end
 return {
 	MoveGolem = Remotes.MoveGolem,
 	CastSpell = Remotes.CastSpell,
+	RuneInput = Remotes.RuneInput,
 	MountGolem = Remotes.MountGolem,
 	SprintGolem = Remotes.SprintGolem,
 	StateUpdate = Remotes.StateUpdate,
