@@ -37,8 +37,25 @@ do
  Vector3.new = function(x, y, z) return setmetatable({ X = x or 0, Y = y or 0, Z = z or 0 }, mt) end
  Vector3.zero = Vector3.new(0, 0, 0)
 end
+-- Each (kind, name) leaf is cached so repeated lookups return the same
+-- table (e.g. tests/pass-service.luau's `== Enum.ProductPurchaseDecision...`
+-- checks need reference equality, not just matching text), and the leaf
+-- carries a real .Name like an EnumItem (see AnalyticsService's fields()).
+local enumCache = {}
 local Enum = setmetatable({}, { __index = function(_, kind)
- return setmetatable({}, { __index = function(_, name) return kind .. "." .. name end })
+ local kindCache = enumCache[kind]
+ if not kindCache then
+  kindCache = {}
+  enumCache[kind] = kindCache
+ end
+ return setmetatable({}, { __index = function(_, name)
+  local item = kindCache[name]
+  if not item then
+   item = setmetatable({ Name = name }, { __tostring = function() return kind .. "." .. name end })
+   kindCache[name] = item
+  end
+  return item
+ end })
 end })
 -- A seeded LCG, not Roblox's real Random: deterministic and good enough for
 -- tests that read back whatever it picked rather than predicting exact values.
@@ -209,6 +226,15 @@ tutorial_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = depen
 bundle += "\nlocal function loadTutorialService(dependencies, game, task)\n"
 bundle += 'local script = { Parent = {} }\n' + tutorial_service + "\nend\n"
 bundle += (ROOT / "tests/tutorial-service.luau").read_text()
+# The real AnalyticsService with mocked Roblox Analytics/HttpService/Players;
+# task.spawn is a no-op so the periodic auto-flush loop never runs (flush
+# itself is still exercised directly through PlayerRemoving).
+analytics_service = (ROOT / "src/server/Services/AnalyticsService.luau").read_text()
+analytics_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', analytics_service)
+bundle += "\nlocal function loadAnalyticsService(dependencies, game, task, clock)\n"
+bundle += 'local os = { clock = clock }\nlocal script = { Parent = {} }\n'
+bundle += analytics_service + "\nend\n"
+bundle += (ROOT / "tests/analytics-service.luau").read_text()
 with tempfile.TemporaryDirectory(prefix="golem-check-") as folder:
     path = Path(folder) / "regression.luau"
     path.write_text(bundle)
