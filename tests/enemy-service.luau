@@ -145,7 +145,7 @@ local enemies = loadEnemyService(
 			return at
 		end,
 	},
-	{ HumanoidRigType = {}, HumanoidHealthDisplayType = {}, HumanoidDisplayDistanceType = {}, HumanoidStateType = {} },
+	{ HumanoidRigType = {}, HumanoidHealthDisplayType = {}, HumanoidDisplayDistanceType = {}, HumanoidStateType = {}, HighlightDepthMode = { Occluded = "Occluded" } },
 	function()
 		return now
 	end
