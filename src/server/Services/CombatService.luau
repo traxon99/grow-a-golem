@@ -97,6 +97,11 @@ local function quake(player: Player, golem: GolemService.Golem, spell: any, pend
 					* (1 + 0.05 * (golem.stats.level - 1)),
 				player
 			)
+			-- Only the server-graded second press can interrupt a living island
+			-- boss. A killing blow, ordinary Quake, and Tower bosses never stagger.
+			if pending.perfect then
+				EnemyService.stagger(enemy, player)
+			end
 		end
 		local ground = golem.root.Position - Vector3.new(0, golem.groundOffset, 0) + Vector3.new(0, 0.3, 0)
 		ringEffect(
