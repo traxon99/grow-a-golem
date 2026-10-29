@@ -214,7 +214,8 @@ local function buildCourse(): (ProximityPrompt, ProximityPrompt)
 			Enum.Material.Neon,
 			false
 		)
-		local rewardText = if index == 1 then "+50 Stone"
+		local rewardText = if index == 1
+			then "+50 Stone"
 			elseif index == 2 then "+40 Stone, +5 Copper"
 			else "+30 Stone, +10 Copper"
 		sign(marker, `CHECKPOINT {index}/3 | {rewardText}`, 330)
@@ -273,7 +274,12 @@ local function startRun(player: Player): (boolean, string?)
 		expiresAt = now + cfg.durationSeconds,
 		graceUntil = now + 1,
 	}
-	Remotes.Notify:FireClient(player, "gauntletStart", workspace:GetServerTimeNow() + cfg.durationSeconds, #cfg.checkpoints)
+	Remotes.Notify:FireClient(
+		player,
+		"gauntletStart",
+		workspace:GetServerTimeNow() + cfg.durationSeconds,
+		#cfg.checkpoints
+	)
 	say(player, "Golem Run! 90s to reach three checkpoints. Dodge boulders and use the green lava gaps.")
 	return true, nil
 end
@@ -328,16 +334,18 @@ function GauntletService.tick()
 			continue
 		end
 		for index, checkpoint in cfg.checkpoints do
-			if GauntletRules.canClaim(
-				run.nextIndex,
-				index,
-				position,
-				point(0, checkpoint.z, 0),
-				cfg.checkpointHalfWidth,
-				cfg.checkpointHalfDepth,
-				now,
-				run.expiresAt
-			) then
+			if
+				GauntletRules.canClaim(
+					run.nextIndex,
+					index,
+					position,
+					point(0, checkpoint.z, 0),
+					cfg.checkpointHalfWidth,
+					cfg.checkpointHalfDepth,
+					now,
+					run.expiresAt
+				)
+			then
 				run.nextIndex += 1 -- consume before granting: no replay/duplicate payout
 				run.safe = point(0, checkpoint.z, 0)
 				EconomyService.grantFlat(player, { minerals = checkpoint.reward }, "gauntlet")
