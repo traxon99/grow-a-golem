@@ -48,11 +48,40 @@ and [Open Cloud storage API](https://create.roblox.com/docs/cloud/reference/feat
 Trade logs and pending escrow created by the new build no longer store the
 partner's UserId. Existing trade records are redacted and persisted when their
 owners next load. **Important:** an inactive player's legacy save can still
-contain a partner UserId until that player returns. For older data, arrange a
-separate audited backfill/scrub of inactive saves before claiming historical
-partner references have been fully erased; the targeted deletion script alone
-does not scan other players' profiles. Do not claim end-to-end RTBF completion
-until that check is satisfied.
+contain a partner UserId until that player returns. For older data, run the
+backfill below instead of waiting for every player to rejoin; the targeted
+deletion script alone does not scan other players' profiles, so it cannot by
+itself certify historical references are gone. Do not claim end-to-end RTBF
+completion until the backfill has run with no entries left outstanding.
+
+### Backfill: redact legacy trade partner IDs in every saved profile (#170)
+
+One-time, owner-run; code and its offline tests need no credentials, only the
+run itself does.
+
+1. **Drain all live servers first.** The backfill's own writes are
+   conditional (an active session's lease blocks them, and a mid-flight
+   write race is rejected and retried against the fresh value, never
+   blindly overwritten), but a drain is still what makes the run complete
+   in one pass instead of leaving active-session entries to retry later.
+2. Dry run: `python3 scripts/rtbf_backfill.py --universe-id UNIVERSE_ID`.
+   Review the printed per-entry status (`would_redact` / `already_clean` /
+   `skipped_active_session` / `failed`) and the final counts.
+3. Execute: `python3 scripts/rtbf_backfill.py --universe-id UNIVERSE_ID
+   --execute --confirm-execute --audit-log /path/outside/the/repo/audit.jsonl`.
+   Keep the audit log private, alongside the per-request RTBF audit above.
+4. Rerunning is always safe: redaction is idempotent (an already-redacted
+   entry reports `already_clean` and is never rewritten), so a failed or
+   interrupted run, or any entry retried after a version conflict, can
+   simply be run again rather than needing to be reasoned about by hand.
+5. **Before verifying the Open Cloud wire details this script assumes**
+   (the `ETag` response header, `If-Match` conditional writes, HTTP
+   409/412 on a version conflict, `dataStoreEntries`/`nextPageToken` on
+   list responses) against Roblox's current Open Cloud reference, read
+   `scripts/rtbf_backfill.py`'s module docstring, which names each one.
+6. Once a run reports zero `would_redact`/`failed`/`conflict_exhausted`
+   entries, historical partner references are gone and end-to-end RTBF
+   completion can be claimed for every request up to that point.
 
 ## Small Sponsored ad experiment
 
