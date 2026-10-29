@@ -22,7 +22,14 @@ if compiled.returncode != 0:
         for line in (compiled.stdout + compiled.stderr).strip().splitlines()[:8]:
             print(f"::error title=Luau compile::{line}")
     sys.exit(compiled.returncode)
-prelude = '''local Color3 = { fromRGB = function(r, g, b) return { R = r/255, G = g/255, B = b/255 } end }
+prelude = '''local Color3Mt
+Color3Mt = { __index = { Lerp = function(self, other, alpha)
+ return setmetatable(
+  { R = self.R + (other.R - self.R) * alpha, G = self.G + (other.G - self.G) * alpha, B = self.B + (other.B - self.B) * alpha },
+  Color3Mt
+ )
+end } }
+local Color3 = { fromRGB = function(r, g, b) return setmetatable({ R = r/255, G = g/255, B = b/255 }, Color3Mt) end }
 local Vector3 = {}
 do
  local mt = {}
@@ -37,8 +44,25 @@ do
  Vector3.new = function(x, y, z) return setmetatable({ X = x or 0, Y = y or 0, Z = z or 0 }, mt) end
  Vector3.zero = Vector3.new(0, 0, 0)
 end
+-- Each (kind, name) leaf is cached so repeated lookups return the same
+-- table (e.g. tests/pass-service.luau's `== Enum.ProductPurchaseDecision...`
+-- checks need reference equality, not just matching text), and the leaf
+-- carries a real .Name like an EnumItem (see AnalyticsService's fields()).
+local enumCache = {}
 local Enum = setmetatable({}, { __index = function(_, kind)
- return setmetatable({}, { __index = function(_, name) return kind .. "." .. name end })
+ local kindCache = enumCache[kind]
+ if not kindCache then
+  kindCache = {}
+  enumCache[kind] = kindCache
+ end
+ return setmetatable({}, { __index = function(_, name)
+  local item = kindCache[name]
+  if not item then
+   item = setmetatable({ Name = name }, { __tostring = function() return kind .. "." .. name end })
+   kindCache[name] = item
+  end
+  return item
+ end })
 end })
 -- A seeded LCG, not Roblox's real Random: deterministic and good enough for
 -- tests that read back whatever it picked rather than predicting exact values.
@@ -72,6 +96,13 @@ bundle += 'local Stats = (function()\n' + stats + '\nend)()\n'
 bundle += 'local SessionLease = (function()\n' + lease + '\nend)()\n'
 journal = (ROOT / "src/shared/TradeJournal.luau").read_text()
 bundle += 'local TradeJournal = (function()\n' + journal + '\nend)()\n'
+# CosmeticLooks only requires Config, so it bundles the same way; only its
+# pure partLook/accent color math is ever called below (buildPet/dress
+# construct real Part/Model/CFrame instances well beyond this harness).
+cosmetic_looks = (ROOT / "src/shared/CosmeticLooks.luau").read_text().replace(
+    'local Config = require(script.Parent:WaitForChild("Config"))', '')
+bundle += 'local CosmeticLooks = (function()\n' + cosmetic_looks + '\nend)()\n'
+bundle += (ROOT / "tests/cosmetic-looks.luau").read_text()
 bundle += (ROOT / "tests/regression.luau").read_text()
 # Exercise the actual server handlers with mocked services, including repeated
 # requests. This avoids a test that merely repeats the Ascension implementation.
@@ -202,6 +233,36 @@ social_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = depende
 bundle += "\nlocal function loadSocialService(dependencies, game, task)\n"
 bundle += 'local script = { Parent = {} }\n' + social_service + "\nend\n"
 bundle += (ROOT / "tests/social-service.luau").read_text()
+# The real TutorialService with mocked services; task.spawn is a no-op so the
+# steering-poll loop (the only way the "steer" step completes) never runs.
+tutorial_service = (ROOT / "src/server/Services/TutorialService.luau").read_text()
+tutorial_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', tutorial_service)
+bundle += "\nlocal function loadTutorialService(dependencies, game, task)\n"
+bundle += 'local script = { Parent = {} }\n' + tutorial_service + "\nend\n"
+bundle += (ROOT / "tests/tutorial-service.luau").read_text()
+# The real AnalyticsService with mocked Roblox Analytics/HttpService/Players;
+# task.spawn is a no-op so the periodic auto-flush loop never runs (flush
+# itself is still exercised directly through PlayerRemoving).
+analytics_service = (ROOT / "src/server/Services/AnalyticsService.luau").read_text()
+analytics_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', analytics_service)
+bundle += "\nlocal function loadAnalyticsService(dependencies, game, task, clock)\n"
+bundle += 'local os = { clock = clock }\nlocal script = { Parent = {} }\n'
+bundle += analytics_service + "\nend\n"
+bundle += (ROOT / "tests/analytics-service.luau").read_text()
+# The real WorldService's geometry helpers, reached only through
+# addArena (every field it sets is a plain write, so a bare Instance.new
+# and a workspace stand-in are enough); .start()'s island building,
+# lighting and Islands.decorate scenery are out of scope.
+world_service = (ROOT / "src/server/Services/WorldService.luau").read_text()
+world_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', world_service)
+bundle += "\nlocal function loadWorldService(dependencies, game)\n"
+bundle += 'local workspace = {}\nlocal Instance = { new = function() return {} end }\n'
+bundle += 'local UDim2 = { fromOffset = function() return {} end, fromScale = function() return {} end }\n'
+# makeSign calls Color3.new, which the shared prelude's Color3 (fromRGB
+# only) does not have; add it locally rather than widen the shared shim.
+bundle += 'local Color3 = { fromRGB = Color3.fromRGB, new = function(r, g, b) return { R = r, G = g, B = b } end }\n'
+bundle += world_service + "\nend\n"
+bundle += (ROOT / "tests/world-service.luau").read_text()
 with tempfile.TemporaryDirectory(prefix="golem-check-") as folder:
     path = Path(folder) / "regression.luau"
     path.write_text(bundle)
