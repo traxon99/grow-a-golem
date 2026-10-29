@@ -121,7 +121,7 @@ do
 		local caller = join(freshData())
 		local other = join(freshData())
 		other.DisplayName = "Other"
-		datas[other].golem.parts.core = 2
+		datas[other].golem.parts.core = "copper"
 		datas[other].artifacts.equipped = { "pebbleCharm" }
 		datas[other].bossesDefeated["1"] = true
 		datas[other].awakening.count = 1
@@ -144,7 +144,7 @@ do
 			if string.find(line, "Bare stone", 1, true) then
 				foundBareStone = true
 			end
-			if string.find(line, Config.Tiers[2].displayName, 1, true) then
+			if string.find(line, Config.Tiers.copper.displayName, 1, true) then
 				foundCore = true
 			end
 		end
