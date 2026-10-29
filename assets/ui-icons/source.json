@@ -1,0 +1,438 @@
+{
+  "source": "ChatGPT Image Oct 28, 2026, 10_14_32 PM.png",
+  "sha256": "0a6e3eb1fd34e3a6b7c863c44587e815598fec386e6df622eb5c49845cec1cc0",
+  "crops": [
+    {
+      "id": "golem-stone",
+      "rect": {
+        "left": 0,
+        "top": 0,
+        "width": 190,
+        "height": 220
+      }
+    },
+    {
+      "id": "golem-moss",
+      "rect": {
+        "left": 190,
+        "top": 0,
+        "width": 179,
+        "height": 220
+      }
+    },
+    {
+      "id": "golem-crystal",
+      "rect": {
+        "left": 369,
+        "top": 0,
+        "width": 174,
+        "height": 220
+      }
+    },
+    {
+      "id": "golem-lava",
+      "rect": {
+        "left": 543,
+        "top": 0,
+        "width": 181,
+        "height": 220
+      }
+    },
+    {
+      "id": "golem-ice",
+      "rect": {
+        "left": 724,
+        "top": 0,
+        "width": 181,
+        "height": 220
+      }
+    },
+    {
+      "id": "golem-wood",
+      "rect": {
+        "left": 905,
+        "top": 0,
+        "width": 181,
+        "height": 220
+      }
+    },
+    {
+      "id": "golem-gold",
+      "rect": {
+        "left": 1086,
+        "top": 0,
+        "width": 174,
+        "height": 220
+      }
+    },
+    {
+      "id": "golem-obsidian",
+      "rect": {
+        "left": 1260,
+        "top": 0,
+        "width": 188,
+        "height": 220
+      }
+    },
+    {
+      "id": "stone",
+      "rect": {
+        "left": 0,
+        "top": 220,
+        "width": 181,
+        "height": 170
+      }
+    },
+    {
+      "id": "clay",
+      "rect": {
+        "left": 181,
+        "top": 220,
+        "width": 181,
+        "height": 170
+      }
+    },
+    {
+      "id": "log",
+      "rect": {
+        "left": 362,
+        "top": 220,
+        "width": 181,
+        "height": 170
+      }
+    },
+    {
+      "id": "moss",
+      "rect": {
+        "left": 543,
+        "top": 220,
+        "width": 181,
+        "height": 170
+      }
+    },
+    {
+      "id": "crystal",
+      "rect": {
+        "left": 724,
+        "top": 220,
+        "width": 181,
+        "height": 170
+      }
+    },
+    {
+      "id": "coin",
+      "rect": {
+        "left": 905,
+        "top": 220,
+        "width": 181,
+        "height": 170
+      }
+    },
+    {
+      "id": "essence",
+      "rect": {
+        "left": 1086,
+        "top": 220,
+        "width": 181,
+        "height": 170
+      }
+    },
+    {
+      "id": "heart",
+      "rect": {
+        "left": 1267,
+        "top": 220,
+        "width": 181,
+        "height": 170
+      }
+    },
+    {
+      "id": "seed",
+      "rect": {
+        "left": 0,
+        "top": 390,
+        "width": 181,
+        "height": 173
+      }
+    },
+    {
+      "id": "sprout",
+      "rect": {
+        "left": 181,
+        "top": 390,
+        "width": 175,
+        "height": 173
+      }
+    },
+    {
+      "id": "watering-can",
+      "rect": {
+        "left": 356,
+        "top": 390,
+        "width": 192,
+        "height": 173
+      }
+    },
+    {
+      "id": "soil",
+      "rect": {
+        "left": 548,
+        "top": 390,
+        "width": 176,
+        "height": 173
+      }
+    },
+    {
+      "id": "mortar",
+      "rect": {
+        "left": 724,
+        "top": 390,
+        "width": 181,
+        "height": 173
+      }
+    },
+    {
+      "id": "potion",
+      "rect": {
+        "left": 905,
+        "top": 390,
+        "width": 181,
+        "height": 173
+      }
+    },
+    {
+      "id": "hammer",
+      "rect": {
+        "left": 1086,
+        "top": 390,
+        "width": 165,
+        "height": 173
+      }
+    },
+    {
+      "id": "pedestal",
+      "rect": {
+        "left": 1251,
+        "top": 390,
+        "width": 197,
+        "height": 173
+      }
+    },
+    {
+      "id": "tap",
+      "rect": {
+        "left": 0,
+        "top": 563,
+        "width": 181,
+        "height": 171
+      }
+    },
+    {
+      "id": "upgrade",
+      "rect": {
+        "left": 181,
+        "top": 563,
+        "width": 181,
+        "height": 171
+      }
+    },
+    {
+      "id": "evolve",
+      "rect": {
+        "left": 362,
+        "top": 563,
+        "width": 181,
+        "height": 171
+      }
+    },
+    {
+      "id": "merge",
+      "rect": {
+        "left": 543,
+        "top": 563,
+        "width": 181,
+        "height": 171
+      }
+    },
+    {
+      "id": "hourglass",
+      "rect": {
+        "left": 724,
+        "top": 563,
+        "width": 181,
+        "height": 171
+      }
+    },
+    {
+      "id": "lightning",
+      "rect": {
+        "left": 905,
+        "top": 563,
+        "width": 179,
+        "height": 171
+      }
+    },
+    {
+      "id": "star",
+      "rect": {
+        "left": 1084,
+        "top": 563,
+        "width": 175,
+        "height": 171
+      }
+    },
+    {
+      "id": "trophy",
+      "rect": {
+        "left": 1259,
+        "top": 563,
+        "width": 189,
+        "height": 171
+      }
+    },
+    {
+      "id": "home",
+      "rect": {
+        "left": 0,
+        "top": 734,
+        "width": 192,
+        "height": 166
+      }
+    },
+    {
+      "id": "backpack",
+      "rect": {
+        "left": 192,
+        "top": 734,
+        "width": 170,
+        "height": 166
+      }
+    },
+    {
+      "id": "spellbook",
+      "rect": {
+        "left": 362,
+        "top": 734,
+        "width": 181,
+        "height": 166
+      }
+    },
+    {
+      "id": "shop",
+      "rect": {
+        "left": 543,
+        "top": 734,
+        "width": 181,
+        "height": 166
+      }
+    },
+    {
+      "id": "quest",
+      "rect": {
+        "left": 724,
+        "top": 734,
+        "width": 180,
+        "height": 166
+      }
+    },
+    {
+      "id": "map",
+      "rect": {
+        "left": 904,
+        "top": 734,
+        "width": 182,
+        "height": 166
+      }
+    },
+    {
+      "id": "gift",
+      "rect": {
+        "left": 1086,
+        "top": 734,
+        "width": 181,
+        "height": 166
+      }
+    },
+    {
+      "id": "settings",
+      "rect": {
+        "left": 1267,
+        "top": 734,
+        "width": 181,
+        "height": 166
+      }
+    },
+    {
+      "id": "tick",
+      "rect": {
+        "left": 0,
+        "top": 900,
+        "width": 181,
+        "height": 186
+      }
+    },
+    {
+      "id": "close",
+      "rect": {
+        "left": 181,
+        "top": 900,
+        "width": 181,
+        "height": 186
+      }
+    },
+    {
+      "id": "plus",
+      "rect": {
+        "left": 362,
+        "top": 900,
+        "width": 181,
+        "height": 186
+      }
+    },
+    {
+      "id": "back",
+      "rect": {
+        "left": 543,
+        "top": 900,
+        "width": 181,
+        "height": 186
+      }
+    },
+    {
+      "id": "play",
+      "rect": {
+        "left": 724,
+        "top": 900,
+        "width": 181,
+        "height": 186
+      }
+    },
+    {
+      "id": "pause",
+      "rect": {
+        "left": 905,
+        "top": 900,
+        "width": 181,
+        "height": 186
+      }
+    },
+    {
+      "id": "lock",
+      "rect": {
+        "left": 1086,
+        "top": 900,
+        "width": 180,
+        "height": 186
+      }
+    },
+    {
+      "id": "sound",
+      "rect": {
+        "left": 1266,
+        "top": 900,
+        "width": 182,
+        "height": 186
+      }
+    }
+  ]
+}

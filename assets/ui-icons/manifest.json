@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "sourceIssue": 83,
+  "version": 2,
+  "sourceIssue": 179,
   "sheet": "mystical.png",
   "tintableSheet": "mystical-mono.png",
   "sheetSize": [
@@ -27,7 +27,8 @@
         83,
         84,
         86
-      ]
+      ],
+      "sourceCrop": "hammer"
     },
     {
       "id": "travel",
@@ -46,7 +47,8 @@
         83,
         84,
         87
-      ]
+      ],
+      "sourceCrop": "map"
     },
     {
       "id": "artifacts",
@@ -66,7 +68,8 @@
         84,
         88,
         97
-      ]
+      ],
+      "sourceCrop": "heart"
     },
     {
       "id": "skills",
@@ -85,7 +88,8 @@
         83,
         84,
         92
-      ]
+      ],
+      "sourceCrop": "spellbook"
     },
     {
       "id": "awaken",
@@ -104,7 +108,8 @@
         83,
         84,
         92
-      ]
+      ],
+      "sourceCrop": "evolve"
     },
     {
       "id": "quests",
@@ -123,7 +128,8 @@
         83,
         84,
         91
-      ]
+      ],
+      "sourceCrop": "quest"
     },
     {
       "id": "events",
@@ -142,7 +148,8 @@
         83,
         84,
         93
-      ]
+      ],
+      "sourceCrop": "gift"
     },
     {
       "id": "party",
@@ -161,7 +168,8 @@
         83,
         84,
         95
-      ]
+      ],
+      "sourceCrop": "golem-moss"
     },
     {
       "id": "hub",
@@ -180,7 +188,8 @@
         83,
         84,
         94
-      ]
+      ],
+      "sourceCrop": "home"
     },
     {
       "id": "trade",
@@ -199,7 +208,8 @@
         83,
         84,
         94
-      ]
+      ],
+      "sourceCrop": "merge"
     },
     {
       "id": "wardrobe",
@@ -218,7 +228,8 @@
         83,
         84,
         90
-      ]
+      ],
+      "sourceCrop": "backpack"
     },
     {
       "id": "shop",
@@ -237,7 +248,8 @@
         83,
         84,
         89
-      ]
+      ],
+      "sourceCrop": "shop"
     },
     {
       "id": "ranks",
@@ -256,7 +268,8 @@
         83,
         84,
         95
-      ]
+      ],
+      "sourceCrop": "trophy"
     },
     {
       "id": "stone",
@@ -273,7 +286,8 @@
       "fallback": "St",
       "issues": [
         83
-      ]
+      ],
+      "sourceCrop": "stone"
     },
     {
       "id": "copper",
@@ -290,7 +304,8 @@
       "fallback": "Cu",
       "issues": [
         83
-      ]
+      ],
+      "sourceCrop": "clay"
     },
     {
       "id": "iron",
@@ -307,7 +322,8 @@
       "fallback": "Fe",
       "issues": [
         83
-      ]
+      ],
+      "sourceCrop": "golem-stone"
     },
     {
       "id": "crystal",
@@ -324,7 +340,8 @@
       "fallback": "Cr",
       "issues": [
         83
-      ]
+      ],
+      "sourceCrop": "crystal"
     },
     {
       "id": "stormglass",
@@ -341,7 +358,8 @@
       "fallback": "Sg",
       "issues": [
         83
-      ]
+      ],
+      "sourceCrop": "golem-ice"
     },
     {
       "id": "abyssite",
@@ -358,7 +376,8 @@
       "fallback": "Ab",
       "issues": [
         83
-      ]
+      ],
+      "sourceCrop": "golem-obsidian"
     },
     {
       "id": "sunsteel",
@@ -375,7 +394,8 @@
       "fallback": "Ss",
       "issues": [
         83
-      ]
+      ],
+      "sourceCrop": "golem-gold"
     },
     {
       "id": "aether",
@@ -392,7 +412,8 @@
       "fallback": "Ae",
       "issues": [
         83
-      ]
+      ],
+      "sourceCrop": "essence"
     },
     {
       "id": "xp",
@@ -412,7 +433,8 @@
         85,
         92,
         97
-      ]
+      ],
+      "sourceCrop": "star"
     },
     {
       "id": "eventPoints",
@@ -430,7 +452,8 @@
       "issues": [
         83,
         93
-      ]
+      ],
+      "sourceCrop": "coin"
     },
     {
       "id": "quake",
@@ -448,7 +471,8 @@
       "issues": [
         83,
         96
-      ]
+      ],
+      "sourceCrop": "lightning"
     },
     {
       "id": "mend",
@@ -466,7 +490,8 @@
       "issues": [
         83,
         96
-      ]
+      ],
+      "sourceCrop": "potion"
     },
     {
       "id": "magnet",
@@ -484,7 +509,8 @@
       "issues": [
         83,
         96
-      ]
+      ],
+      "sourceCrop": "merge"
     },
     {
       "id": "common",
@@ -503,7 +529,8 @@
         83,
         82,
         88
-      ]
+      ],
+      "sourceCrop": "golem-stone"
     },
     {
       "id": "uncommon",
@@ -522,7 +549,8 @@
         83,
         82,
         88
-      ]
+      ],
+      "sourceCrop": "golem-moss"
     },
     {
       "id": "rare",
@@ -541,7 +569,8 @@
         83,
         82,
         88
-      ]
+      ],
+      "sourceCrop": "golem-ice"
     },
     {
       "id": "epic",
@@ -560,7 +589,8 @@
         83,
         82,
         88
-      ]
+      ],
+      "sourceCrop": "golem-crystal"
     },
     {
       "id": "legendary",
@@ -579,7 +609,8 @@
         83,
         82,
         88
-      ]
+      ],
+      "sourceCrop": "golem-gold"
     },
     {
       "id": "mythic",
@@ -598,7 +629,8 @@
         83,
         82,
         88
-      ]
+      ],
+      "sourceCrop": "golem-lava"
     },
     {
       "id": "tick",
@@ -618,7 +650,8 @@
         85,
         91,
         94
-      ]
+      ],
+      "sourceCrop": "tick"
     },
     {
       "id": "lock",
@@ -636,7 +669,8 @@
       "issues": [
         83,
         87
-      ]
+      ],
+      "sourceCrop": "lock"
     },
     {
       "id": "alert",
@@ -654,7 +688,8 @@
       "issues": [
         83,
         84
-      ]
+      ],
+      "sourceCrop": "tap"
     },
     {
       "id": "close",
@@ -672,7 +707,8 @@
       "issues": [
         83,
         84
-      ]
+      ],
+      "sourceCrop": "close"
     },
     {
       "id": "guide",
@@ -690,7 +726,9 @@
       "issues": [
         83,
         87
-      ]
+      ],
+      "sourceCrop": "golem-stone"
     }
-  ]
+  ],
+  "provenance": "source.json"
 }
