@@ -2000,7 +2000,13 @@ local openTab: number? = nil
 local tabButtons: { [string]: TextButton } = {}
 local menuButton: TextButton
 local menuGrid: Ui.Window
+local gridList: ScrollingFrame
 local compact = false
+-- Five tabs stand in the left column, plus a More button; the rest (and, on a
+-- small screen, every tab) live in the Menu grid. The HUD keeps at most six
+-- tiles on a side.
+local PRIMARY_TABS: { [string]: boolean } =
+	{ forge = true, travel = true, artifacts = true, skills = true, quests = true }
 local themed: string? = nil
 local lastTabId: string? = nil
 local lastSignature: string? = nil
@@ -2017,10 +2023,11 @@ local MIN_REBUILD_INTERVAL = 0.75
 -- The tutorial points at these. When the tabs are folded away, it points at
 -- the Menu button first.
 function Menus.getTabButton(id: string): TextButton?
-	if compact and not menuGrid.frame.Visible then
+	local button = tabButtons[id]
+	if button and button.Parent == gridList and not menuGrid.frame.Visible then
 		return menuButton
 	end
-	return tabButtons[id]
+	return button
 end
 
 function Menus.isOpen(id: string): boolean
@@ -2039,8 +2046,9 @@ local function refreshBadges()
 	local anything = false
 	for _, tab in TABS do
 		local on = ready[tab.id] == true
-		anything = anything or on
 		local b = tabButtons[tab.id]
+		-- The More or Menu button badges only for tabs folded away behind it.
+		anything = anything or (on and (not b or b.Parent == gridList))
 		if b then
 			Ui.badge(b, on)
 		end
@@ -2237,6 +2245,9 @@ end
 function open(index: number?)
 	local changed = openTab ~= index
 	openTab = if openTab == index then nil else index
+	if changed and openTab then
+		Ui.pop(window.frame)
+	end
 	window.frame.Visible = openTab ~= nil
 	if menuGrid then
 		menuGrid.frame.Visible = false
@@ -2259,7 +2270,7 @@ function Menus.open(id: string)
 end
 
 local COMPACT_WIDTH = 900
-local COMPACT_HEIGHT = 520
+local COMPACT_HEIGHT = 600
 
 local function makeTabButton(parent: Instance, index: number, tab: { id: string, name: string }): TextButton
 	local b = Ui.button(parent, "", UDim2.fromOffset(176, 56), UDim2.new(), true, function()
@@ -2285,6 +2296,7 @@ end
 function Menus.start()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "GolemMenus"
+	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.ResetOnSpawn = false
 	gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 	gui.Parent = player:WaitForChild("PlayerGui")
@@ -2316,8 +2328,9 @@ function Menus.start()
 	end)
 	local frame = window.frame
 	frame.AnchorPoint = Vector2.new(0.5, 0.5)
-	frame.Position = UDim2.fromScale(0.5, 0.52)
-	frame.Size = UDim2.fromScale(0.56, 0.8)
+	-- Spans 20% to 92.5% of the height: under the tutorial sign and boss bar, over the health bar.
+	frame.Position = UDim2.fromScale(0.5, 0.565)
+	frame.Size = UDim2.fromScale(0.56, 0.72)
 	frame.Visible = false
 	local constraint = Instance.new("UISizeConstraint")
 	constraint.MinSize = Vector2.new(320, 280)
@@ -2326,27 +2339,31 @@ function Menus.start()
 	list = Ui.scrollList(window.body)
 
 	-- Small screens: one Menu button that opens every tab as a grid.
-	menuButton = Ui.button(gui, "Menu", UDim2.fromOffset(132, 56), UDim2.fromOffset(12, 186), true, function()
+	menuButton = Ui.button(gui, "More", UDim2.fromOffset(176, 56), UDim2.fromOffset(12, 186), true, function()
 		menuGrid.frame.Visible = not menuGrid.frame.Visible
 		if menuGrid.frame.Visible and openTab then
 			open(openTab)
 			menuGrid.frame.Visible = true
 		end
+		if menuGrid.frame.Visible then
+			Ui.pop(menuGrid.frame)
+		end
 	end, "secondary")
 	menuButton.Name = "MenuButton"
-	menuButton.Visible = false
+	menuButton.LayoutOrder = 99
+	menuButton.Parent = bar
 	menuGrid = Ui.window(gui, "Menu", Ui.Headers.menu, nil, function()
 		menuGrid.frame.Visible = false
 	end)
 	menuGrid.frame.AnchorPoint = Vector2.new(0.5, 0.5)
-	menuGrid.frame.Position = UDim2.fromScale(0.5, 0.52)
-	menuGrid.frame.Size = UDim2.fromScale(0.62, 0.86)
+	menuGrid.frame.Position = UDim2.fromScale(0.5, 0.565)
+	menuGrid.frame.Size = UDim2.fromScale(0.62, 0.72)
 	menuGrid.frame.Visible = false
 	local gridConstraint = Instance.new("UISizeConstraint")
 	gridConstraint.MinSize = Vector2.new(320, 240)
 	gridConstraint.MaxSize = Vector2.new(560, 600)
 	gridConstraint.Parent = menuGrid.frame
-	local gridList = Instance.new("ScrollingFrame")
+	gridList = Instance.new("ScrollingFrame")
 	gridList.Name = "Grid"
 	gridList.BackgroundTransparency = 1
 	gridList.BorderSizePixel = 0
@@ -2365,24 +2382,27 @@ function Menus.start()
 	gridPadding.PaddingTop = UDim.new(0, 8)
 	gridPadding.Parent = gridList
 
+	local laidOut = false
 	local function applyLayout()
 		local camera = workspace.CurrentCamera
 		local size = if camera then camera.ViewportSize else Vector2.new(1280, 720)
 		local small = size.X < COMPACT_WIDTH or size.Y < COMPACT_HEIGHT
-		if small == compact and (bar:FindFirstChildWhichIsA("TextButton") ~= nil) ~= small then
+		if laidOut and small == compact then
 			return
 		end
+		laidOut = true
 		compact = small
-		for _, b in tabButtons do
-			b.Parent = if small then gridList else bar
+		for _, tab in TABS do
+			local b = tabButtons[tab.id]
+			b.Parent = if small or not PRIMARY_TABS[tab.id] then gridList else bar
 		end
-		bar.Visible = not small
-		menuButton.Visible = small
-		if not small then
-			menuGrid.frame.Visible = false
-		end
+		-- Small screens: a Menu button of its own; otherwise More ends the column.
+		menuButton.Parent = if small then gui else bar
+		menuButton.Size = if small then UDim2.fromOffset(132, 56) else UDim2.fromOffset(176, 56)
+		Ui.setText(menuButton, if small then "Menu" else "More")
+		menuGrid.frame.Visible = false
 		-- On a phone the window leaves the thumb corners clear.
-		frame.Size = if small then UDim2.fromScale(0.6, 0.9) else UDim2.fromScale(0.56, 0.8)
+		frame.Size = if small then UDim2.fromScale(0.6, 0.76) else UDim2.fromScale(0.56, 0.72)
 	end
 	applyLayout()
 	local function watchCamera()

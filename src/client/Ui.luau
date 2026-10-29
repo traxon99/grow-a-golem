@@ -182,6 +182,70 @@ function Ui.transparency(base: number): number
 	return base * (if ok then preferred else 1)
 end
 
+-- Hover and press feedback for a button: it grows a little under the cursor
+-- and sinks when pressed, through a UIScale child (never Size, so layouts stay
+-- put). Reduced Motion leaves the button alone.
+function Ui.pressable(target: GuiButton, hover: number?, press: number?)
+	local scale = Instance.new("UIScale")
+	scale.Name = "Press"
+	scale.Parent = target
+	local hovering, down = false, false
+	local function update()
+		if Ui.reducedMotion() then
+			scale.Scale = 1
+			return
+		end
+		local goal = if down then (press or 0.94) elseif hovering then (hover or 1.06) else 1
+		local info = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		TweenService:Create(scale, info, { Scale = goal }):Play()
+	end
+	target.MouseEnter:Connect(function()
+		hovering = true
+		update()
+	end)
+	target.MouseLeave:Connect(function()
+		hovering = false
+		down = false
+		update()
+	end)
+	target.MouseButton1Down:Connect(function()
+		down = true
+		update()
+	end)
+	target.MouseButton1Up:Connect(function()
+		down = false
+		update()
+	end)
+	-- A button hidden or moved while hovered never gets MouseLeave.
+	target:GetPropertyChangedSignal("Visible"):Connect(function()
+		hovering, down = false, false
+		update()
+	end)
+	target.AncestryChanged:Connect(function()
+		hovering, down = false, false
+		update()
+	end)
+end
+
+-- A panel opening: it grows from 85% to full size with a little overshoot.
+-- Reduced Motion shows it at once.
+function Ui.pop(frame: GuiObject)
+	if Ui.reducedMotion() then
+		return
+	end
+	local scale = frame:FindFirstChild("Pop") :: UIScale?
+	if not scale then
+		scale = Instance.new("UIScale")
+		assert(scale)
+		scale.Name = "Pop"
+		scale.Parent = frame
+	end
+	assert(scale)
+	scale.Scale = 0.85
+	local info = TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+	TweenService:Create(scale, info, { Scale = 1 }):Play()
+end
+
 ---------------------------------------------------------------- materials
 
 -- Themed surfaces (docs/reference/ui-materials.md). Each material has a base
@@ -258,7 +322,7 @@ Ui.Materials = {
 	plate = {
 		color = Color3.fromRGB(30, 34, 50),
 		edge = Color3.fromRGB(10, 10, 18),
-		edgeWidth = 4,
+		edgeWidth = 5,
 		rotation = 90,
 		grain = { 1, 0.9, 0.82 },
 		tile = 48,
@@ -283,7 +347,7 @@ Ui.Materials = {
 -- A gradient on a text object also tints its text, so text surfaces get a
 -- shallower grain and no image layer.
 local TEXT_GRAIN_FLOOR = 0.82
-local SURFACE_PARTS = { "Grain", "Edge", "Texture", "Detail" }
+local SURFACE_PARTS = { "Grain", "Edge", "Texture", "Detail", "Lip" }
 
 local function isTextObject(target: GuiObject): boolean
 	if target:IsA("TextBox") then
@@ -361,14 +425,18 @@ local function addDetails(target: GuiObject, material: string, m: Material, base
 			c.Parent = stud
 		end
 	elseif material == "plate" then
-		-- Faint raised studs across the plate, in a loose grid.
-		for row = 0, 2 do
-			for column = 0, 5 do
+		-- Embossed studs across the whole plate: a staggered grid, lighter than
+		-- the plate and faint enough that text stays above 4.5:1. The public
+		-- stud tile (6927295847) loaded but drew blank in Studio (no permission
+		-- for our place), so they are drawn in code.
+		local columns, rows = 12, 9
+		for row = 0, rows - 1 do
+			for column = 0, columns - 1 do
 				local stud = detail(
 					target,
-					UDim2.fromOffset(14, 14),
-					UDim2.new((column + 0.5 + (row % 2) * 0.5) / 6.5, 0, (row + 0.6) / 3, 0),
-					base:Lerp(Color3.new(1, 1, 1), 0.08),
+					UDim2.fromOffset(16, 16),
+					UDim2.new((column + 0.5 + (row % 2) * 0.5) / (columns + 0.5), 0, (row + 0.5) / rows, 0),
+					base:Lerp(Color3.new(1, 1, 1), 0.3),
 					0.55,
 					true
 				)
@@ -388,7 +456,7 @@ local function addDetails(target: GuiObject, material: string, m: Material, base
 				UDim2.fromOffset(9, 9),
 				UDim2.new(x, if x == 0 then 9 else -9, 0.5, 0),
 				Color3.new(1, 1, 1),
-				0.6,
+				0.55,
 				false
 			)
 			rune.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -404,9 +472,13 @@ end
 -- grain. `details` adds the code-drawn shapes above. Returns the edge stroke
 -- so callers can recolor it (rune glow, gold rim, rarity border). A text
 -- outline stroke (named "Outline") is left alone.
-function Ui.surface(target: GuiObject, material: string, options: { tint: Color3?, details: boolean? }?): UIStroke
+function Ui.surface(
+	target: GuiObject,
+	material: string,
+	options: { tint: Color3?, details: boolean?, lip: boolean? }?
+): UIStroke
 	local m = Ui.Materials[material]
-	local opts: { tint: Color3?, details: boolean? } = options or {}
+	local opts: { tint: Color3?, details: boolean?, lip: boolean? } = options or {}
 	for _, name in SURFACE_PARTS do
 		for _, child in target:GetChildren() do
 			if child.Name == name then
@@ -468,6 +540,22 @@ function Ui.surface(target: GuiObject, material: string, options: { tint: Color3
 			corner:Clone().Parent = texture
 		end
 		texture.Parent = target
+	end
+
+	-- The stud look: a darker band of the same hue along the bottom of every
+	-- button and header bar, as if the face sat on a thicker base.
+	if material == "gem" and not onText and opts.lip ~= false then
+		local lip = Instance.new("Frame")
+		lip.Name = "Lip"
+		lip.Size = UDim2.new(1, -6, 0.14, 0)
+		lip.Position = UDim2.new(0, 3, 0.86, -2)
+		lip.BackgroundColor3 = base:Lerp(Color3.new(0, 0, 0), 0.5)
+		lip.BorderSizePixel = 0
+		lip.ZIndex = 0
+		local c = Instance.new("UICorner")
+		c.CornerRadius = UDim.new(0, 4)
+		c.Parent = lip
+		lip.Parent = target
 	end
 
 	if opts.details then
@@ -647,6 +735,10 @@ function Ui.button(
 		label.TextSize = 22
 	end
 	if enabled then
+		-- Hover and press feedback is the scale; with Reduced Motion on, the
+		-- built-in color change stays instead.
+		b.AutoButtonColor = Ui.reducedMotion()
+		Ui.pressable(b)
 		b.Activated:Connect(function()
 			Sfx.play("click")
 			onClick()
@@ -703,7 +795,12 @@ function Ui.chip(parent: Instance, text: string, color: Color3, order: number?):
 	chip.BackgroundColor3 = color
 	chip.LayoutOrder = order or 0
 	chip.Parent = parent
-	Ui.corner(chip, 14)
+	Ui.corner(chip, 8)
+	local rim = Instance.new("UIStroke")
+	rim.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	rim.Color = Ui.Colors.outline
+	rim.Thickness = 2
+	rim.Parent = chip
 	local p = Instance.new("UIPadding")
 	p.PaddingLeft = UDim.new(0, 10)
 	p.PaddingRight = UDim.new(0, 10)
@@ -1441,6 +1538,7 @@ local function getDialogGui(): ScreenGui
 	end
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "GolemDialogs"
+	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.ResetOnSpawn = false
 	gui.DisplayOrder = 20
 	gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets

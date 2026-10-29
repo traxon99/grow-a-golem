@@ -147,6 +147,7 @@ end
 function Hud.start()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "GolemHud"
+	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.ResetOnSpawn = false
 	gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 	gui.Parent = player:WaitForChild("PlayerGui")
@@ -160,19 +161,22 @@ function Hud.start()
 	stats.Name = "Stats"
 	stats.Size = UDim2.fromOffset(210, 28 * mineralRows + 62)
 	stats.Position = UDim2.fromOffset(12, 12)
-	stats.BackgroundTransparency = 0.1
+	-- No plate behind the numbers: icons and heavy outlined text read on their
+	-- own, so the top-left stays quiet.
+	stats.BackgroundTransparency = 1
 	stats.Parent = gui
-	Ui.corner(stats, 12)
-	Ui.surface(stats, "plate", { details = true })
 
 	local levelLabel = Ui.label(stats, "Level 1", UDim2.new(1, -46, 0, 24), UDim2.fromOffset(38, 6), { Title = true })
+	Ui.outline(levelLabel, 3)
 	Icons.create(stats, "xp", 26, UDim2.fromOffset(8, 5))
 	local xpBack = Instance.new("Frame")
 	xpBack.Size = UDim2.new(1, -20, 0, 10)
 	xpBack.Position = UDim2.fromOffset(10, 34)
 	xpBack.Parent = stats
 	Ui.corner(xpBack, 5)
-	Ui.surface(xpBack, "metal", { tint = Ui.Colors.row })
+	local xpRim = Ui.surface(xpBack, "metal", { tint = Color3.fromRGB(20, 22, 32) })
+	xpRim.Color = Ui.Colors.outline
+	xpRim.Thickness = 3
 	local xpFill = Instance.new("Frame")
 	xpFill.Size = UDim2.fromScale(0, 1)
 	xpFill.Parent = xpBack
@@ -193,6 +197,7 @@ function Hud.start()
 			TextTruncate = Enum.TextTruncate.AtEnd,
 		})
 		l.TextColor3 = Config.Minerals[id].color:Lerp(Ui.Colors.text, 0.45)
+		Ui.outline(l, 3)
 		mineralLabels[id] = l
 	end
 
@@ -200,9 +205,11 @@ function Hud.start()
 
 	local healthBack = Instance.new("Frame")
 	healthBack.Name = "GolemHealth"
-	healthBack.AnchorPoint = Vector2.new(0.5, 0)
-	healthBack.Size = UDim2.fromOffset(300, 30)
-	healthBack.Position = UDim2.new(0.5, 0, 0, 12)
+	-- Bottom centre, between the joystick and the spell buttons, so the top
+	-- stays free for the tutorial sign, boss bar and menus.
+	healthBack.AnchorPoint = Vector2.new(0.5, 1)
+	healthBack.Size = UDim2.fromOffset(260, 30)
+	healthBack.Position = UDim2.new(0.5, 0, 1, -24)
 	healthBack.BackgroundTransparency = 0.1
 	healthBack.Parent = gui
 	Ui.corner(healthBack, 10)
@@ -239,6 +246,7 @@ function Hud.start()
 	goalCard.Parent = gui
 	Ui.corner(goalCard, 12)
 	Ui.surface(goalCard, "plate")
+	Ui.pressable(goalCard, 1.03, 0.97)
 	local goalPadding = Instance.new("UIPadding")
 	goalPadding.PaddingTop = UDim.new(0, 6)
 	goalPadding.PaddingBottom = UDim.new(0, 10)
@@ -366,6 +374,7 @@ function Hud.start()
 		local rim = Ui.surface(b, "stone")
 		rim.Color = Ui.Colors.rune
 		rim.Thickness = 3
+		Ui.pressable(b)
 		b.Activated:Connect(function()
 			Controls.castSpell(spellId)
 		end)
@@ -390,6 +399,7 @@ function Hud.start()
 		UDim2.fromOffset(4, 2),
 		{ Title = true, TextSize = Ui.TextSize.body, TextXAlignment = Enum.TextXAlignment.Center }
 	)
+	Ui.pressable(mountButton)
 	mountButton.Activated:Connect(Controls.toggleMount)
 	local function refreshMount()
 		local mounted = Controls.isMounted()
@@ -420,6 +430,7 @@ function Hud.start()
 		UDim2.fromOffset(4, 2),
 		{ Title = true, TextSize = Ui.TextSize.body, TextXAlignment = Enum.TextXAlignment.Center }
 	)
+	Ui.pressable(sprintButton)
 	sprintButton.Activated:Connect(Controls.toggleSprint)
 	local function refreshSprint()
 		local on = Controls.isSprinting()
