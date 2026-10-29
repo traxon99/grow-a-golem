@@ -27,6 +27,8 @@ local parent = {
 	end,
 }
 local position = pair(8, 8)
+-- The fallback checks run with no uploaded IDs, whatever production Config holds.
+Config.UiIcons.color, Config.UiIcons.mono, Config.UiIcons.robux = 0, 0, 0
 local count = 0
 for key, entry in Config.UiIcons.entries do
 	count += 1
