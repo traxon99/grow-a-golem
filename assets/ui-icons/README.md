@@ -1,57 +1,53 @@
-# Mystical UI icons — issue #83
+# Original illustrated UI icons — #179
 
-37 original, code-drawn symbols: thick outlines, simple silhouettes and at most
-three colors per icon. `preview.png` shows each at 128 px and 32 px in color and
-grayscale. Transparent PNGs and editable SVGs are included. No borrowed artwork.
+All artwork comes exclusively from the owner's uploaded `ChatGPT Image Oct 28,
+2026, 10_14_32 PM.png` (commit `9734bee`). Its bytes are preserved unchanged.
+`source.json` records its SHA-256 and 48 manually aligned crop rectangles;
+`crops/` preserves those original pixels. No icons are regenerated or redrawn.
 
-## Inventory and issue mapping
+`manifest.json` maps all 37 existing runtime IDs to these crops. `png/` contains
+128 × 128 exports with aspect ratio preserved and an 8 px transparent gutter.
+`mystical.png` and `mystical-mono.png` retain the existing 1024 × 640 layout,
+128 px cells, offsets, and three empty cells. The mono sheet is a grayscale
+derivative for the existing tint API. `preview.png` shows runtime icons at
+128 px and 32 px, plus grayscale at 32 px.
 
-| Group | Icons | Consumers |
-| --- | --- | --- |
-| Menu tabs | forge, travel, artifacts, skills, awaken, quests, events, party, hub, trade, wardrobe, shop, ranks | #84, #86–#95 |
-| All current Config minerals | stone, copper, iron, crystal, stormglass, abyssite, sunsteel, aether | HUD, #86 |
-| Progress | xp, eventPoints | #85, #92, #93, #97 |
-| Spells | quake, mend, magnet | HUD, #96 |
-| Rarity symbols | common (circle), uncommon (diamond), rare (triangle), epic (four-point star), legendary (five-point star), mythic (six-point star) | shared rarity table in #82, #88, #97 |
-| Status | tick, lock, alert, close | #84, #85, #87, #91, #94 |
-| Portrait | guide | locked-island dialog #87 |
+## Meaning and aliases
 
-`manifest.json` records stable IDs, cell coordinates, fallback text and issue
-numbers. Rarity symbols are prepared for #82: no artifact rarities or drop odds
-are invented or assigned here. Keep the rarity name beside the symbol.
-
-**Robux is intentionally not drawn.** Supply Roblox's official artwork according
-to its current brand usage rules, then set `Config.UiIcons.robux`. Until then the
-renderer uses `R$` and purchase controls must retain the numeric price.
+The source does not contain every literal game concept. Existing labels remain
+necessary: copper uses clay, iron uses the gray golem, stormglass uses ice,
+abyssite uses obsidian, sunsteel uses gold, aether uses essence, quake uses
+lightning, mend uses potion, magnet and trade use the merging stones, party uses
+the moss golem, wardrobe uses the backpack, and alert uses the attention/tap hand.
+Rarity IDs use distinct gray, moss, ice, crystal, gold and lava golem silhouettes.
+These are visual aliases only; they do not add golem types, change rarity tiers,
+or alter odds. The manifest and preview show every mapping explicitly.
+All 48 source crops remain available, including the unused gardening/transport
+controls, without adding game features. Robux continues to use the existing
+`R$` fallback until official Roblox artwork is supplied.
 
 ## Upload and use
 
-1. Upload `mystical.png` and optionally `mystical-mono.png` as images under the
-   experience owner. Both are 1024 × 640 RGBA, 8 columns × 5 rows, 128 px per cell.
-   Do not crop, rescale or repack them; the final three cells are empty padding.
-2. After moderation, paste the numeric image IDs into `Config.UiIcons.color`
-   and `.mono`. All asset IDs remain **0** in source until real uploads exist.
-3. `src/client/Icons.luau` exports `Icons.create(parent, key, size, position, tint)`.
-   No tint selects the color sheet; tint selects the grayscale sheet. It applies
-   `ImageRectOffset` / `ImageRectSize` and returns the image, or a text fallback
-   when the chosen sheet's ID is zero. An unknown key displays `?`.
-4. Test the uploaded sheets in a published place, including permissions, 32 px
-   readability, grayscale, small landscape phone and largest preferred text.
-   Keep visible word labels and 48 px touch targets; an icon is not a button.
+The HUD, menus and status displays already use `Icons.create` and the stable
+registry in `Config.UiIcons`. The current color ID `130214142096922` and mono ID
+`96019795815429` refer to the **previous artwork**. A GitHub merge cannot replace
+those hosted image pixels.
 
-The existing HUD now uses XP, mineral and spell icons. All menu tabs and the
-window header use their matching icon; close, travel guide/locks, quest status,
-event points and event reward status use the same renderer. Word labels and
-server-driven actions remain. Rarity sprites await the shared rarity semantics
-in #82; no rarity is invented for existing artifacts. The larger redesigns in
-#84–#97 remain separate.
-This change does not claim that Studio validation or Roblox uploads are done.
-If an uploaded image is rejected, reset its ID to zero to restore the fallback.
+1. Upload **both** `mystical.png` and `mystical-mono.png` under the experience
+   owner. Keep their dimensions and transparent padding unchanged.
+2. After moderation, replace `Config.UiIcons.color` and `.mono` with the new
+   usable image IDs. Existing cells and UI consumers need no other changes.
+3. In Studio/published play, check HUD minerals/spells, all 13 tabs, rarity
+   badges, close, lock and quest states at phone and desktop sizes. Confirm
+   readable labels, no clipping/neighbor bleed, and no image-permission errors
+   in Output. Test tinted icons as well as full color.
 
-## Rebuild and edit
+Roblox upload and Studio validation are owner steps; neither is claimed done.
 
-Requires Node and `sharp` 0.35.x (tested with the workspace version). Install
-locally with `npm install --no-save --package-lock=false sharp@0.35.5` if needed.
+## Rebuild and verify
+
+Requires Node and `sharp` 0.35.5. Install with
+`npm install --no-save --package-lock=false sharp@0.35.5` if unavailable.
 
 ```sh
 node assets/ui-icons/build.cjs
@@ -59,12 +55,9 @@ node assets/ui-icons/verify.cjs
 python3 scripts/check_ui_icons.py
 ```
 
-`build.cjs` is the geometry source; it exports the individual SVGs under `src/`,
-PNGs under `png/`, two SVG/PNG atlases, preview and manifest. Edit the geometry
-there to regenerate all outputs. SVGs can also be edited in a vector editor, but
-back-port edits into the generator before rebuilding. Preserve order and cell
-coordinates, or update `Config.UiIcons.entries` alongside the manifest.
-
-The neutral sheet is white/grayscale for `ImageColor3`; color versions use rune
-blue, amethyst, moss and ember, with gold reserved for Legendary and Sunsteel.
-No animated glow is baked in. UI glows and reduced-motion behavior belong to #82.
+The builder crops the original, trims transparent margins, resizes and packs.
+It uses SVG only to render preview captions, never to create icon artwork.
+Verification checks original bytes, all 48 pixel-exact crops, all 37 aliases,
+both packed atlases, registry coordinates, inventory coverage and alpha gutters.
+Edit crop rectangles or aliases in the JSON files, then rebuild; do not edit
+exported icons or replace the original source. Old SVG icon sources are removed.
