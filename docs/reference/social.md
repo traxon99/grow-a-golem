@@ -28,6 +28,7 @@ Last updated: 2026-10-28. Read [safety-compliance.md](safety-compliance.md) firs
 
 - Co-op parties up to 4; kills within 80 studs are shared. Party invites default to Roblox friends only, with Everyone / Friends only / Off privacy controls in Party and Hub, per-target cooldowns, a pending-invite cap and silent refreshes to prevent notification spam. Accepting a full party never removes you from your current one.
 - Friend bonus +10% per friend, up to +30%.
+- **Shared mineral surge (#150):** every server follows the same 15-minute UTC schedule, with 60 seconds of warning and 90 seconds of 2x node yields on all islands. Players can gather and mine together without chat or a party, with no paid entry; this is not yet a cooperative world boss.
 - Global leaderboards (level, Awakenings, artifacts found) show Roblox display names, falling back to "Player" when unavailable. They skip sessions that cannot save and skip writes when a player's score is unchanged.
 - **Golem Hub (#13):** a safe island (zone id 0, `Config.Hub`, Travel tab) with no enemies. Golems idle there on show. Walking up to a golem shows an Inspect prompt (also the Hub tab list): level, size, Awakenings, parts, equipped artifacts, found count, bosses beaten. No hangout, drawing or free-text features.
 - **Titles:** 9 earned titles in `Config.Titles` (boss kills, zone collections, Awakening 1 and 3, level 30) worn on the nametag. Never sold, no player-entered text, so no TextService filtering is needed.
@@ -39,7 +40,7 @@ Last updated: 2026-10-28. Read [safety-compliance.md](safety-compliance.md) firs
 
 1. ~~**P1 (#13):** Hub design with no hangout or drawing features.~~ Done. Emotes and pings are still open.
 2. ~~**P1 (#13):** If trading ships: `IsPaidItemTradingAllowed` gate, two-sided confirm, value warning, trade log keyed by UserId, no trading of Robux-bought items.~~ Done. The known limit (a crash between the two players' saves could copy or lose an artifact) is fixed by the escrow and journal in R5.2; session locking alone could not fix it, since a trade spans two save records.
-3. **P1:** Co-op world boss or shared event so parties have a reason to form (also [live-ops.md](live-ops.md)). Partly addressed by the Golem Tower (#62): a private ten-wave party run with Accept buttons for every member, no text and fixed rewards; it ships switched off until the three-client playtest.
+3. **P1:** Co-op world boss or shared event so parties have a reason to form (also [live-ops.md](live-ops.md)). A free shared mining surge now runs every 15 minutes (#150). Co-op combat remains open; the Golem Tower (#62) is a private ten-wave party run with fixed rewards, switched off until the three-client playtest.
 4. **P2:** Free private servers (goodwill; inference).
 5. **P2:** Leaderboard display names are implemented (#138). Removing a user's leaderboard entries on a right-to-be-forgotten request remains open (#137).
 
