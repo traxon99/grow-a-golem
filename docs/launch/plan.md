@@ -17,6 +17,43 @@ Draft; no group created, spend committed, posts sent or ads launched.
 6. Check that analytics events appear in Creator Dashboard; do not run paid
    acquisition before acquisition and D1 retention can be compared.
 
+## Right to erasure (RTBF) operations (#137)
+
+The owner checks Roblox's right-to-erasure notifications **daily** and verifies
+the affected experience and numeric UserId. Keep a private audit of the request,
+the deletion date and the result; do not put the UserId or API key in GitHub.
+See [Roblox's RTBF guidance](https://create.roblox.com/docs/production/publishing/RTBF-and-creators)
+and [Open Cloud storage API](https://create.roblox.com/docs/cloud/reference/features/storage).
+
+1. Publish the partner-ID-free trade code and **drain older servers** before
+   processing a request. Do not delete while the affected user is online:
+   an active session could write the profile or leaderboard key back.
+2. In Creator Dashboard, copy the **Universe ID** (not the start Place ID).
+   Create an Open Cloud key restricted to this universe with standard DataStore
+   entry-delete and ordered DataStore entry-write/delete permissions. Store the
+   key outside the repository as `ROBLOX_OPEN_CLOUD_API_KEY`.
+3. From the repo root, review the dry run:
+   `python3 scripts/rtbf.py USER_ID --universe-id UNIVERSE_ID`.
+   Confirm it names `Config.Data.storeName` and every store in
+   `Config.Leaderboards.boards`, all with the `global` scope.
+4. Execute with explicit confirmation:
+   `python3 scripts/rtbf.py USER_ID --universe-id UNIVERSE_ID --execute --confirm-user-id USER_ID`.
+   The script removes `player_USER_ID` from the standard store and `USER_ID`
+   from each ordered leaderboard. If a request fails, fix permissions or
+   availability and rerun; do not mark the request complete on partial success.
+5. Record the completion privately. Check any other stores introduced later and
+   keep the script in sync with their key formats. Roblox can also configure
+   DataStore RTBF deletion templates or a verified webhook for automation.
+
+Trade logs and pending escrow created by the new build no longer store the
+partner's UserId. Existing trade records are redacted and persisted when their
+owners next load. **Important:** an inactive player's legacy save can still
+contain a partner UserId until that player returns. For older data, arrange a
+separate audited backfill/scrub of inactive saves before claiming historical
+partner references have been fully erased; the targeted deletion script alone
+does not scan other players' profiles. Do not claim end-to-end RTBF completion
+until that check is satisfied.
+
 ## Small Sponsored ad experiment
 
 Proposed maximum **US$50 total**, subject to the owner's explicit spend approval

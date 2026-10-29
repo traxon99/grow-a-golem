@@ -24,7 +24,6 @@ local TradeJournal = {}
 
 type Pending = {
 	id: string, -- journal key suffix
-	with: number, -- the other player's UserId, for the trade log
 	gave: { string }, -- artifact ids this side sends (held in escrow)
 	got: { string }, -- artifact ids this side receives if committed
 	day: number, -- UTC day the trade was made, for the daily limit
@@ -70,7 +69,6 @@ function TradeJournal.prepare(data: any, pending: Pending): boolean
 	end
 	data.trades.pending = {
 		id = pending.id,
-		with = pending.with,
 		gave = copyList(pending.gave),
 		got = copyList(pending.got),
 		day = pending.day,
@@ -139,7 +137,7 @@ function TradeJournal.resolve(data: any, status: string, addCopy: (any, string) 
 			trades.day = pending.day
 			trades.count = 1
 		end
-		table.insert(trades.log, { t = pending.at, with = pending.with, gave = pending.gave, got = pending.got })
+		table.insert(trades.log, { t = pending.at, gave = pending.gave, got = pending.got })
 		while #trades.log > logKept do
 			table.remove(trades.log, 1)
 		end

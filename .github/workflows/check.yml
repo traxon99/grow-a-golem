@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Test RTBF dry-run and deletion helper
+        run: python3 -m unittest discover -s tests -p 'test_*.py'
       - name: Build pinned Luau tools
         run: |
           git clone https://github.com/luau-lang/luau.git "$RUNNER_TEMP/luau"

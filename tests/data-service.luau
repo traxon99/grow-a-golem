@@ -209,6 +209,23 @@ do
 	assert(migrated.pity == nil, "the old pity counts are moved, not kept")
 	assert(migrated.bags.drop1.drawn == Config.ArtifactBags.drop.marbles - 1, "a near-pity find stays sure")
 	assert(migrated.bags.boss2.drawn == 1 and migrated.bags.boss2.wins == 0)
+	-- Legacy trade history and unfinished escrow may contain a partner UserId.
+	-- Lease acquisition must persist their removal, even before autosave.
+	records.player_6 = {
+		trades = {
+			day = 10,
+			count = 1,
+			log = { { t = 100, with = 12345, gave = { "relic" }, got = {} } },
+			pending = { id = "legacy", with = 67890, gave = {}, got = {}, day = 10, at = 100, side = "a" },
+		},
+	}
+	local legacy = player(6)
+	players.PlayerAdded:Fire(legacy)
+	assert(not legacy.kicked and dataService.get(legacy))
+	assert(dataService.get(legacy).trades.log[1].with == nil)
+	assert(dataService.get(legacy).trades.pending.with == nil)
+	assert(records.player_6.trades.log[1].with == nil and records.player_6.trades.pending.with == nil)
+	assert(records.player_6.trades.log[1].t == 100 and records.player_6.trades.pending.id == "legacy")
 	print(
 		"PASS: actual DataService acquisition/save/release, expired takeover, stale writes, abandoned loads, failed live/Studio loads"
 	)

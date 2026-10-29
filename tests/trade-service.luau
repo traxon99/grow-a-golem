@@ -55,6 +55,7 @@ do
 		local pending = { id = "t1", with = 2, gave = { X }, got = { Y }, day = 10, at = 100 }
 		assert(TradeJournal.prepare(a, pending))
 		assert(a.artifacts.spares[X] == 1 and a.trades.pending.id == "t1")
+		assert(a.trades.pending.with == nil, "Escrow must not store partner UserIds")
 		assert(not TradeJournal.prepare(a, pending), "Only one trade may be pending")
 		local bound = newData({ [X] = 1 })
 		bound.artifacts.boundSpares[X] = 1
@@ -79,6 +80,7 @@ do
 		end
 		assert(TradeJournal.resolve(a, "committed", adds, 2))
 		assert(a.artifacts.spares[Y] == 1 and a.trades.pending == nil and a.trades.count == 1 and #a.trades.log == 1)
+		assert(a.trades.log[1].with == nil, "Trade history must not store partner UserIds")
 		assert(not TradeJournal.resolve(a, "committed", adds, 2), "Resolving twice does nothing")
 		assert(a.artifacts.spares[Y] == 1)
 		local back = newData({ [X] = 1 })
@@ -305,6 +307,7 @@ do
 		"Both settled saves are written"
 	)
 	assert(live[a].trades.count == 1 and #live[b].trades.log == 1 and fired.traded == 1)
+	assert(live[a].trades.log[1].with == nil and live[b].trades.log[1].with == nil)
 	assert(journalRecords["trade_g1"] == nil, "A trade both sides settled leaves no journal record")
 
 	-- 2. b's save fails during escrow: the trade aborts and both get their spares back.
