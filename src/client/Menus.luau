@@ -1,11 +1,13 @@
 --!strict
 -- The menu window: a column of big tab buttons on the left and one window
 -- with a colored header per tab. Each tab is a function that fills the list
--- from the latest snapshot; the open tab re-renders whenever the snapshot
--- changes. Everything is built from the menu kit in Ui.luau (#82). On small
+-- from the latest snapshot. Only relevant changes trigger a rebuild, and
+-- button presses are allowed to finish before the list is replaced.
+-- Everything is built from the menu kit in Ui.luau (#82). On small
 -- screens the tab column folds into one Menu button that opens a grid.
 
 local GuiService = game:GetService("GuiService")
+local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -563,7 +565,7 @@ local function renderArtifacts(list: ScrollingFrame, snap: any)
 		artifactSort,
 		function(id: string)
 			artifactSort = id
-			Menus.refresh()
+			Menus.refresh(true)
 		end
 	)
 
@@ -1077,7 +1079,7 @@ local function codeEntry(list: ScrollingFrame, nextOrder: () -> number)
 		if codeDraft ~= "" and State.request("redeemCode", codeDraft) then
 			codeDraft = ""
 		end
-		Menus.refresh()
+		Menus.refresh(true)
 	end
 	local codeRow = Ui.item(list, nextOrder(), {
 		title = " ",
@@ -1247,7 +1249,9 @@ local function renderShop(list: ScrollingFrame, snap: any)
 end
 
 local function renderWardrobe(list: ScrollingFrame, snap: any)
-	Wardrobe.render(list, snap, counter(), Menus.refresh)
+	Wardrobe.render(list, snap, counter(), function()
+		Menus.refresh(true)
+	end)
 end
 
 ---------------------------------------------------------------- events
@@ -1479,7 +1483,7 @@ local function renderHub(list: ScrollingFrame, snap: any)
 				style = if shown then "secondary" else "primary",
 				onClick = function()
 					inspectedId = if shown then nil else other.userId
-					Menus.refresh()
+					Menus.refresh(true)
 				end,
 			},
 		})
@@ -1756,7 +1760,7 @@ local function renderTrade(list: ScrollingFrame, snap: any)
 			spareSort,
 			function(id: string)
 				spareSort = id
-				Menus.refresh()
+				Menus.refresh(true)
 			end
 		)
 		local any = false
@@ -1832,7 +1836,7 @@ local function renderTrade(list: ScrollingFrame, snap: any)
 			spareSort,
 			function(id: string)
 				spareSort = id
-				Menus.refresh()
+				Menus.refresh(true)
 			end
 		)
 	end
@@ -1959,6 +1963,17 @@ local menuButton: TextButton
 local menuGrid: Ui.Window
 local compact = false
 local themed: string? = nil
+local lastTabId: string? = nil
+local lastSignature: string? = nil
+local lastRenderAt = 0
+local refreshScheduled = false
+local pendingRefresh = false
+local heldInputs: { [InputObject]: boolean } = {}
+local heldCount = 0
+
+-- Even when a visible number changes on every mining tick, don't destroy
+-- a full tab four times per second. User-initiated changes bypass this cap.
+local MIN_REBUILD_INTERVAL = 0.75
 
 -- The tutorial points at these. When the tabs are folded away, it points at
 -- the Menu button first.
@@ -1996,14 +2011,141 @@ local function refreshBadges()
 	end
 end
 
-function Menus.refresh()
+-- Only serialize the fields a tab actually reads. In particular, the Party,
+-- Hub, Ranks and Wardrobe tabs should not rebuild when a mineral is mined.
+-- The server sends fresh table instances on every snapshot, so reference
+-- equality cannot detect unchanged data.
+local function tabSignature(tabId: string, snap: any): string
+	local data = snap.data
+	local fields: any
+	if tabId == "forge" then
+		fields = {
+			golem = { level = Stats.levelForXp(data.golem.xp), parts = data.golem.parts },
+			minerals = data.minerals,
+			skills = data.skills,
+			awakening = data.awakening,
+			ascension = data.ascension,
+			found = data.artifacts.found,
+			equipped = data.artifacts.equipped,
+			passes = snap.passes,
+		}
+	elseif tabId == "travel" then
+		fields = {
+			level = Stats.levelForXp(data.golem.xp),
+			bosses = data.bossesDefeated,
+			golem = snap.golem,
+			tower = snap.tower,
+		}
+	elseif tabId == "artifacts" then
+		fields = {
+			artifacts = data.artifacts,
+			skills = data.skills,
+			awakening = data.awakening,
+			ascension = data.ascension,
+			boosts = data.boosts,
+			passes = snap.passes,
+			zone = snap.golem and snap.golem.zoneId,
+		}
+	elseif tabId == "skills" then
+		fields = { level = Stats.levelForXp(data.golem.xp), skills = data.skills }
+	elseif tabId == "awaken" then
+		fields = {
+			level = Stats.levelForXp(data.golem.xp),
+			awakening = data.awakening,
+			ascension = data.ascension,
+			bosses = data.bossesDefeated,
+		}
+	elseif tabId == "quests" then
+		fields = { rewards = snap.rewards, sessionStart = snap.sessionStart }
+	elseif tabId == "events" then
+		fields = { tracks = data.eventTracks }
+	elseif tabId == "party" then
+		fields = { party = snap.party, inviteMode = data.social and data.social.partyInvites }
+	elseif tabId == "hub" then
+		fields = {
+			hub = snap.hub,
+			social = data.social,
+			level = Stats.levelForXp(data.golem.xp),
+			bosses = data.bossesDefeated,
+			found = data.artifacts.found,
+			awakening = data.awakening.count,
+			daily = data.daily,
+			tutorial = data.tutorial,
+		}
+	elseif tabId == "trade" then
+		fields = { trade = snap.trade }
+	elseif tabId == "wardrobe" then
+		fields = {
+			cosmetics = data.cosmetics,
+			parts = data.golem.parts,
+			level = Stats.levelForXp(data.golem.xp),
+			bosses = data.bossesDefeated,
+			found = data.artifacts.found,
+			awakening = data.awakening.count,
+			daily = data.daily,
+			tutorial = data.tutorial,
+		}
+	elseif tabId == "shop" then
+		fields = {
+			passes = snap.passes,
+			policy = snap.policy,
+			boosts = data.boosts,
+			artifacts = data.artifacts,
+			skills = data.skills,
+			awakening = data.awakening,
+			ascension = data.ascension,
+			zone = snap.golem and snap.golem.zoneId,
+		}
+	elseif tabId == "ranks" then
+		fields = {
+			boards = snap.leaderboards,
+			level = Stats.levelForXp(data.golem.xp),
+			awakening = data.awakening.count,
+			found = data.artifacts.found,
+		}
+	else
+		fields = snap
+	end
+	return HttpService:JSONEncode(fields)
+end
+
+function Menus.refresh(force: boolean?)
 	refreshBadges()
 	if not openTab or not State.snapshot then
+		lastTabId = nil
+		lastSignature = nil
+		pendingRefresh = false
 		return
 	end
 	if codeBox and codeBox.Parent and codeBox:IsFocused() then
+		pendingRefresh = true
 		return
 	end
+	local tab = TABS[openTab]
+	local signatureOk, result = pcall(tabSignature, tab.id, State.snapshot)
+	-- Still render if an unexpected value cannot be serialized.
+	local signature: string? = if signatureOk then result else nil
+	if not force and lastTabId == tab.id and signature ~= nil and signature == lastSignature then
+		return
+	end
+	-- Touch, mouse and gamepad presses must finish before their buttons are
+	-- destroyed. A pending refresh is performed after the release callback.
+	if heldCount > 0 then
+		pendingRefresh = true
+		return
+	end
+	local now = os.clock()
+	if not force and lastTabId == tab.id and now - lastRenderAt < MIN_REBUILD_INTERVAL then
+		if not refreshScheduled then
+			refreshScheduled = true
+			task.delay(MIN_REBUILD_INTERVAL - (now - lastRenderAt), function()
+				refreshScheduled = false
+				Menus.refresh()
+			end)
+		end
+		return
+	end
+	pendingRefresh = false
 	codeBox = nil
 	Wardrobe.detach()
 	local scroll = list.CanvasPosition
@@ -2012,7 +2154,6 @@ function Menus.refresh()
 			child:Destroy()
 		end
 	end
-	local tab = TABS[openTab]
 	if themed ~= tab.id then
 		themed = tab.id
 		window.setTheme(tab.name, Ui.Headers[tab.id] or Ui.Headers.menu, tab.id)
@@ -2023,7 +2164,12 @@ function Menus.refresh()
 	end)
 	if not ok then
 		warn(`[Menus] {tab.name} failed to render: {err}`)
+		lastSignature = nil
+	else
+		lastSignature = signature
 	end
+	lastTabId = tab.id
+	lastRenderAt = now
 	list.CanvasPosition = scroll
 end
 
@@ -2044,7 +2190,7 @@ local function showInspect(userId: number)
 	if openTab ~= index then
 		open(index)
 	else
-		Menus.refresh()
+		Menus.refresh(true)
 	end
 end
 
@@ -2062,7 +2208,7 @@ function open(index: number?)
 	if openTab and TABS[openTab].id == "shop" then
 		Remotes.Track:FireServer("shopOpened") -- the Shop funnel in analytics
 	end
-	Menus.refresh()
+	Menus.refresh(true)
 end
 
 -- Opens a tab by id (the HUD's goal card uses this).
@@ -2210,6 +2356,34 @@ function Menus.start()
 	watchCamera()
 	workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(watchCamera)
 
+	-- Keep a menu button alive from press through release. This covers touch
+	-- taps (including long taps), mouse clicks and gamepad A activation.
+	UserInputService.InputBegan:Connect(function(input: InputObject)
+		if
+			openTab
+			and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 or input.KeyCode == Enum.KeyCode.ButtonA)
+			and not heldInputs[input]
+		then
+			heldInputs[input] = true
+			heldCount += 1
+		end
+	end)
+	UserInputService.InputEnded:Connect(function(input: InputObject)
+		if not heldInputs[input] then
+			return
+		end
+		heldInputs[input] = nil
+		heldCount -= 1
+		if heldCount == 0 and pendingRefresh then
+			-- Run after the button's Activated handler, not during InputEnded.
+			task.defer(function()
+				if heldCount == 0 and pendingRefresh then
+					Menus.refresh(true)
+				end
+			end)
+		end
+	end)
+
 	-- Escape, gamepad B and the X all close: a dialog first, then the menu.
 	UserInputService.InputBegan:Connect(function(input: InputObject)
 		if input.KeyCode ~= Enum.KeyCode.Escape and input.KeyCode ~= Enum.KeyCode.ButtonB then
@@ -2229,7 +2403,9 @@ function Menus.start()
 		end
 	end)
 
-	State.Changed:Connect(Menus.refresh)
+	State.Changed:Connect(function()
+		Menus.refresh()
+	end)
 	-- Pressing Inspect on a golem in the hub opens its card.
 	Remotes.Notify.OnClientEvent:Connect(function(kind: string, userId: number?)
 		if kind == "inspect" and type(userId) == "number" then
@@ -2247,11 +2423,11 @@ function Menus.start()
 					or TABS[openTab].id == "shop"
 					or TABS[openTab].id == "artifacts"
 					or TABS[openTab].id == "trade"
-					or TABS[openTab].id == "awaken"
 					or TABS[openTab].id == "events"
 				)
 			then
-				Menus.refresh()
+				-- These tabs display live countdowns even without new snapshots.
+				Menus.refresh(true)
 			else
 				refreshBadges()
 			end
