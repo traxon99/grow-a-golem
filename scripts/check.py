@@ -104,6 +104,10 @@ bundle += (ROOT / "tests/world-beat.luau").read_text()
 quake_timing = (ROOT / "src/shared/QuakeTiming.luau").read_text()
 bundle += 'local QuakeTiming = (function()\n' + quake_timing + '\nend)()\n'
 bundle += (ROOT / "tests/quake-timing.luau").read_text()
+# The rune challenge uses the same server-side sequence validator in Studio.
+rune_sequence = (ROOT / "src/shared/RuneSequence.luau").read_text()
+bundle += 'local RuneSequence = (function()\n' + rune_sequence + '\nend)()\n'
+bundle += (ROOT / "tests/rune-sequence.luau").read_text()
 bundle += 'local MarbleBag = (function()\n' + marble_bag + '\nend)()\n'
 bundle += 'local Stats = (function()\n' + stats + '\nend)()\n'
 bundle += 'local SessionLease = (function()\n' + lease + '\nend)()\n'

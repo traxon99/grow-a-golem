@@ -12,6 +12,8 @@ local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local QuakeTiming = require(Shared:WaitForChild("QuakeTiming"))
 
+local RuneService = require(script.Parent.RuneService)
+
 local DataService = require(script.Parent.DataService)
 local EnemyService = require(script.Parent.EnemyService)
 local Events = require(script.Parent.Events)
@@ -200,7 +202,7 @@ local function updateGolem(player: Player, golem: GolemService.Golem, dt: number
 	if enemy and enemyDistance <= stats.attackRange and now >= golem.nextAttack then
 		golem.nextAttack = now + stats.attackCooldown
 		swing(golem.model, "hit")
-		EnemyService.damage(enemy, stats.attackDamage, player)
+		EnemyService.damage(enemy, stats.attackDamage * RuneService.attackMultiplier(player, now), player)
 	elseif node and nodeDistance <= stats.miningRange and now >= golem.nextMine then
 		golem.nextMine = now + stats.miningCooldown
 		swing(golem.model, "mine")
