@@ -75,8 +75,7 @@ do
 	print("PASS: real Ascension handlers reset, preserve, reject repeats, validate IDs, enforce funds and max rank")
 end
 
--- Awakening names what it unlocked, and the auto-forge loop runs for players
--- who unlocked it by Awakening as well as for pass owners.
+-- Awakening names the unlock it gives in its message.
 do
 	local data = {
 		golem = { xp = Stats.xpForLevel(Config.Awakening.minLevel), parts = { torso = "stone" } },
