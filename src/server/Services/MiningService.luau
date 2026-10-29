@@ -84,11 +84,7 @@ local function showWeakspot(node: Node, stage: number)
 	node.weakspotGlow.Adornee = node.chunks[stage].part
 	node.weakspotGlow.Enabled = true
 	task.delay(duration, function()
-		if
-			nodes[node.part] == node
-			and node.weakspotStage == stage
-			and os.clock() >= node.weakspotDeadline
-		then
+		if nodes[node.part] == node and node.weakspotStage == stage and os.clock() >= node.weakspotDeadline then
 			retryWeakspot(node)
 		end
 	end)
