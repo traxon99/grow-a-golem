@@ -27,6 +27,22 @@ normal node rewards continue unchanged. No purchase, retry fee or progression
 gate is involved. Server validates the deadlines and proximity. Studio phone
 and gamepad playtesting is still required.
 
+## Grow A Golem today: Golem Run
+
+The Hub has a free, optional **Golem Run** portal for mounted players. Ride
+through a separate three-checkpoint obstacle lane, steer around boulders,
+choose the visible safe opening in each lava strip, and dodge a moving boulder.
+The server tracks the golem's position and grades checkpoints in order;
+clients cannot submit a score. Checkpoints pay fixed, disclosed minerals:
+**50 stone**, then **40 stone + 5 copper**, then **30 stone + 10 copper**.
+Each checkpoint pays only once per run. Hazards reset the golem to the last
+checkpoint without taking earned rewards. The generous 90-second timer and
+120-second entry cooldown prevent pressure and repeat-payout farming. No
+purchases, tickets, random bonuses or progression gates. Entry uses a native
+proximity prompt (touch, keyboard, gamepad); a separate timer HUD avoids
+changing the in-progress main UI restyle. Studio device and multiplayer
+playtesting is still outstanding.
+
 ## What top games do
 
 All top genres share one skeleton: a fast action that pays (click, cast, plant, kill) → a cash-out (sell/collect) → reinvest in a multiplier (upgrade, rod, seed, pet) → the multiplier opens a gate (zone, sea, island, rebirth). Timers (restocks, weather, nights, payouts) pace the 5-minute layer. Loop-duration readings below are interpretations of mechanics; no source measures them.
