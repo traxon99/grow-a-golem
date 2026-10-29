@@ -11,6 +11,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Stats = require(Shared:WaitForChild("Stats"))
+local WorldBeat = require(Shared:WaitForChild("WorldBeat"))
 
 local ActionService = require(script.Parent.ActionService)
 local DataService = require(script.Parent.DataService)
@@ -114,6 +115,7 @@ function LiveEventService.start()
 
 	task.spawn(function()
 		local running = activeIds(os.time())
+		local previousBeatPhase = WorldBeat.phase(os.time())
 		while true do
 			task.wait(CHECK_INTERVAL)
 			local now = os.time()
@@ -132,6 +134,15 @@ function LiveEventService.start()
 				end
 			end
 			running = current
+			local beatPhase = WorldBeat.phase(now)
+			if beatPhase ~= previousBeatPhase then
+				if beatPhase == "active" then
+					announce("Mineral surge! Nodes on every island pay 2x for 90 seconds!")
+				elseif previousBeatPhase == "active" then
+					announce("Mineral surge ended. Thanks for mining!")
+				end
+			end
+			previousBeatPhase = beatPhase
 			if changed then
 				-- Golem stats (and their multipliers) recalculate on a data change.
 				for _, player in Players:GetPlayers() do
