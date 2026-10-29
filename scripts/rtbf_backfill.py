@@ -46,6 +46,7 @@ from pathlib import Path
 import re
 import sys
 import time
+from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
@@ -71,7 +72,7 @@ def player_store_name(config_path: Path) -> str:
     return match.group(1)
 
 
-def redact(value: any) -> tuple[any, bool]:
+def redact(value: Any) -> tuple[Any, bool]:
     """Mirror DataService.luau's redactTradePartners. Never mutates `value`;
     returns (new_value, changed)."""
     if not isinstance(value, dict):
@@ -94,7 +95,7 @@ def redact(value: any) -> tuple[any, bool]:
     return result, changed
 
 
-def session_active(value: any, now: float) -> bool:
+def session_active(value: Any, now: float) -> bool:
     """True if a lease (src/shared/SessionLease.luau's `_session`) hasn't
     expired yet -- a server may still be saving over this record."""
     if not isinstance(value, dict):
@@ -106,7 +107,7 @@ def session_active(value: any, now: float) -> bool:
     return isinstance(expires_at, (int, float)) and expires_at > now
 
 
-def _call(request: Request, retries: int = 3) -> tuple[int, any, bytes]:
+def _call(request: Request, retries: int = 3) -> tuple[int, Any, bytes]:
     """Issue one request, retrying throttling/server failures with backoff,
     and return (status, headers, body) with the response already read and
     closed -- callers never hold a response object past this call, so
@@ -142,7 +143,7 @@ def list_entries(
     return entries, body.get("nextPageToken") or None
 
 
-def get_entry(universe_id: int, store: str, entry_id: str, api_key: str) -> tuple[any, str]:
+def get_entry(universe_id: int, store: str, entry_id: str, api_key: str) -> tuple[Any, str]:
     url = (
         f"{BASE_URL}/{universe_id}/data-stores/{quote(store, safe='')}/scopes/global/"
         f"entries/{quote(entry_id, safe='')}"
@@ -154,7 +155,7 @@ def get_entry(universe_id: int, store: str, entry_id: str, api_key: str) -> tupl
     return value, version
 
 
-def set_entry(universe_id: int, store: str, entry_id: str, api_key: str, value: any, match_version: str) -> None:
+def set_entry(universe_id: int, store: str, entry_id: str, api_key: str, value: Any, match_version: str) -> None:
     """Writes only if the live entry's version still matches match_version;
     raises VersionConflict (never silently overwrites) if it doesn't."""
     url = (
