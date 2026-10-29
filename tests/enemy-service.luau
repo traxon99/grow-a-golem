@@ -264,7 +264,11 @@ assert(normal.model.destroyed and paid[attacker] == before + 1)
 -- next slam is delayed. Repeated attempts cannot keep a boss stun-locked.
 local staggerBoss = spawn(true)
 staggerBoss.slamAt = now + 1
-local warning = { Destroy = function(self) self.destroyed = true end }
+local warning = {
+	Destroy = function(self)
+		self.destroyed = true
+	end,
+}
 staggerBoss.slamMarker = warning
 assert(enemies.stagger(staggerBoss, attacker))
 assert(staggerBoss.model:GetAttribute("Staggered") == true)
