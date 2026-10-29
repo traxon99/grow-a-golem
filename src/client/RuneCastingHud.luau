@@ -187,7 +187,12 @@ function RuneCastingHud.start()
 			active = true
 			expiresAt = b
 			cooldownUntil = workspace:GetServerTimeNow() + c
-			instruction.Text = "Order: " .. tostring(sequence[1]) .. " - " .. tostring(sequence[2]) .. " - " .. tostring(sequence[3])
+			instruction.Text = "Order: "
+				.. tostring(sequence[1])
+				.. " - "
+				.. tostring(sequence[2])
+				.. " - "
+				.. tostring(sequence[3])
 			progress.Text = "Tap rune 1 of 3 · 8s to finish"
 			panel.Visible = true
 			hint.Text = "Match the order · no penalty for missing"
