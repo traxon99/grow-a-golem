@@ -169,7 +169,6 @@ do
 		assert(okFull == false and msgFull == "Your party is full", "the party is already at Config.Party.maxSize")
 	end
 
-
 	---------------------------------------------------------------- invite privacy settings
 	do
 		local inviter, target = join(), join()
