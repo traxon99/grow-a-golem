@@ -9,6 +9,15 @@ local Config: { [string]: any } = {}
 
 Config.TickRate = 10 -- server game-logic updates per second
 
+-- Free shared world beat, aligned to UTC epoch across all servers. This is
+-- gameplay timing only: no paid entry, skips or limited-time purchases.
+Config.WorldBeat = {
+	intervalSeconds = 15 * 60,
+	durationSeconds = 90,
+	warningSeconds = 60,
+	miningMultiplier = 2,
+}
+
 ---------------------------------------------------------------- minerals
 
 Config.MineralOrder = { "stone", "copper", "iron", "crystal" }

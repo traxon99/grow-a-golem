@@ -69,6 +69,7 @@ local logged: { [Player]: { [string]: boolean } } = {} -- one-time steps sent th
 local lastLevel: { [Player]: number } = {}
 local shopSession: { [Player]: string } = {}
 local trackWindows: { [Player]: { start: number, count: number } } = {}
+local lastWorldBeat: { [Player]: number } = {}
 
 local function call(label: string, fn: () -> ())
 	local ok, err = pcall(function(): any
@@ -343,6 +344,13 @@ function AnalyticsService.start()
 	Events.connect("eventRewardClaimed", function(player, eventId, tier)
 		AnalyticsService.custom(player, "EventRewardClaimed", tier, eventId)
 	end)
+	Events.connect("worldBeatParticipated", function(player, runStart)
+		-- A player can mine many nodes in 90 seconds; log once per run.
+		if lastWorldBeat[player] ~= runStart then
+			lastWorldBeat[player] = runStart
+			AnalyticsService.custom(player, "WorldBeatParticipated", 1, "mineralSurge")
+		end
+	end)
 
 	task.spawn(function()
 		while true do
@@ -362,6 +370,7 @@ function AnalyticsService.start()
 		lastLevel[player] = nil
 		shopSession[player] = nil
 		trackWindows[player] = nil
+		lastWorldBeat[player] = nil
 	end)
 end
 

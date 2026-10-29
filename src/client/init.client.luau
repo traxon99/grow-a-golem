@@ -11,8 +11,10 @@ local Riding = require(script:WaitForChild("Riding"))
 local Sfx = require(script:WaitForChild("Sfx"))
 local State = require(script:WaitForChild("State"))
 local Tutorial = require(script:WaitForChild("Tutorial"))
+local WorldBeatHud = require(script:WaitForChild("WorldBeatHud"))
 
 Hud.start() -- sets up the toast handler State uses
+WorldBeatHud.start() -- separate gameplay banner; no overlap with #175's HUD restyle
 Menus.start()
 Moments.start()
 Tutorial.start()

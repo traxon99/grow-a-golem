@@ -18,6 +18,7 @@
 --   partyJoined   (player, partySize)
 --   codeRedeemed  (player, code)
 --   eventRewardClaimed (player, eventId, tierIndex)
+--   worldBeatParticipated (player, surgeStartAt)
 
 local Events = {}
 

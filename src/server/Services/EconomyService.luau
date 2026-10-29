@@ -7,10 +7,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
+local WorldBeat = require(Shared:WaitForChild("WorldBeat"))
 
 local DataService = require(script.Parent.DataService)
 local GolemService = require(script.Parent.GolemService)
 local PartyService = require(script.Parent.PartyService)
+local Events = require(script.Parent.Events)
 
 local EconomyService = {}
 
@@ -35,11 +37,21 @@ function EconomyService.grant(player: Player, reward: Reward, source: string): R
 	local given: Reward = {}
 	if reward.minerals then
 		local mult = EconomyService.mineralMultiplier(player)
+		local beatMultiplier: number = 1
+		local beatRun: number? = nil
+		if source == "mining" then
+			beatMultiplier, beatRun = WorldBeat.miningMultiplier(os.time())
+		end
 		local minerals = {}
 		for id, amount in reward.minerals do
-			minerals[id] = math.max(math.floor(amount * mult), 1)
+			-- Multiply the normal rounded payout so 2x means exactly twice
+			-- what this node would have paid outside the surge.
+			minerals[id] = math.max(math.floor(amount * mult), 1) * beatMultiplier
 		end
 		DataService.addMinerals(player, minerals, source)
+		if beatRun then
+			Events.fire("worldBeatParticipated", player, beatRun)
+		end
 		given.minerals = minerals
 	end
 	if reward.xp then

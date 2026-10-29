@@ -1,6 +1,6 @@
 # Live ops
 
-Last updated: 2026-10-27. Read [safety-compliance.md](safety-compliance.md) first; it overrides this doc.
+Last updated: 2026-10-29. Read [safety-compliance.md](safety-compliance.md) first; it overrides this doc.
 
 ## Rules for agents
 
@@ -29,6 +29,7 @@ Last updated: 2026-10-27. Read [safety-compliance.md](safety-compliance.md) firs
 
 - Limited-time events with free event-currency reward tracks; weekly Double Minerals Weekend; progress carries over.
 - Event banner in the HUD.
+- **Free mineral surge (#150):** a UTC-synchronized 15-minute server beat with a 60-second warning and 90 seconds of 2x *node mining* rewards on all islands. The countdown is gameplay-only, the server computes rewards from its own clock, and `WorldBeatParticipated` logs unique miners per run. The banner never carries a Robux offer.
 - Redeemable codes, rate-limited.
 - No update log / announcement board found; no fixed update cadence or event calendar written down; no analytics to measure event impact (#11).
 - Draft launch copy, an unreleased update log, two icon alternatives, four thumbnail illustrations and a proposed capped ad experiment are in `docs/launch/` and `assets/keyart/`. No ads, group creation, asset upload or game-page publishing has been performed.
@@ -39,7 +40,7 @@ Last updated: 2026-10-27. Read [safety-compliance.md](safety-compliance.md) firs
 1. **P1 (#12):** In-game update log and code board as the single place codes and events are announced.
 2. **P1 (#12):** Write a 3-month event calendar (weekly small beat, monthly zone or boss event) in Config-driven form.
 3. **P1 (#11):** Log event participation, reward-track completion and CCU around updates.
-4. **P2 (#15):** A live-hosted or scheduled world-boss event as the "admin abuse" equivalent, free for all, no paid exclusives.
+4. **P2 (#15):** A live-hosted or scheduled world-boss event as the "admin abuse" equivalent, free for all, no paid exclusives. The shared mineral surge (#150) now provides a regular beat, but not shared combat.
 5. **P2 (#16):** Thumbnail and icon refresh per update.
 
 ## Sources

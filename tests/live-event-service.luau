@@ -33,6 +33,7 @@ do
 	local liveEvents = loadLiveEventService({
 		Config = Config,
 		Stats = Stats,
+		WorldBeat = WorldBeat,
 		Remotes = {
 			Notify = {
 				FireClient = function() end,
