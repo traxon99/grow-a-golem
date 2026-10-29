@@ -11,3 +11,5 @@ Packages/
 ServerPackages/
 
 .DS_Store
+
+__pycache__/
