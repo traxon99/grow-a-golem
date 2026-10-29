@@ -122,13 +122,8 @@ local function onCastSpell(player: Player, spellId: any)
 	if spellId == "quake" then
 		local pending = pendingQuakes[player]
 		if pending and pending.golem == golem then
-			local graded = QuakeTiming.press(
-				pending,
-				now - pending.startedAt,
-				spell.windup,
-				spell.timingLead,
-				spell.timingWindow
-			)
+			local graded =
+				QuakeTiming.press(pending, now - pending.startedAt, spell.windup, spell.timingLead, spell.timingWindow)
 			if graded ~= nil then
 				Remotes.Notify:FireClient(player, "quakeTimingResult", graded)
 			end
