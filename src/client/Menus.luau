@@ -2,7 +2,8 @@
 -- The menu window: a column of big tab buttons on the left and one window
 -- with a colored header per tab. Each tab is a function that fills the list
 -- from the latest snapshot. Only relevant changes trigger a rebuild, and
--- button presses are allowed to finish before the list is replaced. Everything is built from the menu kit in Ui.luau (#82). On small
+-- button presses are allowed to finish before the list is replaced.
+-- Everything is built from the menu kit in Ui.luau (#82). On small
 -- screens the tab column folds into one Menu button that opens a grid.
 
 local GuiService = game:GetService("GuiService")
