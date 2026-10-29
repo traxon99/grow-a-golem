@@ -6,12 +6,20 @@
 -- mocks below and a test-controlled os.clock.
 do
 	local clockNow = 100
+	local timeNow = Config.WorldBeat.intervalSeconds * 5 + Config.WorldBeat.durationSeconds
 	local golems = {}
 	local friendBonuses = {}
 	local given = {}
 
 	local economy = loadEconomyService({
 		Config = Config,
+		WorldBeat = WorldBeat,
+		Events = {
+			fire = function(name, player, runStart)
+				assert(name == "worldBeatParticipated")
+				table.insert(given, { kind = "surge", player = player, runStart = runStart })
+			end,
+		},
 		DataService = {
 			addMinerals = function(player, minerals, source)
 				table.insert(given, { player = player, kind = "minerals", minerals = minerals, source = source })
@@ -40,6 +48,8 @@ do
 		end,
 	}, function()
 		return clockNow
+	end, function()
+		return timeNow
 	end)
 
 	local nextId = 0
@@ -105,6 +115,28 @@ do
 		local givenBefore = #given
 		local empty = economy.grant(emptyPlayer, {}, "enemy")
 		assert(next(empty) == nil and #given == givenBefore, "an empty reward touches nothing")
+	end
+
+	--------------------------------------------------------- mineral surge
+	do
+		local player = join()
+		golems[player] = { stats = { mineralMult = 1.5, xpMult = 1 }, magnetUntil = 0 }
+		local base = economy.grant(player, { minerals = { stone = 3 } }, "mining")
+		assert(base.minerals.stone == 4, "normal node yield is rounded before any surge bonus")
+		assert(given[#given].kind == "minerals", "no participation event outside a surge")
+
+		timeNow = Config.WorldBeat.intervalSeconds * 6
+		local doubled = economy.grant(player, { minerals = { stone = 3 } }, "mining")
+		assert(doubled.minerals.stone == 8, "surge doubles the normal rounded node payout exactly")
+		assert(given[#given].kind == "surge" and given[#given].runStart == timeNow)
+
+		local enemy = economy.grant(player, { minerals = { stone = 3 } }, "enemy")
+		assert(enemy.minerals.stone == 4, "surge does not multiply enemy rewards")
+		local flatBefore = #given
+		economy.grantFlat(player, { minerals = { stone = 3 } }, "daily")
+		assert(given[#given].minerals.stone == 3 and #given == flatBefore + 1, "flat rewards stay fixed")
+		timeNow += Config.WorldBeat.durationSeconds
+		assert(economy.grant(player, { minerals = { stone = 3 } }, "mining").minerals.stone == 4)
 	end
 
 	--------------------------------------------------------- grantFlat
