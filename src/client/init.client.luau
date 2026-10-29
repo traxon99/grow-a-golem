@@ -22,6 +22,7 @@ WorldBeatHud.start() -- separate gameplay banner; no overlap with #175's HUD res
 QuakeTimingHud.start() -- separate timing cue; no overlap with the claimed HUD restyle
 RuneCastingHud.start() -- separate optional rune activity; touch, PC and gamepad
 ForgeTimingHud.start() -- after manual forging, a fixed-refund optional strike
+GauntletHud.start() -- independent course timer; avoids the claimed HUD restyle
 Menus.start()
 Moments.start()
 Tutorial.start()
