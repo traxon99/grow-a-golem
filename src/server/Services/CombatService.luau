@@ -50,6 +50,31 @@ local function ringEffect(position: Vector3, radius: number, color: Color3)
 	end)
 end
 
+-- Quake: the golem raises both arms (clients animate from QuakeAt, a server
+-- time), then the slam lands `windup` seconds later with the damage and ring,
+-- and clients are told so they can play the blast, rocks and thud (gated on
+-- their own Reduced Motion). A golem knocked out or removed in between slams
+-- nothing, and nobody is told.
+local function quake(player: Player, golem: GolemService.Golem, spell: any)
+	golem.model:SetAttribute("QuakeAt", workspace:GetServerTimeNow() + spell.windup)
+	task.delay(spell.windup, function()
+		if GolemService.get(player) ~= golem or not GolemService.isActive(golem) then
+			return
+		end
+		local radius = spell.radius * golem.stats.scale
+		for _, enemy in EnemyService.findInRadius(golem.root.Position, radius, golem.zoneId) do
+			EnemyService.damage(
+				enemy,
+				spell.damage * golem.stats.spellPowerMult * (1 + 0.05 * (golem.stats.level - 1)),
+				player
+			)
+		end
+		local ground = golem.root.Position - Vector3.new(0, golem.groundOffset, 0) + Vector3.new(0, 0.3, 0)
+		ringEffect(ground, radius, Color3.fromRGB(90, 200, 255))
+		Remotes.Notify:FireAllClients("quakeImpact", ground, radius, player.UserId)
+	end)
+end
+
 local function onCastSpell(player: Player, spellId: any)
 	if type(spellId) ~= "string" then
 		return
@@ -68,15 +93,7 @@ local function onCastSpell(player: Player, spellId: any)
 	local ground = golem.root.Position - Vector3.new(0, golem.groundOffset, 0) + Vector3.new(0, 0.3, 0)
 
 	if spellId == "quake" then
-		local radius = spell.radius * golem.stats.scale
-		for _, enemy in EnemyService.findInRadius(golem.root.Position, radius, golem.zoneId) do
-			EnemyService.damage(
-				enemy,
-				spell.damage * golem.stats.spellPowerMult * (1 + 0.05 * (golem.stats.level - 1)),
-				player
-			)
-		end
-		ringEffect(ground, radius, Color3.fromRGB(90, 200, 255))
+		quake(player, golem, spell)
 	elseif spellId == "mend" then
 		GolemService.heal(golem, golem.stats.maxHealth * spell.healFraction * golem.stats.spellPowerMult)
 		ringEffect(ground, 10 * golem.stats.scale, Color3.fromRGB(110, 230, 120))

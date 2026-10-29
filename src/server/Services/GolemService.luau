@@ -32,7 +32,10 @@ export type Golem = {
 	downedUntil: number, -- 0 when standing
 	fallRecovery: boolean,
 	mounted: boolean, -- the rider is on the shoulder; steering and spells only count then
+	sprinting: boolean, -- the rider asked to sprint; it only speeds the golem while they steer
 	nextMountChange: number,
+	nextSprintChange: number,
+	riderGraceUntil: number, -- a new character is exempt from the fall check until it is placed
 	nextAttack: number,
 	nextMine: number,
 	spellReadyAt: { [string]: number },
@@ -49,6 +52,8 @@ local golems: { [Player]: Golem } = {}
 
 local STEER_TIMEOUT = 0.5 -- stop if the client stops sending
 local MAX_STEERS_PER_SECOND = 20
+local SPRINT_CHANGE_COOLDOWN = 0.1 -- seconds between sprint on/off requests
+local RIDER_SPAWN_GRACE = 3 -- seconds a fresh character may be off the island (it spawns at the SpawnLocation)
 local HIP_HEIGHT = 4
 local ROOT_SIZE = Vector3.new(6, 8, 4)
 local BARE_COLOR = CosmeticLooks.BARE_COLOR
@@ -420,6 +425,10 @@ function GolemService.setMounted(golem: Golem, mounted: boolean)
 	end
 	golem.mounted = mounted
 	golem.steer = Vector3.zero
+	if not mounted then
+		golem.sprinting = false
+		GolemService.applySpeed(golem)
+	end
 	golem.player:SetAttribute("GolemMounted", mounted)
 	if mounted then
 		seatRider(golem)
@@ -478,7 +487,7 @@ function GolemService.refresh(player: Player)
 		golem.hp += golem.stats.maxHealth - oldMax
 	end
 	golem.hp = math.min(golem.hp, golem.stats.maxHealth)
-	golem.humanoid.WalkSpeed = golem.stats.walkSpeed
+	GolemService.applySpeed(golem)
 	golem.humanoid.DisplayName = displayName(player, data)
 
 	local key = visualKey(player, data, golem.stats)
@@ -513,7 +522,10 @@ local function spawnGolem(player: Player)
 		downedUntil = 0,
 		fallRecovery = false,
 		mounted = true,
+		sprinting = false,
 		nextMountChange = 0,
+		nextSprintChange = 0,
+		riderGraceUntil = 0,
 		nextAttack = 0,
 		nextMine = 0,
 		spellReadyAt = {},
@@ -526,17 +538,25 @@ local function spawnGolem(player: Player)
 	golems[player] = golem
 	hookSeat(golem, seat)
 	player:SetAttribute("GolemMounted", true)
+	player:SetAttribute("GolemSprint", false)
 	publishHealth(golem)
 
-	player.CharacterAdded:Connect(function(character)
-		character:WaitForChild("Humanoid")
-		character:WaitForChild("HumanoidRootPart")
-		task.wait(0.2)
+	local function placeRider()
 		if golem.mounted then
 			seatRider(golem)
 		else
 			placeRiderBeside(golem)
 		end
+	end
+	player.CharacterAdded:Connect(function(character)
+		-- The character spawns at the place's SpawnLocation, far below the
+		-- island. Don't let the fall check kill it before it is placed.
+		golem.riderGraceUntil = os.clock() + RIDER_SPAWN_GRACE
+		character:WaitForChild("Humanoid")
+		character:WaitForChild("HumanoidRootPart")
+		placeRider()
+		task.wait(0.2)
+		placeRider() -- the first seat attempt can lose to the spawn; both are idempotent
 	end)
 	if player.Character then
 		seatRider(golem)
@@ -578,6 +598,50 @@ end
 
 function GolemService.all(): { [Player]: Golem }
 	return golems
+end
+
+-- Walk speed for this tick: sprinting only counts for a mounted rider who is
+-- steering, so a golem playing itself never sprints. The Sprinting attribute
+-- tells clients to lengthen the stride (see the client Animator).
+function GolemService.applySpeed(golem: Golem)
+	local sprinting = golem.sprinting and GolemService.getSteer(golem).Magnitude > 0
+	local speed = golem.stats.walkSpeed * (if sprinting then Config.Golem.sprintMult else 1)
+	if golem.humanoid.WalkSpeed ~= speed then
+		golem.humanoid.WalkSpeed = speed
+	end
+	if golem.model:GetAttribute("Sprinting") ~= sprinting then
+		golem.model:SetAttribute("Sprinting", sprinting)
+	end
+	-- What the server will honour, so the client can tell its request was dropped.
+	golem.player:SetAttribute("GolemSprint", golem.sprinting)
+end
+
+function GolemService.setSprinting(golem: Golem, sprinting: boolean)
+	golem.sprinting = sprinting and golem.mounted
+	GolemService.applySpeed(golem)
+end
+
+-- A rider's sprint request. Returns whether it changed anything. Requests
+-- inside the cooldown are dropped; the client sees GolemSprint disagree with
+-- what it wants and asks again, so a quick tap never leaves them out of step.
+function GolemService.requestSprint(golem: Golem, wantSprint: any): boolean
+	if type(wantSprint) ~= "boolean" or wantSprint == golem.sprinting then
+		return false
+	end
+	local now = os.clock()
+	if now < golem.nextSprintChange then
+		return false
+	end
+	golem.nextSprintChange = now + SPRINT_CHANGE_COOLDOWN
+	GolemService.setSprinting(golem, wantSprint)
+	return golem.sprinting == wantSprint
+end
+
+local function onSprint(player: Player, wantSprint: any)
+	local golem = golems[player]
+	if golem then
+		GolemService.requestSprint(golem, wantSprint)
+	end
 end
 
 function GolemService.isActive(golem: Golem): boolean
@@ -627,6 +691,8 @@ function GolemService.damage(golem: Golem, amount: number)
 	if golem.hp <= 0 then
 		-- Knocked out: carried back to the zone spawn to recover.
 		golem.downedUntil = os.clock() + Config.Golem.respawnTime
+		golem.sprinting = false
+		GolemService.applySpeed(golem)
 		GolemService.sendToZone(golem, golem.zoneId)
 		Remotes.Notify:FireClient(golem.player, "message", "Your golem crumbled! Reforming...")
 	end
@@ -641,6 +707,7 @@ function GolemService.update(golem: Golem, dt: number)
 	local rider = character and character:FindFirstChildOfClass("Humanoid")
 	local riderRoot = character and character:FindFirstChild("HumanoidRootPart")
 	local riderFell = rider ~= nil
+		and now >= golem.riderGraceUntil
 		and rider.Health > 0
 		and riderRoot ~= nil
 		and riderRoot:IsA("BasePart")
@@ -672,6 +739,8 @@ function GolemService.update(golem: Golem, dt: number)
 		return
 	end
 
+	GolemService.applySpeed(golem)
+
 	if golem.hp < golem.stats.maxHealth then
 		golem.hp = math.min(golem.hp + golem.stats.regenPerSecond * dt, golem.stats.maxHealth)
 		publishHealth(golem)
@@ -683,6 +752,7 @@ function GolemService.start()
 	DataService.Changed:Connect(GolemService.refresh)
 	Remotes.MoveGolem.OnServerEvent:Connect(onSteer)
 	Remotes.MountGolem.OnServerEvent:Connect(onMount)
+	Remotes.SprintGolem.OnServerEvent:Connect(onSprint)
 	-- Uploaded mesh art loads in the background, a tier at a time; rebuild
 	-- golems that wear that tier (unforged slots wear stone) once it arrives.
 	GolemMeshes.install(function(tier)

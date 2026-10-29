@@ -32,6 +32,42 @@ local function near(position: Vector3): boolean
 	return camera ~= nil and (camera.CFrame.Position - position).Magnitude <= MAX_DISTANCE
 end
 
+-- A short flash where a Quake slam lands: a ball that swells and fades, with
+-- a smaller white core that goes faster. Skipped with Reduced Motion.
+local function blast(position: Vector3, radius: number)
+	if GuiService.ReducedMotionEnabled or not near(position) then
+		return
+	end
+	local layers = {
+		{ color = Color3.fromRGB(150, 225, 255), size = radius * 0.8, time = 0.35 },
+		{ color = Color3.new(1, 1, 1), size = radius * 0.4, time = 0.2 },
+	}
+	for _, layer in layers do
+		local ball = Instance.new("Part")
+		ball.Name = "QuakeBlast"
+		ball.Shape = Enum.PartType.Ball
+		ball.Anchored = true
+		ball.CanCollide = false
+		ball.CanQuery = false
+		ball.CanTouch = false
+		ball.Material = Enum.Material.Neon
+		ball.Color = layer.color
+		ball.Transparency = 0.3
+		ball.Size = Vector3.new(2, 2, 2)
+		ball.Position = position + Vector3.new(0, 1, 0)
+		ball.Parent = folder
+		local info = TweenInfo.new(layer.time, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		local tween = TweenService:Create(ball, info, {
+			Size = Vector3.new(layer.size, layer.size, layer.size),
+			Transparency = 1,
+		})
+		tween:Play()
+		tween.Completed:Once(function()
+			ball:Destroy()
+		end)
+	end
+end
+
 -- Throws `count` little cubes out from `position`, then shrinks them away.
 local function burst(
 	position: Vector3,
@@ -454,17 +490,15 @@ function Fx.start()
 		end)
 	end)
 
-	-- Your own Quake throws rocks up around the golem.
-	Remotes.Notify.OnClientEvent:Connect(function(kind: string, spellId: string?)
-		if kind ~= "spellCast" or spellId ~= "quake" then
+	-- A Quake slam landing: everyone nearby sees a blast, and the caster's rocks
+	-- fly. The server only says so if the slam really lands.
+	Remotes.Notify.OnClientEvent:Connect(function(kind: string, position: Vector3?, radius: number?, ownerId: number?)
+		if kind ~= "quakeImpact" or not position or not radius then
 			return
 		end
-		local golems = workspace:FindFirstChild("Golems")
-		local model = golems and golems:FindFirstChild(player.Name .. "_Golem")
-		local root = model and (model :: Model).PrimaryPart
-		if root then
-			local ground = root.Position - Vector3.new(0, root.Size.Y, 0)
-			burst(ground, Color3.fromRGB(120, 110, 96), Enum.Material.Slate, 16, 1.2, root.Size.Y * 2)
+		blast(position, radius)
+		if ownerId == player.UserId then
+			burst(position, Color3.fromRGB(120, 110, 96), Enum.Material.Slate, 24, 1.2, radius * 0.4)
 		end
 	end)
 
