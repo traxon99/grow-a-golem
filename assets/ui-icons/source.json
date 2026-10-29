@@ -52,16 +52,16 @@
       "rect": {
         "left": 905,
         "top": 0,
-        "width": 180,
+        "width": 181,
         "height": 220
       }
     },
     {
       "id": "golem-gold",
       "rect": {
-        "left": 1085,
+        "left": 1086,
         "top": 0,
-        "width": 175,
+        "width": 174,
         "height": 220
       }
     },
