@@ -79,6 +79,9 @@ local service = loadGolemService(
 			getFolder = function()
 				return nil
 			end,
+			zoneAt = function()
+				return 1
+			end,
 		},
 	},
 	game,
@@ -334,6 +337,22 @@ leashed.root.Position = Vector3.new(radius * 0.8, 58, 0)
 assert(service.followRider(leashed, now) and leashed.following) -- still walking: no edge jitter
 leashed.root.Position = Vector3.new(radius * Config.Golem.followStop - 1, 58, 0)
 assert(not service.followRider(leashed, now) and not leashed.following) -- arrived
+
+-- A faster rider pulling ahead isn't "stuck" while the golem keeps walking.
+leashed.root.Position = Vector3.new(radius + 5, 58, 0)
+assert(service.followRider(leashed, now))
+now += Config.Golem.stuckTime * 0.9
+leashed.root.Position = Vector3.new(radius + 5 - Config.Golem.stuckTime, 58, 0)
+local walkingPuffs = puffs
+assert(service.followRider(leashed, now))
+now += Config.Golem.stuckTime * 0.9
+assert(service.followRider(leashed, now) and puffs == walkingPuffs)
+leashed.following = false
+
+-- A new character still on its way from the SpawnLocation isn't followed.
+leashed.riderGraceUntil = now + 1
+assert(service.leashCenter(leashed) == nil and not service.followRider(leashed, now))
+leashed.riderGraceUntil = 0
 
 -- Stuck walking back: no closer after stuckTime, so it puffs beside the rider.
 leashed.root.Position = Vector3.new(radius + 5, 58, 0)

@@ -43,8 +43,8 @@ export type Golem = {
 	fallRecovery: boolean,
 	mounted: boolean, -- the rider is on the shoulder; steering, sprint and spells only count then
 	following: boolean, -- dismounted and walking back inside the leash
-	followBest: number, -- closest it has got while walking back
-	followProgressAt: number, -- when it last got closer
+	followFrom: Vector3, -- where it was when it last made headway walking back
+	followProgressAt: number, -- when it last made headway
 	sprinting: boolean, -- the rider asked to sprint; it only speeds the golem while they steer
 	nextMountChange: number,
 	nextSprintChange: number,
@@ -76,7 +76,9 @@ local RIDER_WELD = "GolemRiderWeld"
 local RIDER_GROUP = "GolemRider" -- a carried rider collides with nothing
 
 pcall(function()
-	PhysicsService:RegisterCollisionGroup(RIDER_GROUP)
+	if not PhysicsService:IsCollisionGroupRegistered(RIDER_GROUP) then
+		PhysicsService:RegisterCollisionGroup(RIDER_GROUP)
+	end
 	for _, group in PhysicsService:GetRegisteredCollisionGroups() do
 		PhysicsService:CollisionGroupSetCollidable(RIDER_GROUP, group.name, false)
 	end
@@ -503,6 +505,9 @@ attachRider = function(golem: Golem)
 		end
 	end
 	carryCharacter(character, true)
+	-- The carried rider's Humanoid mustn't balance, walk or jump against the
+	-- golem; the client also sets this, and plays the sit (see Riding).
+	humanoid.PlatformStand = true
 	local newWeld = Instance.new("Weld")
 	newWeld.Name = RIDER_WELD
 	newWeld.Part0 = golem.root
@@ -540,6 +545,18 @@ local function detachRider(golem: Golem)
 	end
 	local character = golem.player.Character
 	if character then
+		local riderRoot = character:FindFirstChild("HumanoidRootPart")
+		if riderRoot then
+			for _, old in riderRoot:GetChildren() do
+				if old.Name == RIDER_WELD then
+					old:Destroy()
+				end
+			end
+		end
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.PlatformStand = false
+		end
 		carryCharacter(character, false)
 	end
 end
@@ -593,8 +610,8 @@ local function findGround(center: Vector3, floorY: number, directions: { Vector3
 end
 
 -- Stands a dismounted rider on solid ground beside their golem: the right
--- side first, then the left, behind and in front. With no clear spot, under
--- the golem's own feet, which is always solid.
+-- side first, then the left, behind and in front, then the same a little
+-- further out. With no clear spot at all, at the old spot on the right.
 local function placeRiderBeside(golem: Golem)
 	local character = golem.player.Character
 	if not character or not golem.model.Parent then
@@ -604,12 +621,11 @@ local function placeRiderBeside(golem: Golem)
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	local cf = golem.root.CFrame
 	local ground = groundUnder(golem)
-	local spot = findGround(
-		golem.root.Position,
-		ground.Y,
-		{ cf.RightVector, -cf.RightVector, -cf.LookVector, cf.LookVector },
-		Config.Golem.dismountOffset * golem.stats.scale
-	) or ground
+	local sides = { cf.RightVector, -cf.RightVector, -cf.LookVector, cf.LookVector }
+	local distance = Config.Golem.dismountOffset * golem.stats.scale
+	local spot = findGround(golem.root.Position, ground.Y, sides, distance)
+		or findGround(golem.root.Position, ground.Y, sides, distance * 1.8)
+		or ground + cf.RightVector * distance
 	local height = 3
 	if humanoid and riderRoot and riderRoot:IsA("BasePart") then
 		height = math.max(humanoid.HipHeight + riderRoot.Size.Y / 2, 3)
@@ -741,7 +757,7 @@ local function spawnGolem(player: Player)
 		fallRecovery = false,
 		mounted = true,
 		following = false,
-		followBest = 0,
+		followFrom = Vector3.zero,
 		followProgressAt = 0,
 		sprinting = false,
 		nextMountChange = 0,
@@ -882,6 +898,9 @@ function GolemService.leashCenter(golem: Golem): Vector3?
 	if not humanoid or humanoid.Health <= 0 or not riderRoot or not riderRoot:IsA("BasePart") then
 		return nil
 	end
+	if os.clock() < golem.riderGraceUntil then
+		return nil -- a new character is still being moved over from the SpawnLocation
+	end
 	return riderRoot.Position
 end
 
@@ -900,7 +919,7 @@ end
 local function puffToRider(golem: Golem, center: Vector3): boolean
 	local character = golem.player.Character
 	local riderRoot = character and character:FindFirstChild("HumanoidRootPart")
-	if not riderRoot or not riderRoot:IsA("BasePart") then
+	if not riderRoot or not riderRoot:IsA("BasePart") or WorldService.zoneAt(center) ~= golem.zoneId then
 		return false
 	end
 	local floor = workspace:Raycast(center, Vector3.new(0, -12, 0), groundParams())
@@ -936,7 +955,7 @@ end
 -- Keeps a dismounted golem near its rider. Inside the radius it is free to
 -- fight and mine (CombatService); outside it walks back until it is well
 -- inside, so it doesn't jitter on the edge. Very far away, or stuck for a
--- few seconds, it puffs back beside the rider. Returns true while it is
+-- few seconds, it puffs back beside the rider (on the golem's own island). Returns true while it is
 -- walking back, when it should do nothing else.
 function GolemService.followRider(golem: Golem, now: number): boolean
 	local center = GolemService.leashCenter(golem)
@@ -958,13 +977,15 @@ function GolemService.followRider(golem: Golem, now: number): boolean
 		end
 	elseif distance > radius then
 		golem.following = true
-		golem.followBest = distance
+		golem.followFrom = golem.root.Position
 		golem.followProgressAt = now
 	else
 		return false
 	end
-	if distance < golem.followBest - 1 then
-		golem.followBest = distance
+	-- Stuck means the golem itself isn't getting anywhere (under about a
+	-- stud a second), not that a faster rider is pulling ahead.
+	if ((golem.root.Position - golem.followFrom) * FLAT).Magnitude >= Config.Golem.stuckTime then
+		golem.followFrom = golem.root.Position
 		golem.followProgressAt = now
 	elseif now - golem.followProgressAt > Config.Golem.stuckTime then
 		if puffToRider(golem, center) then
