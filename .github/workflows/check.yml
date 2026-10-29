@@ -1,5 +1,13 @@
 name: Luau and Rojo checks
-on: [push, pull_request]
+# Branch pushes are covered by their pull request run, so push runs only on main.
+on:
+  push:
+    branches: [main]
+  pull_request:
+# A newer commit on the same branch or PR cancels the run it replaces.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 jobs:
   check:
     runs-on: ubuntu-latest

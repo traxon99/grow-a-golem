@@ -210,7 +210,7 @@ Run `python3 scripts/check.py` with `luau` and `luau-compile` on PATH, then
 `rojo build default.project.json -o /tmp/grow-a-golem.rbxlx`. CI runs these checks.
 They validate syntax and selected logic, not Studio physics, UI or measured pacing.
 
-CI also runs a lint job on every push and PR (versions are pinned in `.github/workflows/check.yml`):
+CI also runs a lint job on every pull request and every push to `main` (a newer commit cancels the older run; versions are pinned in `.github/workflows/check.yml`):
 
 - **StyLua** (`stylua --check src tests`, settings in `stylua.toml`). Files written before CI had StyLua are listed in `.styluaignore`. Format one with `stylua <file>` and delete its line only when no issue labelled `in progress` touches it.
 - **selene** (`selene --allow-warnings src`, Roblox standard library from `golem.yml`; `tests/` are fragments that `scripts/check.py` joins, so they aren't linted on their own). Errors fail the build; warnings are shown.
