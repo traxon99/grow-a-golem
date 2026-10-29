@@ -94,6 +94,7 @@ local function fixture(offset)
 		downedUntil = 0,
 		fallRecovery = false,
 		mounted = true,
+		riderGraceUntil = 0,
 	},
 		attributes
 end
@@ -149,6 +150,26 @@ local count = messages
 service.update(detached, 1)
 assert(messages == count and humanoid.Health == 0)
 print("GolemService fall knock-out and recovery checks passed")
+
+-- A freshly spawned rider is below the island until they are seated, so the
+-- fall check waits out the spawn grace instead of killing them.
+local spawning, spawningAttributes = fixture(8)
+local spawningHumanoid = { Health = 100, HipHeight = 2 }
+spawning.player.Character = {
+	FindFirstChildOfClass = function()
+		return spawningHumanoid
+	end,
+	FindFirstChild = function()
+		return riderRoot
+	end,
+}
+spawning.riderGraceUntil = now + 3
+service.update(spawning, 0)
+assert(spawningHumanoid.Health == 100 and spawning.hp == 120 and not spawningAttributes.FallRecovery)
+now += 3
+service.update(spawning, 0)
+assert(spawningHumanoid.Health == 0 and spawning.hp == 0) -- still off the island once the grace is over
+print("GolemService rider spawn grace checks passed")
 
 -- Mounting: dismounted, steering is ignored and the golem is only hit by its own falls.
 local mountGolem, mountAttributes = fixture(8)

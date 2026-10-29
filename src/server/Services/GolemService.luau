@@ -33,6 +33,7 @@ export type Golem = {
 	fallRecovery: boolean,
 	mounted: boolean, -- the rider is on the shoulder; steering and spells only count then
 	nextMountChange: number,
+	riderGraceUntil: number, -- a new character is exempt from the fall check until it is placed
 	nextAttack: number,
 	nextMine: number,
 	spellReadyAt: { [string]: number },
@@ -49,6 +50,7 @@ local golems: { [Player]: Golem } = {}
 
 local STEER_TIMEOUT = 0.5 -- stop if the client stops sending
 local MAX_STEERS_PER_SECOND = 20
+local RIDER_SPAWN_GRACE = 3 -- seconds a fresh character may be off the island (it spawns at the SpawnLocation)
 local HIP_HEIGHT = 4
 local ROOT_SIZE = Vector3.new(6, 8, 4)
 local BARE_COLOR = CosmeticLooks.BARE_COLOR
@@ -514,6 +516,7 @@ local function spawnGolem(player: Player)
 		fallRecovery = false,
 		mounted = true,
 		nextMountChange = 0,
+		riderGraceUntil = 0,
 		nextAttack = 0,
 		nextMine = 0,
 		spellReadyAt = {},
@@ -528,15 +531,22 @@ local function spawnGolem(player: Player)
 	player:SetAttribute("GolemMounted", true)
 	publishHealth(golem)
 
-	player.CharacterAdded:Connect(function(character)
-		character:WaitForChild("Humanoid")
-		character:WaitForChild("HumanoidRootPart")
-		task.wait(0.2)
+	local function placeRider()
 		if golem.mounted then
 			seatRider(golem)
 		else
 			placeRiderBeside(golem)
 		end
+	end
+	player.CharacterAdded:Connect(function(character)
+		-- The character spawns at the place's SpawnLocation, far below the
+		-- island. Don't let the fall check kill it before it is placed.
+		golem.riderGraceUntil = os.clock() + RIDER_SPAWN_GRACE
+		character:WaitForChild("Humanoid")
+		character:WaitForChild("HumanoidRootPart")
+		placeRider()
+		task.wait(0.2)
+		placeRider() -- the first seat attempt can lose to the spawn; both are idempotent
 	end)
 	if player.Character then
 		seatRider(golem)
@@ -641,6 +651,7 @@ function GolemService.update(golem: Golem, dt: number)
 	local rider = character and character:FindFirstChildOfClass("Humanoid")
 	local riderRoot = character and character:FindFirstChild("HumanoidRootPart")
 	local riderFell = rider ~= nil
+		and now >= golem.riderGraceUntil
 		and rider.Health > 0
 		and riderRoot ~= nil
 		and riderRoot:IsA("BasePart")
