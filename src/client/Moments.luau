@@ -58,7 +58,7 @@ local function startBossBar(gui: ScreenGui)
 	frame.Name = "BossBar"
 	frame.AnchorPoint = Vector2.new(0.5, 0)
 	frame.Size = UDim2.fromOffset(440, 82)
-	frame.Position = UDim2.new(0.5, 0, 0, 50)
+	frame.Position = UDim2.new(0.5, 0, 0, 12)
 	frame.BackgroundTransparency = 1
 	frame.Visible = false
 	frame.Parent = gui

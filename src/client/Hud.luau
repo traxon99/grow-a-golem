@@ -205,9 +205,11 @@ function Hud.start()
 
 	local healthBack = Instance.new("Frame")
 	healthBack.Name = "GolemHealth"
-	healthBack.AnchorPoint = Vector2.new(0.5, 0)
-	healthBack.Size = UDim2.fromOffset(300, 30)
-	healthBack.Position = UDim2.new(0.5, 0, 0, 12)
+	-- Bottom centre, between the joystick and the spell buttons, so the top
+	-- stays free for the tutorial sign, boss bar and menus.
+	healthBack.AnchorPoint = Vector2.new(0.5, 1)
+	healthBack.Size = UDim2.fromOffset(260, 30)
+	healthBack.Position = UDim2.new(0.5, 0, 1, -24)
 	healthBack.BackgroundTransparency = 0.1
 	healthBack.Parent = gui
 	Ui.corner(healthBack, 10)

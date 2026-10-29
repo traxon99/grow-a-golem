@@ -2328,8 +2328,9 @@ function Menus.start()
 	end)
 	local frame = window.frame
 	frame.AnchorPoint = Vector2.new(0.5, 0.5)
-	frame.Position = UDim2.fromScale(0.5, 0.52)
-	frame.Size = UDim2.fromScale(0.56, 0.8)
+	-- Spans 20% to 92.5% of the height: under the tutorial sign and boss bar, over the health bar.
+	frame.Position = UDim2.fromScale(0.5, 0.565)
+	frame.Size = UDim2.fromScale(0.56, 0.72)
 	frame.Visible = false
 	local constraint = Instance.new("UISizeConstraint")
 	constraint.MinSize = Vector2.new(320, 280)
@@ -2355,8 +2356,8 @@ function Menus.start()
 		menuGrid.frame.Visible = false
 	end)
 	menuGrid.frame.AnchorPoint = Vector2.new(0.5, 0.5)
-	menuGrid.frame.Position = UDim2.fromScale(0.5, 0.52)
-	menuGrid.frame.Size = UDim2.fromScale(0.62, 0.86)
+	menuGrid.frame.Position = UDim2.fromScale(0.5, 0.565)
+	menuGrid.frame.Size = UDim2.fromScale(0.62, 0.72)
 	menuGrid.frame.Visible = false
 	local gridConstraint = Instance.new("UISizeConstraint")
 	gridConstraint.MinSize = Vector2.new(320, 240)
@@ -2401,7 +2402,7 @@ function Menus.start()
 		Ui.setText(menuButton, if small then "Menu" else "More")
 		menuGrid.frame.Visible = false
 		-- On a phone the window leaves the thumb corners clear.
-		frame.Size = if small then UDim2.fromScale(0.6, 0.9) else UDim2.fromScale(0.56, 0.8)
+		frame.Size = if small then UDim2.fromScale(0.6, 0.76) else UDim2.fromScale(0.56, 0.72)
 	end
 	applyLayout()
 	local function watchCamera()

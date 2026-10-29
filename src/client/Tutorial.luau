@@ -100,7 +100,7 @@ function Tutorial.start()
 	-- Sits at the top, where the goal card would be; the HUD hides that
 	-- during the tutorial.
 	panel.AnchorPoint = Vector2.new(0.5, 0)
-	panel.Position = UDim2.new(0.5, 0, 0, 50)
+	panel.Position = UDim2.new(0.5, 0, 0, 12)
 	panel.Size = UDim2.new(0.62, 0, 0, 0)
 	panel.AutomaticSize = Enum.AutomaticSize.Y
 	panel.BackgroundTransparency = 0.05
@@ -117,6 +117,16 @@ function Tutorial.start()
 	local stroke = Ui.surface(panel, "wood", { details = true })
 	stroke.Color = GOLD
 	stroke.Thickness = 3
+	-- Both sit top centre: the sign steps down while a boss bar is showing.
+	task.spawn(function()
+		while panel.Parent do
+			task.wait(0.25)
+			local moments = gui.Parent and gui.Parent:FindFirstChild("GolemMoments")
+			local bossBar = moments and moments:FindFirstChild("BossBar")
+			local bossShowing = bossBar ~= nil and bossBar:IsA("GuiObject") and bossBar.Visible
+			panel.Position = UDim2.new(0.5, 0, 0, if bossShowing then 100 else 12)
+		end
+	end)
 	local panelPadding = Instance.new("UIPadding")
 	panelPadding.PaddingTop = UDim.new(0, 8)
 	panelPadding.PaddingBottom = UDim.new(0, 10)
