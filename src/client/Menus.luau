@@ -2048,7 +2048,7 @@ local function refreshBadges()
 		local on = ready[tab.id] == true
 		local b = tabButtons[tab.id]
 		-- The More or Menu button badges only for tabs folded away behind it.
-		anything = anything or (on and (b == nil or b.Parent == gridList))
+		anything = anything or (on and (not b or b.Parent == gridList))
 		if b then
 			Ui.badge(b, on)
 		end
