@@ -123,11 +123,13 @@ local mining = loadMiningService({
 			}
 		end,
 	},
-	Remotes = { Notify = {
-		FireClient = function(_, player)
-			notices[player] = (notices[player] or 0) + 1
-		end,
-	} },
+	Remotes = {
+		Notify = {
+			FireClient = function(_, player)
+				notices[player] = (notices[player] or 0) + 1
+			end,
+		},
+	},
 	DataService = {
 		update = function(player, callback)
 			local data = mined[player] or { totals = { nodes = 0 } }
