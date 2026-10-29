@@ -243,6 +243,10 @@ world_service = (ROOT / "src/server/Services/WorldService.luau").read_text()
 world_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', world_service)
 bundle += "\nlocal function loadWorldService(dependencies, game)\n"
 bundle += 'local workspace = {}\nlocal Instance = { new = function() return {} end }\n'
+bundle += 'local UDim2 = { fromOffset = function() return {} end, fromScale = function() return {} end }\n'
+# makeSign calls Color3.new, which the shared prelude's Color3 (fromRGB
+# only) does not have; add it locally rather than widen the shared shim.
+bundle += 'local Color3 = { fromRGB = Color3.fromRGB, new = function(r, g, b) return { R = r, G = g, B = b } end }\n'
 bundle += world_service + "\nend\n"
 bundle += (ROOT / "tests/world-service.luau").read_text()
 with tempfile.TemporaryDirectory(prefix="golem-check-") as folder:
