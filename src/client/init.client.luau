@@ -15,6 +15,7 @@ local WorldBeatHud = require(script:WaitForChild("WorldBeatHud"))
 local QuakeTimingHud = require(script:WaitForChild("QuakeTimingHud"))
 local RuneCastingHud = require(script:WaitForChild("RuneCastingHud"))
 local ForgeTimingHud = require(script:WaitForChild("ForgeTimingHud"))
+local GauntletHud = require(script:WaitForChild("GauntletHud"))
 
 Hud.start() -- sets up the toast handler State uses
 WorldBeatHud.start() -- separate gameplay banner; no overlap with #175's HUD restyle
