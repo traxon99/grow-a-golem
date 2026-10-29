@@ -192,7 +192,10 @@ do
 		assert(#grants == grantsBefore + 1 and grants[#grants].amounts.xp == 20, "the quake step's reward is granted")
 
 		tutorial.check(walker)
-		assert(datas[walker].tutorial.step == 5 and datas[walker].tutorial.done == false, "check is a no-op below level 2")
+		assert(
+			datas[walker].tutorial.step == 5 and datas[walker].tutorial.done == false,
+			"check is a no-op below level 2"
+		)
 
 		datas[walker].golem.xp = Stats.xpForLevel(2)
 		local doneNotifiedBefore = #notified
@@ -204,7 +207,10 @@ do
 		assert(#notified == doneNotifiedBefore + 2, "the last step's own notify and tutorialDone both fire")
 		assert(notified[#notified - 1].kind == "tutorialStep" and notified[#notified - 1].message == 5)
 		assert(notified[#notified].kind == "tutorialDone")
-		assert(#logged == loggedBefore + 1 and logged[#logged].name == "done", "finishing (not skipping) logs the final step")
+		assert(
+			#logged == loggedBefore + 1 and logged[#logged].name == "done",
+			"finishing (not skipping) logs the final step"
+		)
 	end
 
 	--------------------------------------------------------------------- skipTutorial
