@@ -235,6 +235,16 @@ bundle += "\nlocal function loadAnalyticsService(dependencies, game, task, clock
 bundle += 'local os = { clock = clock }\nlocal script = { Parent = {} }\n'
 bundle += analytics_service + "\nend\n"
 bundle += (ROOT / "tests/analytics-service.luau").read_text()
+# The real WorldService's geometry helpers, reached only through
+# addArena (every field it sets is a plain write, so a bare Instance.new
+# and a workspace stand-in are enough); .start()'s island building,
+# lighting and Islands.decorate scenery are out of scope.
+world_service = (ROOT / "src/server/Services/WorldService.luau").read_text()
+world_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', world_service)
+bundle += "\nlocal function loadWorldService(dependencies, game)\n"
+bundle += 'local workspace = {}\nlocal Instance = { new = function() return {} end }\n'
+bundle += world_service + "\nend\n"
+bundle += (ROOT / "tests/world-service.luau").read_text()
 with tempfile.TemporaryDirectory(prefix="golem-check-") as folder:
     path = Path(folder) / "regression.luau"
     path.write_text(bundle)
