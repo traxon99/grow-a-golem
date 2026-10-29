@@ -57,6 +57,8 @@ local friend = { UserId = 3, Parent = true }
 local farFriend = { UserId = 4, Parent = true }
 local wrongZone = { UserId = 5, Parent = true }
 local golems = {
+	[attacker] = { zoneId = 1, root = { Position = v(0, 54, 0) } },
+	[other] = { zoneId = 1, root = { Position = v(0, 54, 0) } },
 	[friend] = { zoneId = 1, root = { Position = v(5, 54, 0) } },
 	[farFriend] = { zoneId = 1, root = { Position = v(100, 54, 0) } },
 	[wrongZone] = { zoneId = 2, root = { Position = v(5, 54, 0) } },
@@ -80,6 +82,9 @@ local enemies = loadEnemyService(
 			end,
 			get = function(player)
 				return golems[player]
+			end,
+			isActive = function(golem)
+				return golem.active ~= false
 			end,
 		},
 		WorldService = {
@@ -180,15 +185,22 @@ assert(totals[attacker].totals.enemies == 1 and #rolls == 2 and events.enemyDefe
 enemies.update()
 assert(paid[attacker] == 1)
 
+-- Both independent 25%+ contributors earn rewards; a shared party member
+-- receives only one reward even if both contributors belong to that party.
 local multi = spawn(false)
-enemies.damage(multi, 1, attacker)
-enemies.damage(multi, 1, other)
-fall(multi)
-assert(paid[attacker] == 1 and paid[other] == 1) -- last hitter wins
+enemies.damage(multi, 60, attacker)
+enemies.damage(multi, 40, other)
+assert(paid[attacker] == 2 and paid[other] == 1 and paid[friend] == 2)
+
+-- A stranger finishing a nearly defeated enemy gets no reward.
+local stolen = spawn(false)
+enemies.damage(stolen, 90, attacker)
+enemies.damage(stolen, 10, other)
+assert(paid[attacker] == 3 and paid[other] == 1)
 
 local untouched = spawn(false)
 fall(untouched)
-assert(paid[attacker] == 1 and paid[other] == 1)
+assert(paid[attacker] == 3 and paid[other] == 1)
 local departed = spawn(false)
 enemies.damage(departed, 1, other)
 other.Parent = nil
@@ -196,6 +208,7 @@ fall(departed)
 assert(paid[other] == 1)
 other.Parent = true
 
+-- Only active contributors still on the boss island get unlocks or rolls.
 local boss = spawn(true)
 enemies.damage(boss, 1, attacker)
 enemies.damage(boss, 1, other)
@@ -206,6 +219,27 @@ assert(rolls[#rolls] == "boss" and paid[other] == 1)
 local alive, delay = enemies.bossStatus(1)
 assert(not alive and delay == 30)
 other.Parent = true
+
+local beforeAway = paid[attacker]
+local bossAway = spawn(true)
+enemies.damage(bossAway, 1, attacker)
+golems[attacker].zoneId = 0
+fall(bossAway)
+assert(paid[attacker] == beforeAway)
+golems[attacker].zoneId = 1
+
+local bossDown = spawn(true)
+enemies.damage(bossDown, 1, attacker)
+golems[attacker].active = false
+fall(bossDown)
+assert(paid[attacker] == beforeAway)
+golems[attacker].active = true
+
+local bossTogether = spawn(true)
+enemies.damage(bossTogether, 1, attacker)
+enemies.damage(bossTogether, 1, other)
+fall(bossTogether)
+assert(paid[attacker] == beforeAway + 1 and paid[other] == 2)
 
 local callbacks = 0
 local before = paid[attacker]
@@ -221,4 +255,4 @@ assert(callbacks == 1 and paid[attacker] == before)
 local normal = spawn(false)
 enemies.damage(normal, 100, attacker)
 assert(normal.model.destroyed and paid[attacker] == before + 1)
-print("EnemyService void credit, party sharing, boss and Tower checks passed")
+print("EnemyService fair credit, party sharing, boss presence and Tower checks passed")
