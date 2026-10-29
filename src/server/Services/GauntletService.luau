@@ -108,7 +108,7 @@ local function boulder(folder: Instance, x: number, z: number, moving: boolean):
 		Vector3.new(10, 10, 10),
 		if moving then Color3.fromRGB(255, 125, 65) else Color3.fromRGB(120, 100, 95),
 		if moving then Enum.Material.Neon else Enum.Material.Slate,
-		false
+		not moving
 	)
 	ball.Shape = Enum.PartType.Ball
 	if not moving then
