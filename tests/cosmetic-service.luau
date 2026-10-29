@@ -70,13 +70,21 @@ do
 			end,
 			connect = function() end,
 		},
-		GolemService = { get = function() return nil end },
+		GolemService = {
+			get = function()
+				return nil
+			end,
+		},
 	}, {
 		GetService = function(_, name)
 			if name == "MarketplaceService" then
 				return marketplace
 			end
-			return { WaitForChild = function() return {} end }
+			return {
+				WaitForChild = function()
+					return {}
+				end,
+			}
 		end,
 	}, {
 		spawn = function(fn, ...)
