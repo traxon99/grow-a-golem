@@ -363,6 +363,15 @@ do
 		assert(customCalls[#customCalls].fields.CustomField01 == "springFestival")
 		assert(#customCalls == customBefore + 4)
 
+		eventHandlers.worldBeatParticipated(p, 900)
+		assert(customCalls[#customCalls].name == "WorldBeatParticipated")
+		assert(customCalls[#customCalls].fields.CustomField01 == "mineralSurge")
+		local surgeCount = #customCalls
+		eventHandlers.worldBeatParticipated(p, 900)
+		assert(#customCalls == surgeCount, "multiple nodes in one surge log one participant")
+		eventHandlers.worldBeatParticipated(p, 1800)
+		assert(#customCalls == surgeCount + 1, "a later surge logs participation again")
+
 		local progressionBefore = #progressionCalls
 		eventHandlers.awakened(p, 1)
 		assert(
