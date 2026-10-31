@@ -218,12 +218,6 @@ function Sfx.start()
 			Sfx.play("quake")
 		end
 	end)
-
-	player:GetAttributeChangedSignal("GolemDowned"):Connect(function()
-		if player:GetAttribute("GolemDowned") == true then
-			Sfx.play("downed")
-		end
-	end)
 end
 
 return Sfx

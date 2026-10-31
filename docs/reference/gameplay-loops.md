@@ -70,10 +70,11 @@ Details:
 | Layer | Our loop |
 |---|---|
 | 30 s | Golem auto-fights and auto-mines; eight minerals (stone through aether) and XP drop; damage numbers, hit flashes, debris; spells Q/E/R (Quake, Mend, Magnet) for active players |
-| 5 min | Forge parts into 5 slots across 8 tiers (full-set bonus); playtime gift at 5 min; daily quests |
+| 5 min | Forge parts into 5 slots across 8 tiers (full-set bonus); spend older minerals on Core upgrades; playtime gift at 5 min; daily quests |
 | Session | Golem size steps (levels 1/5/10/18/28/40/55/75/100) plus boss kills unlock the next island (Mossy Quarry → Ember Flats → Glasswood → Storm Peak → Sunken Ruins → Sky Forge); each boss cycles three telegraphed attacks (circle, narrow lane, broad sweep) to dodge; artifacts; Awakening at level 20+; Ascension after five unspent Awakenings and boss 6 |
 
 - Strong fit with the genre skeleton. Co-op parties add a social multiplier (see [social.md](social.md)).
+- Stone remains in every forge recipe. Four mineral-funded Core tracks add health, attack speed, damage and spell damage for the current run. Later accessible islands unlock more ranks and add mining yields on earlier islands (up to 3.5x), making return trips shorter. Core ranks persist through part swaps and rejoining; Awaken and Ascend reset them. See [progression.md](progression.md) for costs and unlocks. Balance is provisional pending timed playtests.
 - Falling four studs below an island's surface knocks the golem out immediately, at any size. It returns to that island's spawn with no falling momentum, stays down for the normal five-second recovery, and then reforms at full health. Falling never removes saved progress.
 - Mineral nodes award their fixed yield to the highest damage contributor, not whoever lands the final chip; ties favor the lower UserId, and departed players cannot collect.
 - Ordinary enemy kills credit each player who dealt at least 25% of max health, plus nearby party members (deduplicated). If a large crowd splits damage below 25% each, the top contributor receives credit. Enemies that fall below the island count as defeats for qualifying contributors; party range is measured from the last hit location. Untouched enemies disappear without rewards.

@@ -111,6 +111,17 @@ local function fixture(offset)
 	}
 	local model = {
 		Parent = true,
+		FindFirstChild = function(_, name)
+			if name == "Head" then
+				return {
+					Color = {},
+					IsA = function(_, class)
+						return class == "BasePart"
+					end,
+				}
+			end
+			return nil
+		end,
 		SetAttribute = function(_, key, value)
 			attributes[key] = value
 		end,
@@ -130,7 +141,7 @@ local function fixture(offset)
 			end,
 		},
 		humanoid = { Move = function() end, WalkSpeed = 14 },
-		stats = { maxHealth = 200, regenPerSecond = 2, walkSpeed = 14 },
+		stats = { maxHealth = 200, regenPerSecond = 2, walkSpeed = 14, scale = 1 },
 		groundOffset = offset,
 		zoneId = 1,
 		hp = 120,

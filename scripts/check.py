@@ -138,6 +138,7 @@ bundle += 'local game = { GetService = function(_, name) if name == "Players" th
 bundle += 'local script = { Parent = {} }\n'
 bundle += progression + "\nend\n"
 bundle += (ROOT / "tests/progression.luau").read_text()
+bundle += (ROOT / "tests/core-upgrades.luau").read_text()
 bundle += (ROOT / "tests/forge-strike-service.luau").read_text()
 data_service = (ROOT / "src/server/Services/DataService.luau").read_text()
 data_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', data_service)

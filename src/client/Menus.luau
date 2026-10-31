@@ -56,14 +56,12 @@ local function oddsText(data: any, zoneId: number, luckMult: number): string
 		table.insert(
 			parts,
 			if unfound > 0
-				then `{percent(chance)} on the next {who}`
-				elseif
-					spares
-				then `{who} artifacts all found, {percent(spareChance)} on the next {who} for a spare copy`
-				else `{who} artifacts all found`
+				then `Next {who}: {percent(chance)} new artifact`
+				elseif spares then `Next {who}: {percent(spareChance)} spare artifact`
+				else `{who}: all artifacts found`
 		)
 	end
-	return table.concat(parts, ", ")
+	return table.concat(parts, "\n")
 end
 
 local function luckBoostEndsIn(data: any): number
@@ -115,7 +113,7 @@ local function partGain(data: any, slot: string, tier: string): string
 			table.insert(parts, `+{amount} {stat.name}`)
 		end
 	end
-	return if #parts > 0 then table.concat(parts, "  ") else "A sturdier part"
+	return if #parts > 0 then table.concat(parts, "  ") else "Stronger golem part"
 end
 
 local function renderForge(list: ScrollingFrame, snap: any)
@@ -152,8 +150,8 @@ local function renderForge(list: ScrollingFrame, snap: any)
 				then `Full {Config.Tiers[stats.fullSet].displayName} set!`
 				else `{bestCount} of 5 {tierName} parts`,
 			subtitle = if stats.fullSet
-				then `You get +{bonus}% health and damage.`
-				else `A full set of 5 gives +{bonus}% health and damage.`,
+				then `+{bonus}% health and damage`
+				else `Match 5 parts: +{bonus}% health and damage`,
 			accent = Config.Tiers[bestTier].color,
 			ready = stats.fullSet ~= nil,
 			progress = { current = bestCount, max = #Config.SlotOrder },
@@ -170,7 +168,7 @@ local function renderForge(list: ScrollingFrame, snap: any)
 		if not nextTier then
 			Ui.item(list, nextOrder(), {
 				title = slotName,
-				subtitle = "Best tier forged!",
+				subtitle = "Best part built!",
 				accent = currentColor,
 				chips = { { text = currentName, color = deep(currentColor) } },
 				action = { text = "Max", enabled = false },
@@ -221,6 +219,52 @@ local function renderForge(list: ScrollingFrame, snap: any)
 			},
 		})
 	end
+
+	Ui.heading(list, nextOrder(), "Core upgrades", "forge")
+	Ui.item(list, nextOrder(), {
+		title = "Give old minerals new power.",
+		subtitle = `Keep upgrades when parts change.\nNew islands unlock {Config.CoreUpgradeRanksPerIsland} ranks each.\nAwakening resets Core upgrades.`,
+	})
+	for _, id in Config.CoreUpgradeOrder do
+		local upgrade = Config.CoreUpgrades[id]
+		local rank = (data.coreUpgrades or {})[id] or 0
+		local cap = Stats.coreUpgradeRankCap(data, id)
+		local canBuy = Stats.canBuyCoreUpgrade(data, id)
+		local maxed = rank >= upgrade.maxRank
+		local locked = rank >= cap
+		local cost = Stats.coreUpgradeCost(id, rank)
+		local subtitle = if maxed
+			then "Fully upgraded!"
+			elseif cap == 0 then `Reach {Config.Zones[upgrade.island].name} to unlock.`
+			elseif locked then "Open another island for more ranks."
+			else `Next rank: {Ui.bonusText(upgrade.bonus)}\nCost: {Ui.costText(cost)}`
+		local total = {}
+		for stat, amount in upgrade.bonus do
+			total[stat] = amount * rank
+		end
+		Ui.item(list, nextOrder(), {
+			title = upgrade.name,
+			subtitle = `Rank {rank}/{upgrade.maxRank}: {Ui.bonusText(total)}\n{subtitle}`,
+			icon = upgrade.mineral,
+			accent = Config.Minerals[upgrade.mineral].color,
+			ready = canBuy,
+			progress = if not locked and not maxed
+				then {
+					label = Config.Minerals[upgrade.mineral].displayName,
+					current = data.minerals[upgrade.mineral] or 0,
+					max = cost[upgrade.mineral],
+					icon = upgrade.mineral,
+				}
+				else nil,
+			action = {
+				text = if maxed then "Max" elseif locked then "Locked" else "Upgrade",
+				enabled = canBuy,
+				onClick = function()
+					State.request("buyCoreUpgrade", id)
+				end,
+			},
+		})
+	end
 end
 
 ---------------------------------------------------------------- travel
@@ -248,8 +292,8 @@ local function renderTower(list: ScrollingFrame, snap: any, start: number)
 					end
 				end
 				Ui.item(list, nextOrder(), {
-					title = `{route} route: waiting for {waiting} to say yes`,
-					subtitle = `The run starts when everyone says yes ({run.inviteLeft}s left).`,
+					title = `{route}: waiting for {waiting} players`,
+					subtitle = `Everyone must join within {run.inviteLeft}s.`,
 					action = {
 						text = "Cancel",
 						style = "danger",
@@ -261,8 +305,8 @@ local function renderTower(list: ScrollingFrame, snap: any, start: number)
 			else
 				local reward = Stats.towerRunReward(run.route)
 				Ui.item(list, nextOrder(), {
-					title = `{run.leaderName} invites you: {route}, {waves} waves`,
-					subtitle = `Clear it all for {Ui.rewardText(reward)}. {run.inviteLeft}s to answer.`,
+					title = `{run.leaderName}'s invite: {route}, {waves} waves`,
+					subtitle = `Rewards: {Ui.rewardText(reward)}\nJoin within {run.inviteLeft}s.`,
 					ready = true,
 					action = {
 						text = "Join",
@@ -282,9 +326,9 @@ local function renderTower(list: ScrollingFrame, snap: any, start: number)
 			return
 		end
 		local status = if run.state == "ended"
-			then run.endText or "The run is over."
-			elseif run.state == "break" then `Wave {run.wave + 1} of {waves} starts soon.`
-			else `Wave {run.wave} of {waves}: {run.remaining} enemies left.`
+			then run.endText or "Run finished."
+			elseif run.state == "break" then `Wave {run.wave + 1}/{waves} starts soon.`
+			else `Wave {run.wave}/{waves}: {run.remaining} enemies left`
 		Ui.item(list, nextOrder(), {
 			title = `{route} route`,
 			subtitle = status,
@@ -294,8 +338,8 @@ local function renderTower(list: ScrollingFrame, snap: any, start: number)
 			local nextWave = math.min(run.wave + (if run.state == "break" then 1 else 0), waves)
 			local reward = Stats.towerWaveReward(run.route, math.max(nextWave, 1))
 			Ui.item(list, nextOrder(), {
-				title = `This wave pays {Ui.rewardText(reward)}`,
-				subtitle = "If you leave, you keep what you've earned.",
+				title = `Wave reward: {Ui.rewardText(reward)}`,
+				subtitle = "Leaving keeps your earned rewards.",
 				action = {
 					text = "Leave",
 					style = "danger",
@@ -317,16 +361,16 @@ local function renderTower(list: ScrollingFrame, snap: any, start: number)
 	local bossWaves = table.concat(bossList, " and ")
 	if not tower.isLeader then
 		Ui.item(list, nextOrder(), {
-			title = "Your party leader starts tower runs",
-			subtitle = `{waves} waves together. Each wave pays as you clear it.`,
+			title = "Your party leader starts the tower.",
+			subtitle = `{waves} waves. Earn rewards after each wave.`,
 		})
 		return
 	end
 	Ui.item(list, nextOrder(), {
 		title = if tower.partySize > 1
 			then `Climb with your party of {tower.partySize}`
-			else "Climb solo or with a party",
-		subtitle = `{waves} waves of one island's enemies. Its boss comes on waves {bossWaves}.`,
+			else "Climb alone or with friends.",
+		subtitle = `{waves} waves of island enemies.\nBoss waves: {bossWaves}`,
 	})
 	for _, zoneId in Config.ZoneOrder do
 		if Stats.zoneUnlocked(data, zoneId) then
@@ -334,7 +378,7 @@ local function renderTower(list: ScrollingFrame, snap: any, start: number)
 			local reward = Stats.towerRunReward(zoneId)
 			Ui.item(list, nextOrder(), {
 				title = `{zone.name} route`,
-				subtitle = `Clear it all for {Ui.rewardText(reward)}.`,
+				subtitle = `Full run rewards: {Ui.rewardText(reward)}`,
 				accent = zone.color,
 				action = {
 					text = if tower.full then "Full" else "Start",
@@ -356,18 +400,18 @@ local function explainLocked(data: any, zoneId: number)
 	local words: string
 	if gate.boss and not Stats.bossDefeated(data, gate.boss) then
 		local boss = Config.Bosses[gate.boss].displayName
-		words = `{zone.name} is locked. Beat {boss} on {Config.Zones[gate.boss].name} to open it!`
+		words = `Open {zone.name}: beat {boss}.\nFind them on {Config.Zones[gate.boss].name}.`
 		progress = {
 			label = `Beat {boss}`,
 			current = 0,
 			max = 1,
 			icon = "lock",
-			hint = "Bosses wait in the far corner of their island.",
+			hint = "Find bosses in each island's far corner.",
 		}
 	else
 		local needed = Config.SizeLevels[gate.size or 1] or 1
 		local level = Stats.levelForXp(data.golem.xp)
-		words = `{zone.name} is locked. Grow your golem to size {gate.size} to get in!`
+		words = `Open {zone.name}: reach size {gate.size}.`
 		progress = {
 			label = "Golem level",
 			current = level,
@@ -392,7 +436,7 @@ local function renderTravel(list: ScrollingFrame, snap: any)
 	local inHub = currentZone == Config.HubZone
 	Ui.item(list, nextOrder(), {
 		title = Config.Hub.name,
-		subtitle = "A safe island to show off your golem and meet players.",
+		subtitle = "Meet players and show your golem safely.",
 		icon = "hub",
 		chips = if inHub then { { text = "You are here", color = CHIP.here } } else nil,
 		action = {
@@ -418,11 +462,15 @@ local function renderTravel(list: ScrollingFrame, snap: any)
 		elseif beaten then
 			table.insert(chips, { text = "Boss beaten", color = CHIP.good })
 		end
+		local miningMult = Stats.returnMiningMultiplier(data, zoneId)
 		local subtitle = if boss then `Boss: {boss.displayName}` else nil
 		if zoneId == currentZone and snap.golem and boss then
 			subtitle = if snap.golem.bossAlive
 				then `{boss.displayName} is awake!`
-				else `{boss.displayName} is back in about {snap.golem.bossRespawnIn}s.`
+				else `{boss.displayName} returns in about {snap.golem.bossRespawnIn}s.`
+		end
+		if unlocked and miningMult > 1 then
+			subtitle = (if subtitle then subtitle .. "\n" else "") .. `Mining here: {miningMult}x minerals`
 		end
 		Ui.item(list, nextOrder(), {
 			title = zone.name,
@@ -484,7 +532,7 @@ local function artifactCard(grid: Instance, data: any, id: string, order: number
 		order = order,
 		buttons = {
 			{
-				text = if equipped then "Unequip" else "Equip",
+				text = if equipped then "Remove" else "Use",
 				style = if equipped then "secondary" else "primary",
 				onClick = function()
 					State.request(if equipped then "unequipArtifact" else "equipArtifact", id)
@@ -498,9 +546,9 @@ end
 local function bagText(data: any, zoneId: number, source: string, luckMult: number): string
 	local marblesLeft, winnersLeft = Stats.artifactBag(data, zoneId, source, luckMult)
 	if winnersLeft <= 0 then
-		return `This bag's find is out; {marblesLeft} marbles left before a new bag.`
+		return `More rewards after {marblesLeft} wins.`
 	end
-	return `This bag: {winnersLeft} find in {marblesLeft} marbles left.`
+	return `Rewards left: {winnersLeft} in {marblesLeft} wins.`
 end
 
 -- The real odds on one island, one row per rarity, and the bag count.
@@ -511,8 +559,8 @@ local function oddsRows(list: ScrollingFrame, nextOrder: () -> number, data: any
 		local chance, rollsLeft, unfound = Stats.artifactOdds(data, zoneId, source, luckMult)
 		if unfound > 0 then
 			Ui.item(list, nextOrder(), {
-				title = `{rarity.name}: {percent(chance)} on the next {who}`,
-				subtitle = `{unfound} left to find. {bagText(data, zoneId, source, luckMult)} One is sure within {rollsLeft} more.`,
+				title = `{rarity.name}: {percent(chance)} next {who}`,
+				subtitle = `{unfound} still missing.\n{bagText(data, zoneId, source, luckMult)}\nArtifact within {rollsLeft} more wins, for sure.`,
 				icon = Config.ArtifactSourceRarity[source],
 				accent = rarity.color,
 				tint = rarity.dark,
@@ -523,8 +571,8 @@ local function oddsRows(list: ScrollingFrame, nextOrder: () -> number, data: any
 			local spareChance, spareLeft, spares = Stats.spareOdds(data, zoneId, source, luckMult)
 			if spares then
 				Ui.item(list, nextOrder(), {
-					title = `{rarity.name} spares: {percent(spareChance)} on the next {who}`,
-					subtitle = `All found here. {bagText(data, zoneId, source, luckMult)} A spare to trade is sure within {spareLeft} more.`,
+					title = `{rarity.name} spare: {percent(spareChance)} next {who}`,
+					subtitle = `All found here.\n{bagText(data, zoneId, source, luckMult)}\nSpare within {spareLeft} more wins, for sure.`,
 					icon = Config.ArtifactSourceRarity[source],
 					accent = rarity.color,
 					tint = rarity.dark,
@@ -541,19 +589,19 @@ local function renderArtifacts(list: ScrollingFrame, snap: any)
 	local zoneHere = if snap.golem and Config.Zones[snap.golem.zoneId] then snap.golem.zoneId else 1
 	local foundHere, totalHere = Stats.zoneArtifactCount(data, zoneHere)
 	Ui.summary(list, nextOrder(), {
-		{ icon = "artifacts", text = `{#data.artifacts.equipped} / {stats.artifactSlots} equipped` },
+		{ icon = "artifacts", text = `Using {#data.artifacts.equipped} / {stats.artifactSlots} artifacts` },
 		{ text = `Found {foundHere} / {totalHere} here` },
 	})
 	local boostLeft = luckBoostEndsIn(data)
 	if boostLeft > 0 then
 		Ui.item(list, nextOrder(), {
-			title = `2x Luck is on for {Ui.duration(boostLeft)}`,
-			subtitle = "The odds below include it. They drop back when it ends.",
+			title = `2x Luck: {Ui.duration(boostLeft)} left`,
+			subtitle = "Shown chances include 2x Luck.\nThey return to normal afterward.",
 			icon = "alert",
 		})
 	end
 	if Stats.artifactsFound(data) == 0 then
-		Ui.empty(list, nextOrder(), "No artifacts yet.", "Beat monsters to find your first one!")
+		Ui.empty(list, nextOrder(), "No artifacts yet.", "Beat monsters to find artifacts.")
 	end
 	Ui.toggles(
 		list,
@@ -570,7 +618,7 @@ local function renderArtifacts(list: ScrollingFrame, snap: any)
 	)
 
 	if artifactSort == "rarity" then
-		Ui.heading(list, nextOrder(), `Your odds on {Config.Zones[zoneHere].name}`)
+		Ui.heading(list, nextOrder(), `Drop chances: {Config.Zones[zoneHere].name}`)
 		oddsRows(list, nextOrder, data, zoneHere, stats.luckMult)
 		local ids = table.clone(Config.ArtifactOrder)
 		table.sort(ids, function(a: string, b: string): boolean
@@ -596,7 +644,7 @@ local function renderArtifacts(list: ScrollingFrame, snap: any)
 		local found, total = Stats.zoneArtifactCount(data, zoneId)
 		Ui.heading(list, nextOrder(), `{Config.Zones[zoneId].name}  {found} / {total}`)
 		Ui.item(list, nextOrder(), {
-			title = if complete then "Set complete!" else "Find them all for a set bonus",
+			title = if complete then "Set complete!" else "Find every artifact for extra power.",
 			subtitle = Ui.bonusText(Config.ZoneSetBonus),
 			ready = complete,
 			progress = { current = found, max = total },
@@ -624,7 +672,7 @@ local function renderSkills(list: ScrollingFrame, snap: any)
 	})
 	Ui.item(list, nextOrder(), {
 		title = "You get 1 point each level.",
-		subtitle = `Reset gives back your points. It costs {Ui.costText(Config.SkillRespecCost)}.`,
+		subtitle = `Get your skill points back.\nCost: {Ui.costText(Config.SkillRespecCost)}`,
 		action = {
 			text = "Reset",
 			style = "secondary",
@@ -647,7 +695,7 @@ local function renderSkills(list: ScrollingFrame, snap: any)
 				table.insert(extra, `+{skill.artifactSlots} artifact slot`)
 			end
 			if skill.offlineHours then
-				table.insert(extra, `+{skill.offlineHours}h offline mining`)
+				table.insert(extra, `Mine {skill.offlineHours}h longer while away`)
 			end
 			local learned = data.skills[skillId] == true
 			local canLearn = Stats.canLearnSkill(data, skillId)
@@ -702,10 +750,10 @@ local function renderAwaken(list: ScrollingFrame, snap: any)
 	local shards = Stats.awakeningShards(level)
 	local gain = Config.Awakening.mineralBonusPerAwakening
 	local nextUnlock = Stats.nextAwakeningUnlock(data)
-	local unlockText = if nextUnlock then ` This Awakening also unlocks {nextUnlock.name}.` else ""
+	local unlockText = if nextUnlock then `\nAlso unlocks: {nextUnlock.name}.` else ""
 	Ui.item(list, nextOrder(), {
 		title = if canAwaken then `Awaken now for {shards} shards!` else "Awaken",
-		subtitle = `You start again at level 1 with no parts, skills or minerals. You keep artifacts, shards and upgrades, and get +{gain}% minerals forever.{unlockText}`,
+		subtitle = `Restart at level 1.\nLose parts, skills, and Core upgrades.\nLose minerals and boss wins.\nKeep artifacts, cosmetics, shards, lasting upgrades.\nGain +{gain}% minerals forever.{unlockText}`,
 		ready = canAwaken,
 		progress = if canAwaken
 			then nil
@@ -716,7 +764,7 @@ local function renderAwaken(list: ScrollingFrame, snap: any)
 			onClick = function()
 				confirmReset(
 					"Awaken?",
-					`This resets your level, parts, skills, minerals and bosses. You keep artifacts, shards and upgrades, and get {shards} shards.{unlockText}`,
+					`Restart at level 1.\nLose parts, skills, and Core upgrades.\nLose minerals and boss wins.\nKeep artifacts, cosmetics, shards, lasting upgrades.\nGain {shards} shards and +{gain}% minerals forever.{unlockText}`,
 					"Awaken!",
 					"awaken"
 				)
@@ -754,17 +802,17 @@ local function renderAwaken(list: ScrollingFrame, snap: any)
 		{ text = `{ascension.points} point{if ascension.points == 1 then "" else "s"}` },
 	})
 	Ui.item(list, nextOrder(), {
-		title = `Needs {required} Awakenings and {bossName} beaten`,
-		subtitle = `Uses {required} Awakenings (their bonuses stay). Resets like Awaken, and gives {Config.Ascension.points} point.`,
+		title = `Need {required} Awakenings; beat {bossName}.`,
+		subtitle = `Spend {required} Awakenings; keep their bonuses.\nRestart your golem, like Awaken.\nGain {Config.Ascension.points} Ascension point.`,
 		ready = Stats.canAscend(data),
-		progress = { label = "Unspent Awakenings", current = unspent, max = required },
+		progress = { label = "Awakenings you can spend", current = unspent, max = required },
 		action = {
 			text = "Ascend",
 			enabled = Stats.canAscend(data),
 			onClick = function()
 				confirmReset(
 					"Ascend?",
-					`This uses {required} Awakenings and resets your level, parts, skills, minerals and bosses. You keep artifacts, cosmetics, shards and all upgrades.`,
+					`Spend {required} Awakenings; keep their bonuses.\nRestart at level 1.\nLose parts, skills, and Core upgrades.\nLose minerals and boss wins.\nKeep artifacts, cosmetics, shards, lasting upgrades.\nGain {Config.Ascension.points} Ascension point.`,
 					"Ascend!",
 					"ascend"
 				)
@@ -776,7 +824,7 @@ local function renderAwaken(list: ScrollingFrame, snap: any)
 		local rank = ascension.upgrades[id] or 0
 		local bonuses = {}
 		for stat, amount in upgrade.bonus do
-			table.insert(bonuses, `+{amount}% {stat}`)
+			table.insert(bonuses, Ui.bonusText({ [stat] = amount }))
 		end
 		Ui.item(list, nextOrder(), {
 			title = upgrade.name,
@@ -1006,7 +1054,7 @@ local function renderParty(list: ScrollingFrame, snap: any)
 		else "friends"
 	Ui.item(list, nextOrder(), {
 		title = `Party invites: {inviteLabel}`,
-		subtitle = "Choose who can send you party invitations.",
+		subtitle = "Choose who can invite you.",
 		action = {
 			text = "Change",
 			style = "secondary",
@@ -1084,7 +1132,7 @@ local function renderParty(list: ScrollingFrame, snap: any)
 	end
 	Ui.item(list, nextOrder(), {
 		title = "How parties work",
-		subtitle = "Players near a win share its rewards. Each friend adds +10% minerals.",
+		subtitle = "Nearby players share battle rewards.\nEach friend adds +10% minerals.",
 		icon = "guide",
 	})
 end
@@ -1141,17 +1189,17 @@ local function renderShop(list: ScrollingFrame, snap: any)
 	codeEntry(list, nextOrder)
 	Ui.item(list, nextOrder(), {
 		title = "Codes are always free.",
-		subtitle = "New codes come out with updates and on our group wall.",
+		subtitle = "Find codes in updates and group posts.",
 		icon = "guide",
 	})
 
 	Ui.item(list, nextOrder(), {
 		title = "Looking for skins and pets?",
-		subtitle = "They're in the Wardrobe, with a preview first.",
+		subtitle = "Open Wardrobe. Try looks before buying.",
 		icon = "wardrobe",
 	})
 
-	Ui.heading(list, nextOrder(), "Game passes (yours forever)")
+	Ui.heading(list, nextOrder(), "Passes you keep forever")
 	for _, key in Config.GamePassOrder do
 		local pass = Config.GamePasses[key]
 		local owned = passes[key] == true
@@ -1208,7 +1256,7 @@ local function renderShop(list: ScrollingFrame, snap: any)
 		end
 		local subtitle = if product.boost then "Buying more adds more time." else "Minerals from your best island."
 		if product.boost == "luck" then
-			subtitle = `Doubles your artifact odds for {product.minutes} min. Your real odds are below.`
+			subtitle = `Double artifact chances for {product.minutes} minutes.\nSee your exact chances below.`
 		end
 		local chips = nil
 		if activeFor > 0 then
@@ -1249,13 +1297,21 @@ local function renderShop(list: ScrollingFrame, snap: any)
 		})
 		if activeFor > 0 then
 			Ui.item(list, nextOrder(), {
-				title = `Your odds on {zoneName} (2x Luck on)`,
-				subtitle = `{oddsText(data, zoneId, luckMult)}. Without it: {oddsText(data, zoneId, luckMult / 2)}.`,
+				title = `{zoneName}: 2x Luck chances`,
+				subtitle = `Now:\n{oddsText(data, zoneId, luckMult)}\nWithout 2x Luck:\n{oddsText(
+					data,
+					zoneId,
+					luckMult / 2
+				)}`,
 			})
 		else
 			Ui.item(list, nextOrder(), {
-				title = `Your odds on {zoneName} now`,
-				subtitle = `{oddsText(data, zoneId, luckMult)}. With 2x Luck: {oddsText(data, zoneId, luckMult * 2)}.`,
+				title = `{zoneName}: current chances`,
+				subtitle = `Now:\n{oddsText(data, zoneId, luckMult)}\nWith 2x Luck:\n{oddsText(
+					data,
+					zoneId,
+					luckMult * 2
+				)}`,
 			})
 		end
 		local pity = {}
@@ -1266,23 +1322,23 @@ local function renderShop(list: ScrollingFrame, snap: any)
 			if unfound > 0 then
 				table.insert(pity, `{rollsLeft} more {what}`)
 			elseif spares then
-				table.insert(pity, `{spareLeft} more {what} for a spare copy`)
+				table.insert(pity, `Spare: within {spareLeft} more {what}`)
 			end
 		end
 		if #pity > 0 then
 			Ui.item(list, nextOrder(), {
-				title = "Marble bag: no long dry streaks (boost or not)",
-				subtitle = `One is sure to drop here within {table.concat(pity, " or ")}.`,
+				title = "Get an artifact within these limits.",
+				subtitle = `Find one for sure:\n{table.concat(pity, "\n")}`,
 			})
 		end
 		Ui.item(list, nextOrder(), {
-			title = "Spares found with 2x Luck can't be traded.",
+			title = "2x Luck spares cannot be traded.",
 			action = buy,
 		})
 	end
 	Ui.item(list, nextOrder(), {
 		title = "Fair play",
-		subtitle = "Everything that makes you stronger can also be earned by playing.",
+		subtitle = "Earn every power upgrade by playing.",
 		icon = "guide",
 	})
 end
@@ -1418,7 +1474,7 @@ local function renderEvents(list: ScrollingFrame, snap: any)
 	end
 	Ui.item(list, nextOrder(), {
 		title = "Fair play",
-		subtitle = "Event rewards come from playing. Points you don't spend carry over to the next run.",
+		subtitle = "Play to earn event rewards.\nKeep unused points for next time.",
 		icon = "guide",
 	})
 end
@@ -1450,12 +1506,7 @@ local function renderRanks(list: ScrollingFrame, snap: any)
 		local entries = boards[board.id]
 		local mine = nil
 		if not entries or #entries == 0 then
-			Ui.empty(
-				list,
-				nextOrder(),
-				"No scores yet. Be the first!",
-				"Scores update every few minutes in published games."
-			)
+			Ui.empty(list, nextOrder(), "No scores yet. Be the first!", "Scores refresh every few minutes online.")
 		else
 			for rank, entry in entries do
 				if entry.name == player.Name then
@@ -1474,7 +1525,7 @@ local function renderRanks(list: ScrollingFrame, snap: any)
 		local score = if State.snapshot then myScore(snap.data, board.id) else 0
 		Ui.item(list, nextOrder(), {
 			title = `You: {Ui.short(score)}`,
-			subtitle = if mine then `You're #{mine}!` else `Not in the top {Config.Leaderboards.size} yet. Keep going!`,
+			subtitle = if mine then `You're #{mine}!` else `Outside the top {Config.Leaderboards.size}. Keep going!`,
 			tint = Ui.Styles.secondary,
 			icon = "ranks",
 		})
@@ -1509,13 +1560,13 @@ local function renderHub(list: ScrollingFrame, snap: any)
 
 	Ui.heading(list, nextOrder(), `Players here ({#hub.others})`, "hub")
 	if #hub.others == 0 then
-		Ui.empty(list, nextOrder(), "Nobody else is here yet.", "Visit the Golem Hub from Travel to meet players.")
+		Ui.empty(list, nextOrder(), "Nobody else is here yet.", "Open Travel. Meet players in Golem Hub.")
 	end
 	for _, other in hub.others do
 		local shown = inspectedId == other.userId
 		Ui.item(list, nextOrder(), {
 			title = other.name,
-			subtitle = `Level {other.level}  ·  Size {other.size}  ·  {other.awakenings} Awakenings`,
+			subtitle = `Level {other.level} · Size {other.size}\nAwakenings: {other.awakenings}`,
 			chips = if other.title then { { text = other.title, color = CHIP.gold } } else nil,
 			action = {
 				text = if shown then "Hide" else "Look",
@@ -1591,7 +1642,7 @@ local function renderHub(list: ScrollingFrame, snap: any)
 	local announce = data.social == nil or data.social.announce ~= false
 	Ui.item(list, nextOrder(), {
 		title = `Rare-find messages: {if announce then "On" else "Off"}`,
-		subtitle = "A short message when someone finds a boss or relic artifact.",
+		subtitle = "Messages for boss and hidden artifact finds.",
 		action = {
 			text = if announce then "Turn off" else "Turn on",
 			style = "secondary",
@@ -1611,7 +1662,7 @@ local function renderHub(list: ScrollingFrame, snap: any)
 		else "friends"
 	Ui.item(list, nextOrder(), {
 		title = `Party invites: {inviteLabel}`,
-		subtitle = "Choose who can send you party invitations.",
+		subtitle = "Choose who can invite you.",
 		action = {
 			text = "Change",
 			style = "secondary",
@@ -1712,14 +1763,14 @@ local function renderTrade(list: ScrollingFrame, snap: any)
 				UDim2.fromScale(1, 0)
 		end
 		if #view.theirs == 0 then
-			Ui.empty(get, getOrder(), "Nothing yet.", `{name} hasn't added anything. Fine for a gift, but check.`).Size =
+			Ui.empty(get, getOrder(), "Nothing yet.", `{name} offers nothing. Check before giving.`).Size =
 				UDim2.fromScale(1, 0)
 		end
 
 		if view.lopsided then
 			Ui.item(list, nextOrder(), {
-				title = "Careful: you give much more than you get.",
-				subtitle = "Only go ahead if you really want to. You can't undo a trade.",
+				title = "You're giving much more than you're getting.",
+				subtitle = "Check carefully. You cannot undo trades.",
 				icon = "alert",
 				tint = Color3.fromRGB(110, 40, 44),
 			})
@@ -1749,7 +1800,7 @@ local function renderTrade(list: ScrollingFrame, snap: any)
 		elseif remaining > 0 then
 			action = { text = `Wait {remaining}`, enabled = false }
 		elseif view.myConfirmed then
-			action = { text = "Confirmed", enabled = false }
+			action = { text = "Ready to swap", enabled = false }
 		else
 			action = {
 				text = `Swap {counts}`,
@@ -1761,9 +1812,9 @@ local function renderTrade(list: ScrollingFrame, snap: any)
 		Ui.item(list, nextOrder(), {
 			title = summary,
 			subtitle = if bothReady and view.theirConfirmed
-				then `{name} has confirmed.`
-				elseif bothReady and remaining > 0 then "Take a moment to check the trade."
-				else "Changing anything makes you both not ready.",
+				then `{name} is ready to swap.`
+				elseif bothReady and remaining > 0 then "Check the trade before swapping."
+				else "Any change resets both Ready buttons.",
 			tint = Ui.Colors.card,
 			ready = bothReady and not view.myConfirmed and remaining <= 0,
 			action = action,
@@ -1825,7 +1876,7 @@ local function renderTrade(list: ScrollingFrame, snap: any)
 		end
 		Ui.item(list, nextOrder(), {
 			title = "Stay safe",
-			subtitle = "Trade with people you know. Never trade for Robux or anything outside the game.",
+			subtitle = "Trade with people you know.\nNever trade for Robux or outside items.",
 			icon = "guide",
 		})
 		return
@@ -1863,7 +1914,7 @@ local function renderTrade(list: ScrollingFrame, snap: any)
 
 	Ui.heading(list, nextOrder(), "Your spare copies")
 	if #trade.spares == 0 then
-		Ui.empty(list, nextOrder(), "No spares yet.", "Find a second copy of an artifact to trade it.")
+		Ui.empty(list, nextOrder(), "No spares yet.", "Find spare artifacts to trade.")
 	else
 		Ui.toggles(
 			list,
@@ -1892,7 +1943,7 @@ local function renderTrade(list: ScrollingFrame, snap: any)
 	end
 	Ui.item(list, nextOrder(), {
 		title = "What you can trade",
-		subtitle = "Spare copies can be traded. Your first copy of each artifact, and spares found with 2x Luck, stay yours.",
+		subtitle = "Trade spare artifacts.\nKeep your first copy of each artifact.\n2x Luck spares cannot be traded.",
 		icon = "guide",
 	})
 
@@ -1902,7 +1953,7 @@ local function renderTrade(list: ScrollingFrame, snap: any)
 			list,
 			nextOrder(),
 			"Nobody to trade with yet.",
-			"Trade with Roblox friends and party members. Invite one from Party."
+			"Trade with friends or party members.\nOpen Party to invite someone."
 		)
 	end
 	for _, partner in trade.partners do
@@ -1920,7 +1971,7 @@ local function renderTrade(list: ScrollingFrame, snap: any)
 	end
 	Ui.item(list, nextOrder(), {
 		title = "How trading works",
-		subtitle = "Both press Ready, wait for the timer, then both press Swap.",
+		subtitle = "Both press Ready.\nWait, then both press Swap.",
 		icon = "guide",
 	})
 end
@@ -2069,6 +2120,8 @@ local function tabSignature(tabId: string, snap: any): string
 		fields = {
 			golem = { level = Stats.levelForXp(data.golem.xp), parts = data.golem.parts },
 			minerals = data.minerals,
+			coreUpgrades = data.coreUpgrades,
+			bosses = data.bossesDefeated,
 			skills = data.skills,
 			awakening = data.awakening,
 			ascension = data.ascension,

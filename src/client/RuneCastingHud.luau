@@ -47,7 +47,7 @@ function RuneCastingHud.start()
 	hint.TextSize = 13
 	hint.Font = Enum.Font.GothamBold
 	hint.TextWrapped = true
-	hint.Text = "T / L2 · 3 runes = +50% attack for 8s"
+	hint.Text = "T / L2: match 3 runes.\n+50% attack for 8s."
 	hint.Parent = gui
 
 	local panel = Instance.new("Frame")
@@ -193,9 +193,9 @@ function RuneCastingHud.start()
 				.. tostring(sequence[2])
 				.. " - "
 				.. tostring(sequence[3])
-			progress.Text = "Tap rune 1 of 3 · 8s to finish"
+			progress.Text = "Tap rune 1/3. Finish in 8s."
 			panel.Visible = true
-			hint.Text = "Match the order · no penalty for missing"
+			hint.Text = "Match the order. Missing costs nothing."
 		elseif kind == "runeStep" and active and type(a) == "number" then
 			nextRune = a + 1
 			awaiting = false
@@ -206,13 +206,13 @@ function RuneCastingHud.start()
 			panel.Visible = false
 			if a == true and type(b) == "number" then
 				boostUntil = workspace:GetServerTimeNow() + b
-				hint.Text = "+50% auto-attack damage active!"
+				hint.Text = "+50% golem attack damage!"
 			elseif type(b) == "string" then
 				hint.Text = b
 			end
 		elseif kind == "runeCooldown" and type(a) == "number" then
 			cooldownUntil = workspace:GetServerTimeNow() + a
-			hint.Text = "Rune casting recharging"
+			hint.Text = "Runes recharging"
 		end
 	end)
 
@@ -225,7 +225,7 @@ function RuneCastingHud.start()
 			active = false
 			awaiting = false
 			panel.Visible = false
-			hint.Text = "Rune faded (no penalty)"
+			hint.Text = "Rune faded. Nothing lost."
 		end
 		startButton.Active = mounted and not active and now >= cooldownUntil
 		if now < boostUntil then

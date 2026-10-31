@@ -1,6 +1,6 @@
 # UI/UX
 
-Last updated: 2026-10-28. See also [ui-materials.md](ui-materials.md) (surface textures), [performance-mobile.md](performance-mobile.md), [art-audio.md](art-audio.md) and the wireframes in [visual-references.md](visual-references.md#our-wireframes).
+Last updated: 2026-10-30. See also [ui-materials.md](ui-materials.md) (surface textures), [performance-mobile.md](performance-mobile.md), [art-audio.md](art-audio.md) and the wireframes in [visual-references.md](visual-references.md#our-wireframes).
 
 ![HUD layout wireframe](images/hud-layout.png)
 
@@ -23,11 +23,11 @@ Last updated: 2026-10-28. See also [ui-materials.md](ui-materials.md) (surface t
 
 ## Writing for kids
 
-Our players are 9 to 15. Every word on screen follows these rules (house style, from the #82 brief; not from a cited source).
+Write for ages 9 to 14. Every word on screen follows these rules (house style, updated by Jackson's 2026-10-30 request; not from a cited source).
 
-1. **One idea per sentence, about 12 words or fewer.** "Beat Old Rockjaw to open Ember Flats." Not a sentence with directions in it.
+1. **One idea per message, fewer than 8 words where possible.** "Open Ember Flats: beat Old Rockjaw." Split longer explanations into short lines. Keep the full meaning of reset warnings, trading rules and purchase odds, even when they need more than one line. Count names and numbers as players see them.
 2. **Everyday words.** Taught game words stay ("Forge", "Awaken", "artifact"); everything else is a word a 9-year-old uses: "beat" not "defeat", "sure to drop" not "guaranteed".
-3. **Say what to do next.** A locked thing says how to open it; an empty list says what's missing and what to do ("No artifacts yet. Beat monsters to find your first one!").
+3. **Say what to do next.** A locked thing says how to open it; an empty list says what's missing and what to do ("No artifacts yet." / "Beat monsters to find artifacts.").
 4. **Numbers over words.** "12 TO GO" on a bar, "3 days left", "Rank 2 / 5".
 5. **No pressure near anything paid.** No "only", "just", "hurry", "limited", "today only" or timers next to a Robux button (see [safety-compliance.md](safety-compliance.md)). Gameplay timers (gifts, events) never sit beside a price.
 6. **Friendly, not spooky.** Exclamation marks for good news, plain calm words for resets and warnings.
@@ -55,6 +55,8 @@ Sourced points:
 
 ## Grow A Golem today
 
+- **Reading pass (2026-10-30).** Menus, tutorials, HUD prompts, item descriptions and server messages use plain words for ages 9–14, aiming for fewer than 8 words per message or explanation line. Reset dialogs still name everything lost and kept. Artifact chances, sure-drop limits, trade restrictions and Robux prices remain visible. Stat labels say "healing", "spell damage" and "spell recharge speed" instead of internal stat names.
+- **Core upgrades (2026-10-30).** Forge lists Tougher Body, Quick Hands, Heavy Hits and Strong Spells below the parts, with current bonuses, ranks, mineral costs and an Upgrade button. Locked rows explain which island to reach or that another island unlocks more ranks. The menu refreshes when ranks or boss unlocks change. Travel adds a mining multiplier line to earlier islands, and reset dialogs explicitly say Core upgrades are lost. New rank and mining labels wrap as text instead of extending the horizontal chip rows on narrow screens.
 - **Menu kit (#82, 2026-10-28).** Every menu, the HUD, the tutorial and the big moments are built from the kit in `src/client/Ui.luau` (see [ui-materials.md](ui-materials.md) and [the wireframe](images/menu-kit.png)). Text is Builder Sans at fixed sizes with a thick `UIStroke` outline, so `PreferredTextSize` applies; rows and cards grow with `AutomaticSize`. `TextScaled` remains only on floating damage numbers.
 - **Window and tabs (#84).** A colored header per tab with its icon and title, and a red 48 px X. Escape and gamepad B close the newest dialog, then the menu grid, then the window. The tab column holds 176 x 56 buttons with icon and label (five tabs plus More, see #175); a red "!" badge shows on any tab exactly when something is ready. Under 900 x 600 px the column folds into one Menu button that opens the tabs as a grid, and the window narrows to 60% of the width to leave the thumb corners clear.
 - **HUD (#85).** The stats slab shows minerals in two columns as icon and short number (`Ui.short`). The goal card sits top right: a GOAL header, one short sentence, up to three checklist steps and a "to go" bar; tapping it opens the menu it points to, and it steps aside when the boss bar would overlap it. Event banner time reads "3 days left".

@@ -1,6 +1,6 @@
 # Progression
 
-Last updated: 2026-10-27. See also [gameplay-loops.md](gameplay-loops.md) and [monetization.md](monetization.md).
+Last updated: 2026-10-30. See also [gameplay-loops.md](gameplay-loops.md) and [monetization.md](monetization.md).
 
 ## Rules for agents
 
@@ -39,6 +39,8 @@ Last updated: 2026-10-27. See also [gameplay-loops.md](gameplay-loops.md) and [m
 - Max level 100; total XP to reach level L = `25*(L-1)^1.6` (level 10 about 840, level 20 about 2,780, level 60 about 17,000).
 - Golem size steps at levels 1/5/10/18/28/40/55/75/100 (each +25% model scale) gate zones together with boss kills.
 - Forge: 5 part slots x 8 tiers (stone, copper, iron, crystal, stormglass, abyssite, sunsteel, aether) with a full-set bonus.
+- **Mineral relevance (2026-10-30):** every part tier consumes stone. Base stone costs are 20/40/50/60/70/80/90/100, scaled by the existing slot multiplier. The newer-mineral costs stay as configured. Forge also contains four optional Core tracks: stone buys +5% health per rank, copper +3% attack speed, iron +4% damage, and crystal +5% spell damage. They unlock with the first island that supplies that mineral, then gain three available ranks per later accessible island (including size and boss requirements). Costs increase linearly, with 18/18/15/12 total ranks. They survive replacing parts and rejoining but reset on both Awaken and Ascend; legacy saves reconcile to an empty `coreUpgrades` table. Shard and Ascension upgrades retain their existing persistence. All numbers are provisional until timed playtests.
+- **Return mining:** each accessible island ahead adds +50% mined minerals on earlier islands, capped at 3.5x. The server uses the node's actual island and the player's current unlocks, excludes Hub/Tower, and applies the bonus to normal mining and weakspot rewards before rounding. Existing mineral multipliers stack, and a surge doubles the rounded result. Enemy drops, flat rewards and offline rewards gain no return multiplier. Travel shows the mining bonus on earlier islands; analytics records Core purchases under the `coreUpgrade` mineral sink.
 - Skill tree: 3 branches x 8 nodes; respec costs stone.
 - **Awakening** (rebirth) from level 20: shards = level - 15; +10% minerals per awakening; shard upgrades.
 - **Awakening unlocks (#151):** Awakening 1 gives a free Auto-Forge, Awakening 2 an extra artifact slot (stacks with the Extra Artifact Slot pass), Awakening 3 the earned "Runebound" title (`Config.AwakeningUnlocks`). They count lifetime Awakenings, so Ascending keeps them. The Awaken tab lists them with the next one marked, and the Awaken button and its confirm dialog name what the next Awakening unlocks. The Shop's Auto-Forge pass says "Free after Awakening 1" and shows "Unlocked" instead of a price once a player has it free; the paid passes still work for players who want them sooner.

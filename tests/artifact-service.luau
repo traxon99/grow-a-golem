@@ -178,11 +178,11 @@ do
 		assert(okEquip == true and table.find(datas[player].artifacts.equipped, "pebbleCharm") ~= nil)
 
 		local okAgain, msgAgain = equip(player, "pebbleCharm")
-		assert(okAgain == false and msgAgain == "Already equipped")
+		assert(okAgain == false and msgAgain == "Already in use")
 
 		datas[player].artifacts.found.quarryLantern = true
 		local okFull, msgFull = equip(player, "quarryLantern")
-		assert(okFull == false and msgFull == "All artifact slots are full. Unequip one first.")
+		assert(okFull == false and msgFull == "Artifact slots full. Remove one first.")
 	end
 
 	--------------------------------------------------------------------- unequip
@@ -194,7 +194,7 @@ do
 		assert(okNotReady == false)
 
 		local okNotEquipped, msgNotEquipped = unequip(player, "quarryLantern")
-		assert(okNotEquipped == false and msgNotEquipped == "Not equipped")
+		assert(okNotEquipped == false and msgNotEquipped == "Not in use")
 
 		local okUnequip = unequip(player, "pebbleCharm")
 		assert(okUnequip == true and table.find(datas[player].artifacts.equipped, "pebbleCharm") == nil)
@@ -292,7 +292,7 @@ do
 		assert(datas[player].artifacts.spares.pebbleCharm == 1, "a spare is granted once everything is found")
 		assert(datas[player].artifacts.boundSpares.pebbleCharm == nil, "unbound without an active 2x Luck boost")
 		assert(#datas[player].artifacts.spareBags.drop1 == 0, "the drawn spare leaves its bag")
-		assert(string.find(notified[#notified].a, "Trade it from the Trade tab.") ~= nil)
+		assert(string.find(notified[#notified].a, "Open Trade to swap it.", 1, true) ~= nil)
 		-- The spare bag refills with all four once empty, and gives four
 		-- different spares before any repeat.
 		local seen = {}
@@ -323,7 +323,7 @@ do
 		artifacts.roll(player, 1, "drop")
 		assert(datas[player].artifacts.spares.quarryLantern == 1)
 		assert(datas[player].artifacts.boundSpares.quarryLantern == 1, "bound while 2x Luck is active")
-		assert(string.find(notified[#notified].a, "Spares from 2x Luck can't be traded.") ~= nil)
+		assert(string.find(notified[#notified].a, "2x Luck spares cannot be traded.", 1, true) ~= nil)
 	end
 
 	print("artifact-service: ok")

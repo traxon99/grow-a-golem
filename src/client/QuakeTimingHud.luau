@@ -50,7 +50,7 @@ function QuakeTimingHud.start()
 	instruction.Font = Enum.Font.GothamBold
 	instruction.TextSize = 15
 	instruction.TextColor3 = Color3.fromRGB(255, 255, 255)
-	instruction.Text = "Tap Quake again in gold: +50% damage"
+	instruction.Text = "Tap Quake in gold: +50% damage"
 	instruction.TextWrapped = true
 	instruction.Parent = panel
 
@@ -122,12 +122,12 @@ function QuakeTimingHud.start()
 			local right = math.clamp((b - c + d) / b, 0, 1)
 			window.Position = UDim2.fromScale(left, 0)
 			window.Size = UDim2.fromScale(right - left, 1)
-			instruction.Text = if e == 1.5 then "Tap Quake again in gold: +50% damage" else "Tap Quake again in gold"
+			instruction.Text = if e == 1.5 then "Tap Quake in gold: +50% damage" else "Tap Quake in gold"
 			status.Text = "Normal damage if skipped"
 			button.Active = true
 			panel.Visible = true
 		elseif kind == "quakeTimingResult" and panel.Visible then
-			status.Text = if a == true then "Perfect! +50% damage" else "Normal damage (no penalty)"
+			status.Text = if a == true then "Perfect! +50% damage" else "Normal damage. Nothing lost."
 			button.Active = false
 		elseif kind == "quakeTimingImpact" then
 			panel.Visible = false

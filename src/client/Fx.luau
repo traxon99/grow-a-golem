@@ -378,11 +378,11 @@ local function watchGolem(model: Instance)
 			flash(model, Color3.fromRGB(255, 70, 60))
 		end
 	end)
-	-- A fall disperses stone at the saved fall position, then draws the same
-	-- pieces inward at spawn. No model clones or server-side debris are needed.
+	-- A downed golem hides while its stone scatters, then reforms from the same
+	-- pieces at spawn. No model clones or server-side debris are needed.
 	local hidden: { [BasePart]: number } = {}
 	local generation = 0
-	local recovering = model:GetAttribute("FallRecovery") == true
+	local recovering = model:GetAttribute("FallRecovery") == true or model:GetAttribute("Downed") == true
 	local function hide(part: Instance)
 		if part:IsA("BasePart") and hidden[part] == nil then
 			hidden[part] = part.LocalTransparencyModifier
@@ -399,40 +399,47 @@ local function watchGolem(model: Instance)
 		generation += 1
 		local current = generation
 		local falling = model:GetAttribute("FallRecovery") == true
-		-- Publishing the initial false attribute is not a reformation.
-		animate = animate and (falling or recovering)
-		recovering = falling
+		local collapsed = falling or model:GetAttribute("Downed") == true
+		-- The downed and fall attributes can change in either order. Animate only
+		-- once when the combined state changes.
+		local changed = collapsed ~= recovering
+		animate = animate and changed
+		recovering = collapsed
 		local root = model.PrimaryPart
-		if falling then
+		if collapsed then
 			for _, part in model:GetDescendants() do
 				hide(part)
 			end
 		end
 		if not animate or not root or GuiService.ReducedMotionEnabled then
-			if not falling then
+			if not collapsed then
 				restore()
 			end
 			return
 		end
 		local at = if falling then model:GetAttribute("FallPosition") else root.Position
 		if typeof(at) ~= "Vector3" or not near(at) then
-			if not falling then
+			if not collapsed then
 				restore()
 			end
 			return
 		end
 		local effect = Config.FallEffects
 		local scale = root.Size.Y / 8
-		burst(
-			at,
-			bodyColor(model),
-			Enum.Material.Slate,
-			effect.chunks,
-			effect.chunkSize * scale,
-			effect.spread * scale,
-			not falling
-		)
-		if not falling then
+		-- Combat knockouts already send a colored crumble burst to all clients.
+		-- Falls use this local effect, and every recovery draws the chunks inward.
+		if falling or not collapsed then
+			burst(
+				at,
+				bodyColor(model),
+				Enum.Material.Slate,
+				effect.chunks,
+				effect.chunkSize * scale,
+				effect.spread * scale,
+				not collapsed
+			)
+		end
+		if not collapsed then
 			task.delay(0.55, function()
 				if model.Parent and generation == current then
 					restore()
@@ -440,11 +447,13 @@ local function watchGolem(model: Instance)
 			end)
 		end
 	end
-	model:GetAttributeChangedSignal("FallRecovery"):Connect(function()
+	local function collapseChanged()
 		fallChanged(true)
-	end)
+	end
+	model:GetAttributeChangedSignal("FallRecovery"):Connect(collapseChanged)
+	model:GetAttributeChangedSignal("Downed"):Connect(collapseChanged)
 	model.DescendantAdded:Connect(function(part)
-		if model:GetAttribute("FallRecovery") == true then
+		if model:GetAttribute("FallRecovery") == true or model:GetAttribute("Downed") == true then
 			hide(part)
 		end
 	end)
@@ -527,9 +536,16 @@ function Fx.start()
 
 	-- A Quake slam landing: everyone nearby sees a blast, and the caster's rocks
 	-- fly. The server only says so if the slam really lands.
-	Remotes.Notify.OnClientEvent:Connect(function(kind: string, position: Vector3?, radius: number?, ownerId: number?)
+	Remotes.Notify.OnClientEvent:Connect(function(kind: string, position: Vector3?, radius: number?, ownerId: (number | Color3)?)
 		if kind == "golemPuff" and position and radius then
 			puff(position, radius)
+			return
+		end
+		if kind == "golemCrumble" and position and radius then
+			-- The golem crumbled where it stood: scatter its stone around.
+			local effect = Config.FallEffects
+			local color = if typeof(ownerId) == "Color3" then ownerId else Color3.fromRGB(120, 110, 96)
+			burst(position, color, Enum.Material.Slate, effect.chunks + 6, effect.chunkSize * radius, effect.spread * radius)
 			return
 		end
 		if kind ~= "quakeImpact" or not position or not radius then

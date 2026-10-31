@@ -10,9 +10,11 @@ do
 	local golems = {}
 	local friendBonuses = {}
 	local given = {}
+	local saves = {}
 
 	local economy = loadEconomyService({
 		Config = Config,
+		Stats = Stats,
 		WorldBeat = WorldBeat,
 		Events = {
 			fire = function(name, player, runStart)
@@ -21,6 +23,9 @@ do
 			end,
 		},
 		DataService = {
+			get = function(player)
+				return saves[player]
+			end,
 			addMinerals = function(player, minerals, source)
 				table.insert(given, { player = player, kind = "minerals", minerals = minerals, source = source })
 			end,
@@ -137,6 +142,28 @@ do
 		assert(given[#given].minerals.stone == 3 and #given == flatBefore + 1, "flat rewards stay fixed")
 		timeNow += Config.WorldBeat.durationSeconds
 		assert(economy.grant(player, { minerals = { stone = 3 } }, "mining").minerals.stone == 4)
+	end
+
+	--------------------------------------------------------- grantFlat
+	do
+		local player = join()
+		saves[player] = {
+			golem = { xp = Stats.xpForLevel(100) },
+			bossesDefeated = { ["1"] = true, ["2"] = true, ["3"] = true, ["4"] = true, ["5"] = true },
+		}
+		golems[player] = { stats = { mineralMult = 1.5, xpMult = 1 }, magnetUntil = 0 }
+		local old = economy.grant(player, { minerals = { stone = 5 } }, "mining", 1)
+		assert(old.minerals.stone == 26, "old-island mining stacks with mineral bonuses before rounding")
+		local current = economy.grant(player, { minerals = { aether = 5 } }, "mining", 6)
+		assert(current.minerals.aether == 7, "the newest island has no return bonus")
+		local enemy = economy.grant(player, { minerals = { stone = 5 } }, "enemy", 1)
+		assert(enemy.minerals.stone == 7, "enemy rewards do not inherit the mining return bonus")
+		local noZone = economy.grant(player, { minerals = { stone = 5 } }, "mining")
+		assert(noZone.minerals.stone == 7, "unlocated rewards cannot claim an old-island bonus")
+		timeNow = Config.WorldBeat.intervalSeconds * 7
+		local surge = economy.grant(player, { minerals = { stone = 5 } }, "mining", 1)
+		assert(surge.minerals.stone == old.minerals.stone * 2, "surges still double the exact normal payout")
+		timeNow += Config.WorldBeat.durationSeconds
 	end
 
 	--------------------------------------------------------- grantFlat

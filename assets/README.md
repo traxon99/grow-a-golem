@@ -71,6 +71,12 @@ and set Config.Sounds artifact/levelUp/grow to those three **numeric** IDs.
 Existing built-in sounds and zero IDs intentionally remain until valid uploads
 exist. An invented ID would hide an incomplete task and may play unlicensed audio.
 
+Menu clicks and tutorial step feedback use the free-to-use public Roblox Creator
+Store UI pop sound ([asset 72264591133889](https://create.roblox.com/store/asset/72264591133889)).
+These two entries are already configured in
+`Config.SoundEffects`; their local WAVs are optional project-source versions and
+do not need uploading unless you choose to replace the Creator Store sound.
+
 | File | Effect |
 | --- | --- |
 | golemStep.wav, bossStep.wav | Heavy footsteps |

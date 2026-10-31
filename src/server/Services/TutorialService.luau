@@ -147,7 +147,7 @@ function TutorialService.start()
 			return false, nil
 		end
 		finish(player, true)
-		return true, "Tutorial skipped. Follow the Next goal at the top!"
+		return true, "Tutorial skipped. Follow your Goal card!"
 	end)
 
 	task.spawn(function()

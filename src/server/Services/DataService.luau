@@ -68,6 +68,7 @@ local function defaultData(): any
 		bossesDefeated = {}, -- ["1"] = true
 		artifacts = { found = {}, equipped = {}, bags = {}, spareBags = {}, spares = {}, boundSpares = {} }, -- bags["drop1"] = { drawn, wins } in the marble bag for that island and source (MarbleBag); spareBags["drop1"] = spare ids left to draw; spares[id] = extra copies, boundSpares[id] = how many of those can't be traded
 		skills = {},
+		coreUpgrades = {}, -- mineral-funded ranks for this run
 		awakening = { count = 0, shards = 0, upgrades = {} },
 		ascension = { count = 0, points = 0, spentAwakenings = 0, upgrades = {} },
 		daily = { streak = 0, lastClaimDay = 0 },
@@ -257,7 +258,7 @@ local function save(player: Player, release: boolean?): boolean
 	profile.saving = false
 	if lostLease then
 		profile.canSave = false
-		player:Kick("Your golem was opened in another server. Please rejoin.")
+		player:Kick("Golem opened elsewhere. Please rejoin.")
 		return false
 	end
 	if ok and release then
@@ -287,7 +288,7 @@ local function load(player: Player)
 	local canSave = true
 	local data: any
 	if ok and not SessionLease.owns(saved, token) then
-		player:Kick("Your golem is still saving in another server. Please rejoin shortly.")
+		player:Kick("Still saving your golem. Rejoin soon.")
 		return
 	end
 	if ok then
@@ -301,7 +302,7 @@ local function load(player: Player)
 		canSave = false
 	else
 		-- Never play on default data in a live server: saving would wipe progress.
-		player:Kick("We couldn't load your golem. Please rejoin in a moment.")
+		player:Kick("Couldn't load your golem. Please rejoin soon.")
 		return
 	end
 

@@ -141,7 +141,7 @@ do
 		local player = join()
 		local ok, msg = redeem(player, "EXPIRETEST")
 		assert(ok == false, "an expired code is refused")
-		assert(msg ~= nil and string.find(msg, "expired") ~= nil)
+		assert(msg ~= nil and string.find(msg, "Code ended", 1, true) ~= nil)
 		assert(datas[player].codesRedeemed.EXPIRETEST == nil, "nothing is marked used on expiry")
 
 		Config.Codes.NOTYETEXPIRED = { reward = { xp = 10 }, expires = timeNow + 1000 }

@@ -247,7 +247,7 @@ local function startReveal(gui: ScreenGui)
 			nice.Position = UDim2.new(0.5, -158, 1, -60)
 			local equip = Ui.button(
 				content,
-				"Equip",
+				"Use",
 				UDim2.fromOffset(150, 48),
 				UDim2.new(0.5, 8, 1, -60),
 				true,
@@ -361,7 +361,7 @@ local function startLevelUp(gui: ScreenGui)
 		Ui.tween(pop, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
 		local extra = {}
 		if grew then
-			table.insert(extra, `Your golem grew to size {Stats.sizeForLevel(level)}!`)
+			table.insert(extra, `Golem grew! Size {Stats.sizeForLevel(level)}`)
 		end
 		if unlocked then
 			table.insert(extra, `{unlocked} is open!`)

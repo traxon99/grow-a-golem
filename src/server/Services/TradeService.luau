@@ -79,22 +79,22 @@ local function blockReason(player: Player): string?
 		return "Your golem is still loading"
 	end
 	if not profile.canSave or not journal then
-		return "Trading needs your progress to save, and it isn't saving here"
+		return "Trading needs saving. Saving is off here."
 	end
 	if profile.data.trades.pending then
-		return "Your last trade is still being saved. Your artifacts are safe."
+		return "Saving last trade. Your artifacts are safe."
 	end
 	if not PolicyService.isReady(player) then
-		return "Checking your account, try again in a moment"
+		return "Checking your account. Try again soon."
 	end
 	if not PolicyService.paidTradingAllowed(player) then
 		return "Trading isn't available for your account"
 	end
 	if player.AccountAge < Config.Trading.minAccountAgeDays then
-		return `Trading opens when your Roblox account is {Config.Trading.minAccountAgeDays} days old`
+		return `Account must be {Config.Trading.minAccountAgeDays} days old.`
 	end
 	if tradesLeft(profile.data) <= 0 then
-		return "You've reached today's trade limit. Come back tomorrow!"
+		return "No trades left today. Come back tomorrow!"
 	end
 	return nil
 end
@@ -286,7 +286,7 @@ local function settle(player: Player)
 			player,
 			if status == "committed"
 				then "Your last trade finished. Check your artifacts!"
-				else "Your last trade didn't go through, so your artifacts were returned."
+				else "Trade failed. Your artifacts are back."
 		)
 	end
 end
@@ -301,7 +301,7 @@ local function finish(a: Player, b: Player, id: string)
 	if not status then
 		for _, player in { a, b } do
 			if DataService.get(player) then
-				say(player, "Your trade is still being saved. Your artifacts are safe, and it will finish soon.")
+				say(player, "Saving your trade. Your artifacts are safe.")
 				task.delay(Config.Trading.settleRetrySeconds, function()
 					if player.Parent then
 						settle(player)
@@ -318,7 +318,7 @@ local function finish(a: Player, b: Player, id: string)
 				player,
 				if status == "committed"
 					then `Trade complete with {other.DisplayName}!`
-					else "The trade couldn't be saved, so it was cancelled. Your artifacts are back."
+					else "Trade cancelled. Your artifacts are back."
 			)
 		end
 	end
@@ -342,18 +342,18 @@ local function commit(trade: Trade)
 	end
 	local blocked = blockReason(a) or blockReason(b)
 	if blocked or not mayTradeWith(a, b, false) or settling[a] or settling[b] then
-		cancel(trade, "The trade was cancelled because one of you can't trade right now.")
+		cancel(trade, "Trade cancelled. Someone cannot trade right now.")
 		return
 	end
 	local give = { [a] = offerList(trade, a), [b] = offerList(trade, b) }
 	if #give[a] == 0 and #give[b] == 0 then
-		cancel(trade, "The trade was cancelled: nothing was offered.")
+		cancel(trade, "Trade cancelled. No artifacts were offered.")
 		return
 	end
 	for player, data in { [a] = dataA, [b] = dataB } do
 		for _, id in give[player] do
 			if Stats.tradableSpares(data, id) < 1 then
-				cancel(trade, "The trade was cancelled: an offered artifact isn't available any more.")
+				cancel(trade, "Trade cancelled. An offered artifact is missing.")
 				return
 			end
 		end
@@ -387,7 +387,7 @@ local function commit(trade: Trade)
 				TradeJournal.resolve(d, "aborted", function(_: any, _: string) end, Config.Trading.logKept)
 			end)
 		end
-		cancel(trade, "The trade was cancelled: an offered artifact isn't available any more.")
+		cancel(trade, "Trade cancelled. An offered artifact is missing.")
 		return
 	end
 	settling[a] = true
@@ -432,11 +432,11 @@ local function request(player: Player, userId: any): (boolean, string?)
 		return false, `{target.DisplayName} can't trade right now`
 	end
 	if not mayTradeWith(player, target, true) then
-		return false, "You can trade with friends and party members. Invite them to a party first."
+		return false, "Trade with friends or party members.\nOpen Party to invite someone."
 	end
 	requests[target] = requests[target] or {}
 	requests[target][player] = now + Config.Trading.requestTimeout
-	say(target, `{player.DisplayName} wants to trade! Open Trade to answer.`)
+	say(target, `{player.DisplayName} wants to trade!\nOpen Trade to answer.`)
 	DataService.markChanged(target)
 	return true, `Trade request sent to {target.DisplayName}`
 end
@@ -449,7 +449,7 @@ local function accept(player: Player, userId: any): (boolean, string?)
 	end
 	pending[other] = nil
 	if tradeOf[player] or tradeOf[other] then
-		return false, "One of you is already in a trade"
+		return false, "Someone is already trading."
 	end
 	if blockReason(player) or blockReason(other) or not mayTradeWith(player, other, true) then
 		return false, "You can't trade with them right now"
@@ -491,7 +491,7 @@ local function offer(player: Player, artifactId: any): (boolean, string?)
 		return false, `You can offer up to {Config.Trading.maxItems} artifacts`
 	end
 	if Stats.tradableSpares(data, artifactId) < 1 then
-		return false, "You have no spare copy of that to trade"
+		return false, "No spare copy to trade."
 	end
 	trade.offers[player][artifactId] = true
 	reset(trade)
@@ -543,17 +543,17 @@ end
 local function confirm(player: Player): (boolean, string?)
 	local trade = tradeOf[player]
 	if not trade or not trade.ready[trade.a] or not trade.ready[trade.b] or not trade.confirmAt then
-		return false, "Both of you need to be Ready first"
+		return false, "Both players must press Ready first."
 	end
 	if os.clock() < trade.confirmAt then
-		return false, "Take a moment to check the trade"
+		return false, "Check the trade before swapping."
 	end
 	trade.confirmed[player] = true
 	touch(trade)
 	if trade.confirmed[trade.a] and trade.confirmed[trade.b] then
 		commit(trade)
 	else
-		say(partnerOf(trade, player), `{player.DisplayName} confirmed. Check the trade, then confirm.`)
+		say(partnerOf(trade, player), `{player.DisplayName} is ready to swap.\nCheck the trade, then press Swap.`)
 		refresh(trade)
 	end
 	return true, nil
@@ -678,7 +678,7 @@ function TradeService.start()
 		-- Leaving cancels the trade before anything has moved.
 		local trade = tradeOf[player]
 		if trade then
-			cancel(trade, `{player.DisplayName} left, so the trade was cancelled.`)
+			cancel(trade, `Trade cancelled. {player.DisplayName} left.`)
 		end
 		requests[player] = nil
 		lastRequest[player] = nil

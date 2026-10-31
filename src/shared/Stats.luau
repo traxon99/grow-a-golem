@@ -129,7 +129,7 @@ function Stats.canLearnSkill(data: any, skillId: string): (boolean, string?)
 	for _, branch in Config.SkillBranches do
 		local index = table.find(branch.nodes, skillId)
 		if index and index > 1 and not data.skills[branch.nodes[index - 1]] then
-			return false, "Learn the previous skill first"
+			return false, "Learn the skill before this one."
 		end
 	end
 	if Stats.skillPointsAvailable(data) < skill.cost then
@@ -152,7 +152,7 @@ function Stats.zoneUnlocked(data: any, zoneId: number): (boolean, string?)
 	end
 	local gate = zone.gate
 	if gate.boss and not Stats.bossDefeated(data, gate.boss) then
-		return false, `Defeat {Config.Bosses[gate.boss].displayName}`
+		return false, `Beat {Config.Bosses[gate.boss].displayName}`
 	end
 	if gate.size and Stats.sizeForLevel(Stats.levelForXp(data.golem.xp)) < gate.size then
 		return false, `Reach golem size {gate.size}`
@@ -168,6 +168,53 @@ function Stats.highestZone(data: any): number
 		end
 	end
 	return highest
+end
+
+---------------------------------------------------------------- mineral upgrades
+
+-- The highest accessible island's position in ZoneOrder; Hub and Tower do
+-- not unlock ranks or increase return-mining rewards.
+function Stats.highestUnlockedIslandIndex(data: any): number
+	return table.find(Config.ZoneOrder, Stats.highestZone(data)) or 1
+end
+
+function Stats.coreUpgradeRankCap(data: any, id: string): number
+	local upgrade = Config.CoreUpgrades[id]
+	local firstIsland = table.find(Config.ZoneOrder, upgrade.island) or 1
+	local islands = math.max(0, Stats.highestUnlockedIslandIndex(data) - firstIsland + 1)
+	return math.min(upgrade.maxRank, islands * Config.CoreUpgradeRanksPerIsland)
+end
+
+function Stats.coreUpgradeCost(id: string, rank: number): { [string]: number }
+	local upgrade = Config.CoreUpgrades[id]
+	return { [upgrade.mineral] = upgrade.baseCost + upgrade.costStep * rank }
+end
+
+function Stats.canBuyCoreUpgrade(data: any, id: string): (boolean, string?)
+	local upgrade = Config.CoreUpgrades[id]
+	if not upgrade then
+		return false, "Unknown Core upgrade"
+	end
+	local rank = (data.coreUpgrades or {})[id] or 0
+	if rank >= upgrade.maxRank then
+		return false, "Core upgrade is maxed out."
+	end
+	if rank >= Stats.coreUpgradeRankCap(data, id) then
+		return false, "Open another island for more ranks."
+	end
+	if not Stats.canAfford(data, Stats.coreUpgradeCost(id, rank)) then
+		return false, "Not enough minerals"
+	end
+	return true, nil
+end
+
+function Stats.returnMiningMultiplier(data: any, zoneId: number): number
+	local index = table.find(Config.ZoneOrder, zoneId)
+	if not index then
+		return 1
+	end
+	local ahead = math.max(0, Stats.highestUnlockedIslandIndex(data) - index)
+	return math.min(Config.ReturnMining.maxMultiplier, 1 + ahead * Config.ReturnMining.perIsland)
 end
 
 ---------------------------------------------------------------- co-op tower
@@ -502,6 +549,13 @@ function Stats.bonuses(data: any, ctx: Context): ({ [string]: number }, number, 
 	local total: { [string]: number } = {}
 	local extraSlots = 0
 	local extraHours = 0
+
+	for id, rank in data.coreUpgrades or {} do
+		local upgrade = Config.CoreUpgrades[id]
+		if upgrade and rank > 0 then
+			addBonus(total, upgrade.bonus, math.min(rank, upgrade.maxRank))
+		end
+	end
 
 	for id in data.skills do
 		local skill = Config.Skills[id]

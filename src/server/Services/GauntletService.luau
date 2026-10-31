@@ -170,8 +170,8 @@ local function buildCourse(): (ProximityPrompt, ProximityPrompt)
 		false
 	)
 	gate.Transparency = 0.25
-	sign(gate, "GOLEM RUN | 90 SECONDS | 3 FIXED REWARDS", 370)
-	local entry = prompt(gate, "Ride the obstacle run")
+	sign(gate, "GOLEM RUN\n90 SECONDS · 3 REWARDS", 370)
+	local entry = prompt(gate, "Start the obstacle course")
 
 	-- Wide, readable rails show the permitted lane. Hazards reset rather
 	-- than deal damage; a missed dodge never removes already-earned minerals.
@@ -195,7 +195,7 @@ local function buildCourse(): (ProximityPrompt, ProximityPrompt)
 		Enum.Material.Neon,
 		false
 	)
-	sign(start, "START | STEER AROUND RED HAZARDS", 330)
+	sign(start, "START · DODGE ROCKS AND LAVA", 330)
 	local leave = prompt(start, "Leave the run")
 
 	boulder(folder, -12, -88, false)
@@ -259,10 +259,10 @@ local function startRun(player: Player): (boolean, string?)
 	end
 	local golem = GolemService.get(player)
 	if not DataService.get(player) or not golem or not golem.mounted or not GolemService.isActive(golem) then
-		return false, "Mount an active golem to enter"
+		return false, "Ride your golem to enter."
 	end
 	if golem.zoneId ~= Config.HubZone or not GauntletRules.nearXZ(golem.root.Position, gatePosition, 29) then
-		return false, "Ride to the Golem Run portal in the Hub"
+		return false, "Find Golem Run's portal in the Hub."
 	end
 	cooldownUntil[player] = now + cfg.cooldownSeconds
 	GolemService.sendToZone(golem, cfg.zoneId)
@@ -280,7 +280,7 @@ local function startRun(player: Player): (boolean, string?)
 		workspace:GetServerTimeNow() + cfg.durationSeconds,
 		#cfg.checkpoints
 	)
-	say(player, "Golem Run! 90s to reach three checkpoints. Dodge boulders and use the green lava gaps.")
+	say(player, "Reach 3 checkpoints in 90s!\nDodge rocks. Use green lava gaps.")
 	return true, nil
 end
 
@@ -319,22 +319,22 @@ function GauntletService.tick()
 			continue
 		end
 		if not golem or golem.zoneId ~= cfg.zoneId then
-			finish(player, "You left the run. Earned checkpoint rewards are yours to keep.")
+			finish(player, "Run ended. You keep earned rewards.")
 			continue
 		end
 		if not golem.mounted or not GolemService.isActive(golem) then
-			finish(player, "Golem Run ended. Earned checkpoint rewards are yours to keep.")
+			finish(player, "Run ended. You keep earned rewards.")
 			continue
 		end
 		if now > run.expiresAt then
-			finish(player, "Time's up! Keep your earned checkpoint rewards.")
+			finish(player, "Time's up! You keep earned rewards.")
 			continue
 		end
 		local position = golem.root.Position
 		if now >= run.graceUntil and hazard(position, moving.Position) then
 			teleportTo(golem, run.safe)
 			run.graceUntil = now + 1.25
-			say(player, "Hazard! Back to your last checkpoint; earned rewards are safe.")
+			say(player, "Hit! Back to checkpoint. Keep earned rewards.")
 			continue
 		end
 		for index, checkpoint in cfg.checkpoints do
@@ -355,9 +355,9 @@ function GauntletService.tick()
 				EconomyService.grantFlat(player, { minerals = checkpoint.reward }, "gauntlet")
 				Remotes.Notify:FireClient(player, "gauntletCheckpoint", index, #cfg.checkpoints)
 				if index == #cfg.checkpoints then
-					finish(player, "Golem Run complete! All three fixed checkpoint rewards earned.")
+					finish(player, "Run complete! You earned all 3 rewards.")
 				else
-					say(player, `Checkpoint {index}/3! Fixed minerals awarded. Keep riding!`)
+					say(player, `Checkpoint {index}/3! Minerals earned. Keep riding!`)
 				end
 				break
 			end
@@ -378,7 +378,7 @@ function GauntletService.start()
 	end)
 	leave.Triggered:Connect(function(player: Player)
 		if runs[player] then
-			finish(player, "You left the run. Earned checkpoint rewards are yours to keep.")
+			finish(player, "Run ended. You keep earned rewards.")
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)

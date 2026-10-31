@@ -101,7 +101,7 @@ local function onProgress(eventName: string)
 						Remotes.Notify:FireClient(
 							player,
 							"message",
-							`Quest complete: {quest.text}! Claim it in Quests.`
+							`Quest done: {quest.text}!\nOpen Quests for your reward.`
 						)
 					end
 				end
@@ -180,7 +180,7 @@ local function claimSession(player: Player, index: any): (boolean, string?)
 		return false, "Already opened"
 	end
 	if (os.time() - session.loadedAt) / 60 < gift.minutes then
-		return false, `Unlocks after {gift.minutes} minutes of play`
+		return false, `Play for {gift.minutes} minutes to unlock.`
 	end
 	claims[index] = true
 	EconomyService.grantFlat(player, gift, "session")
@@ -233,7 +233,7 @@ local function checkGroup(player: Player): (boolean, string?)
 		return player:IsInGroupAsync(Config.Group.id)
 	end)
 	if not ok or not inGroup then
-		return false, "Join the group first, then try again"
+		return false, "Join our group, then try again."
 	end
 	DataService.update(player, function(d)
 		d.groupRewardClaimed = true
