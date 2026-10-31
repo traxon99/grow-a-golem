@@ -269,10 +269,13 @@ do
 	assert(v.minerals.stone == 123 and v.receipts.paid and v.cosmetics.owned.paid and v.skills.e1)
 	assert(v.artifacts.found.relic and v.artifacts.bags.drop1.drawn == 7)
 	assert(snapshots[veteran].data.campaign.version == nil)
-	-- Re-migrating cannot turn later boss/part changes into invented history.
+	-- Finalize on transition; repeated kingdom migration invents no history.
+	Config.Kingdom.enabled = true
+	Stats.migrateCampaign(v)
 	v.bossesDefeated["3"] = true
 	Stats.migrateCampaign(v)
 	assert(not v.campaign.regions["4"])
+	Config.Kingdom.enabled = false
 	v.campaign.projects.hearth = true
 	v.campaign.titan.clue = true
 	players.PlayerRemoving:Fire(veteran)
@@ -290,6 +293,30 @@ do
 	assert(veteran.kicked and dataService.get(veteran) == nil)
 	assert(records.player_8.campaign.projects.hearth and not dataService.saveNow(veteran))
 	fail = false
+	-- A fresh player can earn legacy gates after initial migration, then prestige.
+	local staged = player(9)
+	players.PlayerAdded:Fire(staged)
+	dataService.update(staged, function(data)
+		data.golem.xp = Stats.xpForLevel(100)
+		data.golem.parts.armL = "copper"
+		data.bossesDefeated["1"] = true
+	end)
+	assert(dataService.get(staged).campaign.regions["2"])
+	assert(dataService.get(staged).campaign.abilities.smash)
+	-- Capture also happens before a mutation clears existing evidence.
+	dataService.get(staged).golem.parts.armR = "iron"
+	dataService.update(staged, function(data)
+		data.golem.xp = 0
+		data.golem.parts = {}
+		data.bossesDefeated = {}
+	end)
+	players.PlayerRemoving:Fire(staged)
+	Config.Kingdom.enabled = true
+	players.PlayerAdded:Fire(staged)
+	local campaign = dataService.get(staged).campaign
+	assert(campaign.regions["2"] and campaign.abilities.smash and campaign.abilities.lift)
+	assert(campaign.legacyPending == nil and next(campaign.obstacles) == nil)
+	Config.Kingdom.enabled = false
 	print(
 		"PASS: actual DataService acquisition/save/release, expired takeover, stale writes, abandoned loads, failed live/Studio loads"
 	)

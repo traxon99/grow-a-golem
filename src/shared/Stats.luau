@@ -180,11 +180,12 @@ function Stats.travelUnlocked(data: any, zoneId: number): (boolean, string?)
 	return Stats.zoneUnlocked(data, zoneId)
 end
 
--- Called only after profile reconciliation, before gameplay can reset parts or
--- bosses. Versioning prevents later loads from inventing campaign discoveries.
+-- Reconcile once, then accumulate verifiable legacy progress while rollout is
+-- off. A pending legacy session is captured once more on entry to kingdom mode.
+-- This grants no rewards, obstacles, or speculative historical accomplishments.
 function Stats.migrateCampaign(data: any)
 	local campaign = data.campaign
-	if campaign.version >= Config.Kingdom.campaignVersion then
+	if campaign.version >= Config.Kingdom.campaignVersion and Config.Kingdom.enabled and not campaign.legacyPending then
 		return
 	end
 	for _, zoneId in Config.ZoneOrder do
@@ -202,6 +203,7 @@ function Stats.migrateCampaign(data: any)
 		end
 	end
 	campaign.version = Config.Kingdom.campaignVersion
+	campaign.legacyPending = if Config.Kingdom.enabled then nil else true
 end
 
 function Stats.highestZone(data: any): number

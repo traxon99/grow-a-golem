@@ -63,9 +63,12 @@ If it's reopened, the switch needs a written migration plan (reading old `Player
 `campaign` has an independent schema version (currently 1), string-keyed region access,
 learned abilities, discoveries, completed obstacles, sanctuary projects and titan milestones.
 New profiles have quarry access and otherwise empty records. Reconciliation fills missing
-fields; the one-time migration evaluates the unchanged legacy boss/size gates and eligible
+fields; the initial migration evaluates the unchanged legacy boss/size gates and eligible
 current part tiers. It grants no rewards and invents no obstacle, project or hunt history.
-Existing inventory, receipts and artifact bags keep their values.
+Existing inventory, receipts and artifact bags keep their values. While rollout is disabled,
+verified legacy access and abilities continue accumulating on profile mutations, including
+before a reset removes evidence. A server-only `legacyPending` marker requests a final
+capture when loading into kingdom mode; subsequent kingdom loads do not infer new access.
 
 Migration runs after successful lease acquisition and reconciliation, before gameplay starts,
 even with `Config.Kingdom.enabled = false`. The same profile save/lease lifecycle persists it;

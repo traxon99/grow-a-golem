@@ -398,6 +398,7 @@ function DataService.markChanged(player: Player)
 	if not profiles[player] then
 		return
 	end
+	Stats.migrateCampaign(profiles[player].data)
 	dirty[player] = true
 	if pendingChanged[player] then
 		return
@@ -425,6 +426,8 @@ function DataService.update(player: Player, fn: (any) -> ()): boolean
 	if not profile then
 		return false
 	end
+	-- Capture legacy evidence before a reset can remove it.
+	Stats.migrateCampaign(profile.data)
 	fn(profile.data)
 	DataService.markChanged(player)
 	return true
