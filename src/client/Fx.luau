@@ -536,26 +536,35 @@ function Fx.start()
 
 	-- A Quake slam landing: everyone nearby sees a blast, and the caster's rocks
 	-- fly. The server only says so if the slam really lands.
-	Remotes.Notify.OnClientEvent:Connect(function(kind: string, position: Vector3?, radius: number?, ownerId: (number | Color3)?)
-		if kind == "golemPuff" and position and radius then
-			puff(position, radius)
-			return
+	Remotes.Notify.OnClientEvent:Connect(
+		function(kind: string, position: Vector3?, radius: number?, ownerId: (number | Color3)?)
+			if kind == "golemPuff" and position and radius then
+				puff(position, radius)
+				return
+			end
+			if kind == "golemCrumble" and position and radius then
+				-- The golem crumbled where it stood: scatter its stone around.
+				local effect = Config.FallEffects
+				local color = if typeof(ownerId) == "Color3" then ownerId else Color3.fromRGB(120, 110, 96)
+				burst(
+					position,
+					color,
+					Enum.Material.Slate,
+					effect.chunks + 6,
+					effect.chunkSize * radius,
+					effect.spread * radius
+				)
+				return
+			end
+			if kind ~= "quakeImpact" or not position or not radius then
+				return
+			end
+			blast(position, radius)
+			if ownerId == player.UserId then
+				burst(position, Color3.fromRGB(120, 110, 96), Enum.Material.Slate, 24, 1.2, radius * 0.4)
+			end
 		end
-		if kind == "golemCrumble" and position and radius then
-			-- The golem crumbled where it stood: scatter its stone around.
-			local effect = Config.FallEffects
-			local color = if typeof(ownerId) == "Color3" then ownerId else Color3.fromRGB(120, 110, 96)
-			burst(position, color, Enum.Material.Slate, effect.chunks + 6, effect.chunkSize * radius, effect.spread * radius)
-			return
-		end
-		if kind ~= "quakeImpact" or not position or not radius then
-			return
-		end
-		blast(position, radius)
-		if ownerId == player.UserId then
-			burst(position, Color3.fromRGB(120, 110, 96), Enum.Material.Slate, 24, 1.2, radius * 0.4)
-		end
-	end)
+	)
 
 	if Config.Visuals.controlLighting then
 		player:GetAttributeChangedSignal("GolemZone"):Connect(zoneTint)
