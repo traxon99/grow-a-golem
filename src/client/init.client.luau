@@ -22,18 +22,20 @@ local GauntletHud = require(script:WaitForChild("GauntletHud"))
 -- before the current modules rebuild their UI, so an obsolete full-height HUD
 -- panel can't remain over the live layout.
 local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
-for _, name in {
-	"GolemHud",
-	"WorldBeatHud",
-	"QuakeTimingHud",
-	"RuneCastingHud",
-	"ForgeTimingHud",
-	"GauntletHud",
-	"GolemMenus",
-	"GolemDialogs",
-	"GolemMoments",
-	"GolemTutorial",
-} do
+for _, name in
+	{
+		"GolemHud",
+		"WorldBeatHud",
+		"QuakeTimingHud",
+		"RuneCastingHud",
+		"ForgeTimingHud",
+		"GauntletHud",
+		"GolemMenus",
+		"GolemDialogs",
+		"GolemMoments",
+		"GolemTutorial",
+	}
+do
 	local old = playerGui:FindFirstChild(name)
 	if old and old:IsA("ScreenGui") then
 		old:Destroy()
