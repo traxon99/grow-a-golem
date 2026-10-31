@@ -121,7 +121,7 @@ local function travel(player: Player, zoneId: any): (boolean, string?)
 		DataService.markChanged(player)
 		return true, `Welcome to {Config.Hub.name}!\nWalk to golems to see their stats.`
 	end
-	local unlocked, reason = Stats.zoneUnlocked(data, zoneId)
+	local unlocked, reason = Stats.travelUnlocked(data, zoneId)
 	if not unlocked then
 		return false, reason
 	end

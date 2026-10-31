@@ -239,6 +239,84 @@ do
 	players.PlayerRemoving:Fire(coreOwner)
 	players.PlayerAdded:Fire(coreOwner)
 	assert(dataService.get(coreOwner).coreUpgrades.toughBody == 3, "saved Core ranks survive rejoining")
+	-- Campaign migration runs with rollout off and never touches possessions.
+	assert(not Config.Kingdom.enabled)
+	assert(dataService.get(a).campaign.regions["1"])
+	assert(next(dataService.get(a).campaign.projects) == nil)
+	records.player_8 = {
+		golem = {
+			xp = Stats.xpForLevel(100),
+			parts = { armR = "iron", core = "crystal", torso = "stormglass", legs = "abyssite" },
+		},
+		bossesDefeated = { ["1"] = true, ["2"] = true },
+		minerals = { stone = 123 },
+		receipts = { paid = true },
+		artifacts = { found = { relic = true }, bags = { drop1 = { drawn = 7, wins = 0 } } },
+		skills = { e1 = true },
+		cosmetics = { owned = { paid = true } },
+		campaign = { discoveries = { landmark = true } },
+	}
+	local veteran = player(8)
+	players.PlayerAdded:Fire(veteran)
+	local v = dataService.get(veteran)
+	assert(v.campaign.version == Config.Kingdom.campaignVersion)
+	assert(v.campaign.regions["3"] and not v.campaign.regions["4"])
+	for _, id in { "smash", "lift", "reveal", "conduit", "anchor" } do
+		assert(v.campaign.abilities[id], id)
+	end
+	assert(v.campaign.discoveries.landmark and next(v.campaign.obstacles) == nil)
+	assert(next(v.campaign.projects) == nil and next(v.campaign.titan) == nil)
+	assert(v.minerals.stone == 123 and v.receipts.paid and v.cosmetics.owned.paid and v.skills.e1)
+	assert(v.artifacts.found.relic and v.artifacts.bags.drop1.drawn == 7)
+	assert(snapshots[veteran].data.campaign.version == nil)
+	-- Finalize on transition; repeated kingdom migration invents no history.
+	Config.Kingdom.enabled = true
+	Stats.migrateCampaign(v)
+	v.bossesDefeated["3"] = true
+	Stats.migrateCampaign(v)
+	assert(not v.campaign.regions["4"])
+	Config.Kingdom.enabled = false
+	v.campaign.projects.hearth = true
+	v.campaign.titan.clue = true
+	players.PlayerRemoving:Fire(veteran)
+	Config.Kingdom.enabled = true
+	players.PlayerAdded:Fire(veteran)
+	assert(dataService.get(veteran).campaign.projects.hearth)
+	players.PlayerRemoving:Fire(veteran)
+	Config.Kingdom.enabled = false
+	players.PlayerAdded:Fire(veteran)
+	assert(dataService.get(veteran).campaign.titan.clue)
+	-- Failed live load leaves an existing campaign save untouched.
+	players.PlayerRemoving:Fire(veteran)
+	fail = true
+	players.PlayerAdded:Fire(veteran)
+	assert(veteran.kicked and dataService.get(veteran) == nil)
+	assert(records.player_8.campaign.projects.hearth and not dataService.saveNow(veteran))
+	fail = false
+	-- A fresh player can earn legacy gates after initial migration, then prestige.
+	local staged = player(9)
+	players.PlayerAdded:Fire(staged)
+	dataService.update(staged, function(data)
+		data.golem.xp = Stats.xpForLevel(100)
+		data.golem.parts.armL = "copper"
+		data.bossesDefeated["1"] = true
+	end)
+	assert(dataService.get(staged).campaign.regions["2"])
+	assert(dataService.get(staged).campaign.abilities.smash)
+	-- Capture also happens before a mutation clears existing evidence.
+	dataService.get(staged).golem.parts.armR = "iron"
+	dataService.update(staged, function(data)
+		data.golem.xp = 0
+		data.golem.parts = {}
+		data.bossesDefeated = {}
+	end)
+	players.PlayerRemoving:Fire(staged)
+	Config.Kingdom.enabled = true
+	players.PlayerAdded:Fire(staged)
+	local campaign = dataService.get(staged).campaign
+	assert(campaign.regions["2"] and campaign.abilities.smash and campaign.abilities.lift)
+	assert(campaign.legacyPending == nil and next(campaign.obstacles) == nil)
+	Config.Kingdom.enabled = false
 	print(
 		"PASS: actual DataService acquisition/save/release, expired takeover, stale writes, abandoned loads, failed live/Studio loads"
 	)

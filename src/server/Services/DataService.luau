@@ -63,6 +63,15 @@ local function defaultData(): any
 	end
 	return {
 		version = 1,
+		campaign = {
+			version = 0, -- stamped only after legacy gates and parts are evaluated
+			regions = { [tostring(Config.Kingdom.startingRegion)] = true },
+			abilities = {},
+			discoveries = {},
+			obstacles = {},
+			projects = {},
+			titan = {},
+		},
 		minerals = minerals,
 		golem = { xp = 0, parts = {} },
 		bossesDefeated = {}, -- ["1"] = true
@@ -193,6 +202,16 @@ local function sendSnapshot(player: Player)
 		clientData.trades.log = nil
 		clientData.trades.pending = nil
 	end
+	-- Explicit campaign projection keeps future server bookkeeping private.
+	local campaign = profile.data.campaign
+	clientData.campaign = {
+		regions = SessionLease.copy(campaign.regions),
+		abilities = SessionLease.copy(campaign.abilities),
+		discoveries = SessionLease.copy(campaign.discoveries),
+		obstacles = SessionLease.copy(campaign.obstacles),
+		projects = SessionLease.copy(campaign.projects),
+		titan = SessionLease.copy(campaign.titan),
+	}
 	local snapshot: { [string]: any } = {
 		data = clientData,
 		serverTime = os.time(),
@@ -296,9 +315,11 @@ local function load(player: Player)
 		reconcile(data, defaultData())
 		redactTradePartners(data)
 		migratePity(data)
+		Stats.migrateCampaign(data)
 	elseif RunService:IsStudio() then
 		warn("[DataService] Could not load data in Studio; playing without saving.")
 		data = defaultData()
+		Stats.migrateCampaign(data)
 		canSave = false
 	else
 		-- Never play on default data in a live server: saving would wipe progress.
@@ -377,6 +398,7 @@ function DataService.markChanged(player: Player)
 	if not profiles[player] then
 		return
 	end
+	Stats.migrateCampaign(profiles[player].data)
 	dirty[player] = true
 	if pendingChanged[player] then
 		return
@@ -404,6 +426,8 @@ function DataService.update(player: Player, fn: (any) -> ()): boolean
 	if not profile then
 		return false
 	end
+	-- Capture legacy evidence before a reset can remove it.
+	Stats.migrateCampaign(profile.data)
 	fn(profile.data)
 	DataService.markChanged(player)
 	return true

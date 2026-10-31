@@ -144,7 +144,7 @@ function Stats.bossDefeated(data: any, zoneId: number): boolean
 	return data.bossesDefeated[tostring(zoneId)] == true
 end
 
--- Returns whether the player may travel to a zone, and what is missing.
+-- Current-run boss/size eligibility; never includes permanent campaign access.
 function Stats.zoneUnlocked(data: any, zoneId: number): (boolean, string?)
 	local zone = Config.Zones[zoneId]
 	if not zone then
@@ -158,6 +158,52 @@ function Stats.zoneUnlocked(data: any, zoneId: number): (boolean, string?)
 		return false, `Reach golem size {gate.size}`
 	end
 	return true, nil
+end
+
+-- Permanent campaign access is deliberately separate from current-run gates.
+-- Core caps, return mining and Ascension continue to use the run's progress.
+function Stats.campaignZoneUnlocked(data: any, zoneId: number): (boolean, string?)
+	if not Config.Zones[zoneId] then
+		return false, "Unknown zone"
+	end
+	local campaign = data.campaign
+	if campaign and campaign.regions and campaign.regions[tostring(zoneId)] == true then
+		return true, nil
+	end
+	return false, "Discover this region first"
+end
+
+function Stats.travelUnlocked(data: any, zoneId: number): (boolean, string?)
+	if Config.Kingdom.enabled then
+		return Stats.campaignZoneUnlocked(data, zoneId)
+	end
+	return Stats.zoneUnlocked(data, zoneId)
+end
+
+-- Reconcile once, then accumulate verifiable legacy progress while rollout is
+-- off. A pending legacy session is captured once more on entry to kingdom mode.
+-- This grants no rewards, obstacles, or speculative historical accomplishments.
+function Stats.migrateCampaign(data: any)
+	local campaign = data.campaign
+	if campaign.version >= Config.Kingdom.campaignVersion and Config.Kingdom.enabled and not campaign.legacyPending then
+		return
+	end
+	for _, zoneId in Config.ZoneOrder do
+		if Stats.zoneUnlocked(data, zoneId) then
+			campaign.regions[tostring(zoneId)] = true
+		end
+	end
+	for id, ability in Config.Kingdom.abilities do
+		local required = table.find(Config.TierOrder, ability.tier)
+		for _, slot in ability.slots do
+			local rank = table.find(Config.TierOrder, data.golem.parts[slot])
+			if rank and required and rank >= required then
+				campaign.abilities[id] = true
+			end
+		end
+	end
+	campaign.version = Config.Kingdom.campaignVersion
+	campaign.legacyPending = if Config.Kingdom.enabled then nil else true
 end
 
 function Stats.highestZone(data: any): number

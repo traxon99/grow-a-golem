@@ -7,6 +7,20 @@
 -- #15 expansion below), which strict mode would otherwise reject.
 local Config: { [string]: any } = {}
 
+-- Campaign data is retained even while the legacy island world is active.
+Config.Kingdom = {
+	enabled = false,
+	campaignVersion = 1,
+	startingRegion = 1,
+	abilities = {
+		smash = { tier = "copper", slots = { "armL", "armR" } },
+		lift = { tier = "iron", slots = { "armL", "armR" } },
+		reveal = { tier = "crystal", slots = { "core" } },
+		conduit = { tier = "stormglass", slots = { "torso" } },
+		anchor = { tier = "abyssite", slots = { "legs" } },
+	},
+}
+
 Config.TickRate = 10 -- server game-logic updates per second
 
 -- Optional three-rune challenge. The sequence is chosen and graded on the
