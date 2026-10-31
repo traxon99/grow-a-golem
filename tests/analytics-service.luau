@@ -292,6 +292,7 @@ do
 		eventHandlers.mineralsGained(trader, { stone = 0, copper = 4 }, "mining") -- the zero amount is skipped
 		datas[trader].minerals.stone = -1 -- unrealistic, but only the latest balance matters here
 		eventHandlers.mineralsSpent(trader, { stone = 6 }, "forge")
+		eventHandlers.mineralsSpent(trader, { copper = 3 }, "coreUpgrade")
 
 		eventHandlers.spellCast(trader, "quake")
 		eventHandlers.spellCast(trader, "quake")
@@ -299,7 +300,7 @@ do
 
 		local economyBefore, customBefore = #economyCalls, #customCalls
 		playerRemoving(trader)
-		assert(#economyCalls == economyBefore + 3, "one economy entry per distinct (flow, source, mineral) triplet")
+		assert(#economyCalls == economyBefore + 4, "one economy entry per distinct (flow, source, mineral) triplet")
 		local bySource = {}
 		for i = economyBefore + 1, #economyCalls do
 			local entry = economyCalls[i]
@@ -317,6 +318,11 @@ do
 		)
 		local stoneSpent = bySource[Config.Minerals.stone.displayName .. ":forge"]
 		assert(stoneSpent and stoneSpent.amount == 6 and stoneSpent.category == "Shop")
+		local coreSpent = bySource[Config.Minerals.copper.displayName .. ":coreUpgrade"]
+		assert(
+			coreSpent and coreSpent.amount == 3 and coreSpent.category == "Shop",
+			"Core upgrades have their own sink"
+		)
 
 		assert(#customCalls == customBefore + 2, "each distinct spell cast is flushed as its own SpellsCast event")
 		local byField = {}

@@ -88,7 +88,7 @@ local function nextGoal(snap: any): Goal
 	if Config.Bosses[zoneId] and not Stats.bossDefeated(data, zoneId) then
 		return {
 			title = `Beat {Config.Bosses[zoneId].displayName}`,
-			steps = { "Find the boss in the far corner", `Beat {Config.Bosses[zoneId].displayName}` },
+			steps = { "Find the boss at the far corner.", `Beat {Config.Bosses[zoneId].displayName}` },
 			current = 1,
 		}
 	end
@@ -98,11 +98,11 @@ local function nextGoal(snap: any): Goal
 		if not unlocked then
 			local gate = zone.gate
 			if gate.boss and not Stats.bossDefeated(data, gate.boss) then
-				return { title = `Beat {Config.Bosses[gate.boss].displayName} to open {zone.name}`, tab = "travel" }
+				return { title = `Open {zone.name}: beat {Config.Bosses[gate.boss].displayName}.`, tab = "travel" }
 			end
 			local needed = Config.SizeLevels[gate.size or 1] or 1
 			return {
-				title = `Grow to size {gate.size} to open {zone.name}`,
+				title = `Open {zone.name}: reach size {gate.size}.`,
 				progress = { label = "Level", current = level, max = needed, icon = "xp" },
 			}
 		end
@@ -557,7 +557,7 @@ function Hud.start()
 		if not hintShown then
 			hintShown = true
 			if not snap.canSave then
-				task.delay(9, showToast, "Progress isn't saving in this test place (see the Output window).", 6)
+				task.delay(9, showToast, "Test mode: progress will not save.", 6)
 			end
 		end
 	end)
@@ -567,13 +567,13 @@ function Hud.start()
 		if kind == "mined" then
 			showToast(`+{args[2]} {Config.Minerals[args[1]].displayName}`)
 		elseif kind == "defeated" then
-			showToast(`Defeated {args[1]}  +{args[2]} XP`)
+			showToast(`Beat {args[1]}! +{args[2]} XP`)
 		elseif kind == "boss" then
-			showToast(if args[2] then `{args[1]} defeated! A new zone may be open.` else `{args[1]} defeated!`, 5)
+			showToast(if args[2] then `Beat {args[1]}! Check Travel for new islands.` else `Beat {args[1]}!`, 5)
 		elseif kind == "offline" then
-			local text = `While you were away your golem mined for {args[1]} minutes: {Ui.costText(args[2])}`
+			local text = `Mined while away: {args[1]} minutes\n{Ui.costText(args[2])}`
 			if args[3] then
-				text ..= " (offline cap reached)"
+				text ..= "\nAway mining time limit reached."
 			end
 			showToast(text, 8)
 		elseif kind == "message" then

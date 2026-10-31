@@ -219,7 +219,7 @@ do
 		assert(datas[player].social.announce == true)
 
 		local okOff, msgOff = setAnnounce(player, false)
-		assert(okOff == true and msgOff == "Rare-find announcements are off")
+		assert(okOff == true and msgOff == "Rare-find messages are off.")
 		assert(datas[player].social.announce == false)
 	end
 

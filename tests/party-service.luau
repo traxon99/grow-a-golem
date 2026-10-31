@@ -174,7 +174,7 @@ do
 		local inviter, target = join(), join()
 		assert(setInvites(target, "friends") == true)
 		local ok, msg = invite(inviter, target.UserId)
-		assert(ok == false and string.find(msg, "only accepts invites from friends") ~= nil)
+		assert(ok == false and string.find(msg, "accepts friends' invites only", 1, true) ~= nil)
 		assert(#providers.party(target).invites == 0, "strangers cannot leave a pending invite")
 		assert(setInvites(target, "off") == true)
 		assert(invite(inviter, target.UserId) == false, "off blocks even previously checked players")

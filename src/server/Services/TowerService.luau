@@ -95,7 +95,7 @@ local function blockReason(player: Player, route: number, own: Run?): string?
 		return `{player.DisplayName} is already in the tower`
 	end
 	if not GolemService.isActive(golem) then
-		return `{player.DisplayName}'s golem is reforming`
+		return `{player.DisplayName}'s golem is rebuilding.`
 	end
 	local unlocked = Stats.zoneUnlocked(data, route)
 	if not unlocked then
@@ -199,7 +199,7 @@ local function begin(run: Run): boolean
 			reason = `{member.DisplayName} left the party`
 		end
 		if reason then
-			cancelInvite(run, `The tower run was cancelled: {reason}.`)
+			cancelInvite(run, `Tower cancelled: {reason}.`)
 			return false
 		end
 	end
@@ -211,7 +211,7 @@ local function begin(run: Run): boolean
 		if golem then
 			GolemService.sendToZone(golem, run.arena)
 		end
-		say(member, `Welcome to the {Config.Tower.name}! The first wave is coming.`)
+		say(member, `Welcome to {Config.Tower.name}!\nFirst wave starts soon.`)
 	end
 	run.state = "break"
 	run.wave = 0
@@ -329,7 +329,7 @@ end
 local function tickRun(run: Run, now: number)
 	if run.state == "inviting" then
 		if now >= run.inviteEndsAt then
-			cancelInvite(run, "The tower run was cancelled: not everyone accepted in time.")
+			cancelInvite(run, "Tower cancelled. Not everyone joined in time.")
 		end
 		return
 	end
@@ -350,7 +350,7 @@ local function tickRun(run: Run, now: number)
 	for player in run.present do
 		local golem = GolemService.get(player)
 		if not player.Parent or not golem or golem.zoneId ~= run.arena then
-			leaveRun(run, player, `You left the {Config.Tower.name}. Rewards for cleared waves are yours to keep.`)
+			leaveRun(run, player, `Left {Config.Tower.name}. You keep earned rewards.`)
 		end
 	end
 	if run.state == "ended" or next(run.present) == nil then
@@ -365,7 +365,7 @@ local function tickRun(run: Run, now: number)
 		end
 	end
 	if not standing then
-		endRun(run, `Every golem was knocked out on wave {run.wave}. You cleared {run.cleared} waves.`)
+		endRun(run, `All golems fell on wave {run.wave}.\n{run.cleared} waves cleared.`)
 		return
 	end
 
@@ -388,7 +388,7 @@ local function tickRun(run: Run, now: number)
 		run.cleared = run.wave
 		payWave(run)
 		if run.wave >= Config.Tower.waves then
-			endRun(run, `You cleared all {Config.Tower.waves} waves of the {Config.Tower.name}!`)
+			endRun(run, `Tower complete! Cleared all {Config.Tower.waves} waves!`)
 		else
 			run.state = "break"
 			run.nextAt = now + Config.Tower.waveBreakSeconds
@@ -407,7 +407,7 @@ function TowerService.tick()
 		end)
 		if not ok then
 			warn(`[TowerService] tower run in zone {run.arena} failed: {err}`)
-			endRun(run, "The tower run had a problem and ended. Waves you cleared were paid.")
+			endRun(run, "Tower error. Run ended. Keep earned rewards.")
 		end
 	end
 end
@@ -436,7 +436,7 @@ local function start(player: Player, route: any): (boolean, string?)
 	end
 	local arena = freeArena()
 	if not arena then
-		return false, `The {Config.Tower.name} is full right now. Try again in a few minutes.`
+		return false, `{Config.Tower.name} is full. Try again soon.`
 	end
 	local run: Run = {
 		arena = arena,
@@ -466,7 +466,7 @@ local function start(player: Player, route: any): (boolean, string?)
 	end
 	for _, member in members do
 		if member ~= player then
-			say(member, `{player.DisplayName} wants to climb the {Config.Tower.name}! Open Travel to accept.`)
+			say(member, `{player.DisplayName} invites you to {Config.Tower.name}!\nOpen Travel to join.`)
 		end
 	end
 	refresh(run)
@@ -493,7 +493,7 @@ local function decline(player: Player): (boolean, string?)
 	if not run or run.state ~= "inviting" then
 		return false, "There's no tower invite"
 	end
-	cancelInvite(run, `{player.DisplayName} said no, so the tower run was cancelled.`)
+	cancelInvite(run, `Tower cancelled. {player.DisplayName} said no.`)
 	return true, nil
 end
 
@@ -506,7 +506,7 @@ local function leave(player: Player): (boolean, string?)
 		cancelInvite(run, `{player.DisplayName} cancelled the tower run.`)
 		return true, nil
 	end
-	leaveRun(run, player, `You left the {Config.Tower.name}. Rewards for cleared waves are yours to keep.`)
+	leaveRun(run, player, `Left {Config.Tower.name}. You keep earned rewards.`)
 	return true, nil
 end
 
@@ -567,7 +567,7 @@ function TowerService.start()
 			return
 		end
 		if run.state == "inviting" then
-			cancelInvite(run, `{player.DisplayName} left, so the tower run was cancelled.`)
+			cancelInvite(run, `Tower cancelled. {player.DisplayName} left.`)
 		else
 			leaveRun(run, player, nil)
 		end

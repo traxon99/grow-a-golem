@@ -103,7 +103,7 @@ local function grantProduct(player: Player, key: string)
 		if product.paidRandom and not PolicyService.paidRandomAllowed(player) then
 			-- Paid random items are restricted for this player: never grant one.
 			boost = product.restrictedAlternative
-			name = `{product.minutes} min of 2x {boost} (2x Luck isn't available for your account)`
+			name = `2x {boost} for {product.minutes} minutes.\n2x Luck unavailable for your account.`
 		end
 		DataService.update(player, function(d)
 			local now = os.time()

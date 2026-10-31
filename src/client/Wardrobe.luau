@@ -214,7 +214,7 @@ local function howToEarn(unlock: any): string
 	elseif unlock.kind == "level" then
 		return `Reach level {unlock.level}`
 	elseif unlock.kind == "streak" then
-		return `Log in {unlock.days} days in a row`
+		return `Play {unlock.days} days in a row.`
 	elseif unlock.kind == "tutorial" then
 		return "Finish the tutorial"
 	end
@@ -274,7 +274,7 @@ local function cosmeticCard(grid: Instance, data: any, id: string, order: number
 						Remotes.Track:FireServer("purchasePrompted", "cosmetic", id)
 						MarketplaceService:PromptGamePassPurchase(player, cosmetic.passId)
 					else
-						State.toast(`Here's {cosmetic.name}. Tap the price again to buy it.`)
+						State.toast(`Trying {cosmetic.name}.\nTap the price again to buy.`)
 						showPreview(id)
 					end
 				end,
@@ -382,7 +382,7 @@ function Wardrobe.render(list: ScrollingFrame, snap: any, nextOrder: () -> numbe
 	end
 	Ui.item(list, nextOrder(), {
 		title = "Fair play",
-		subtitle = "Looks never change stats. You buy exactly what you preview, never a random box.",
+		subtitle = "Looks never change your power.\nBuy the look you tried. Nothing random.",
 		icon = "guide",
 	})
 end

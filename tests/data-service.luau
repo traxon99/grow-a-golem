@@ -131,6 +131,7 @@ do
 	assert(snapshots[a].data.trades.log == nil and snapshots[a].data.trades.pending == nil)
 	assert(dataService.get(a).receipts ~= nil and dataService.get(a).trades.log ~= nil, "save fields must remain")
 	assert(dataService.get(a).minerals.aether == 0 and dataService.get(a).ascension.spentAwakenings == 0)
+	assert(type(dataService.get(a).coreUpgrades) == "table", "new saves include Core ranks")
 	-- Rapid mutations notify expensive listeners once per scheduler tick.
 	local changedCalls, fastCalls, slowCalls = 0, 0, 0
 	dataService.Changed:Connect(function(who)
@@ -206,6 +207,7 @@ do
 	local old = player(5)
 	players.PlayerAdded:Fire(old)
 	local migrated = dataService.get(old).artifacts
+	assert(next(dataService.get(old).coreUpgrades) == nil, "legacy saves gain an empty Core upgrade table")
 	assert(migrated.pity == nil, "the old pity counts are moved, not kept")
 	assert(migrated.bags.drop1.drawn == Config.ArtifactBags.drop.marbles - 1, "a near-pity find stays sure")
 	assert(migrated.bags.boss2.drawn == 1 and migrated.bags.boss2.wins == 0)
@@ -226,6 +228,17 @@ do
 	assert(dataService.get(legacy).trades.pending.with == nil)
 	assert(records.player_6.trades.log[1].with == nil and records.player_6.trades.pending.with == nil)
 	assert(records.player_6.trades.log[1].t == 100 and records.player_6.trades.pending.id == "legacy")
+	records.player_7 = { coreUpgrades = { toughBody = 2 } }
+	local coreOwner = player(7)
+	players.PlayerAdded:Fire(coreOwner)
+	assert(dataService.get(coreOwner).coreUpgrades.toughBody == 2, "existing ranks survive reconciliation")
+	dataService.update(coreOwner, function(data)
+		data.coreUpgrades.toughBody = 3
+	end)
+	assert(dataService.saveNow(coreOwner) and records.player_7.coreUpgrades.toughBody == 3)
+	players.PlayerRemoving:Fire(coreOwner)
+	players.PlayerAdded:Fire(coreOwner)
+	assert(dataService.get(coreOwner).coreUpgrades.toughBody == 3, "saved Core ranks survive rejoining")
 	print(
 		"PASS: actual DataService acquisition/save/release, expired takeover, stale writes, abandoned loads, failed live/Studio loads"
 	)

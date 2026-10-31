@@ -123,7 +123,7 @@ local function tapWeakspot(node: Node, player: Player)
 		node.weakspotClaimed = true
 		clearWeakspot(node) -- retire before granting; callbacks may re-enter
 		local bonus = math.max(1, math.floor(node.def.yield * Config.WeakspotRush.bonusFraction))
-		local given = EconomyService.grant(player, { minerals = { [node.mineral] = bonus } }, "mining")
+		local given = EconomyService.grant(player, { minerals = { [node.mineral] = bonus } }, "mining", node.zoneId)
 		Remotes.Notify:FireClient(player, "mined", node.mineral, given.minerals and given.minerals[node.mineral] or 0)
 	end
 end
@@ -271,7 +271,8 @@ function MiningService.damage(node: Node, amount: number, player: Player)
 	local best = 0
 	for contributor, damage in node.contributors do
 		if
-			contributor.Parent and (damage > best or (damage == best and winner and contributor.UserId < winner.UserId))
+			contributor.Parent
+			and (damage > best or (damage == best and winner and contributor.UserId < winner.UserId))
 		then
 			winner = contributor
 			best = damage
@@ -280,7 +281,8 @@ function MiningService.damage(node: Node, amount: number, player: Player)
 	-- Retire the node before any reward callbacks can yield or re-enter.
 	nodes[node.part] = nil
 	if winner then
-		local given = EconomyService.grant(winner, { minerals = { [node.mineral] = node.def.yield } }, "mining")
+		local given =
+			EconomyService.grant(winner, { minerals = { [node.mineral] = node.def.yield } }, "mining", node.zoneId)
 		DataService.update(winner, function(data)
 			data.totals.nodes += 1
 		end)

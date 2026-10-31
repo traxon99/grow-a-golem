@@ -77,10 +77,10 @@ function CosmeticService.grant(player: Player, id: string, how: string)
 		end
 	end)
 	if wear then
-		Remotes.Notify:FireClient(player, "message", `{cosmetic.name} is yours and you're wearing it!`)
+		Remotes.Notify:FireClient(player, "message", `Now wearing: {cosmetic.name}!`)
 		dressRider(player)
 	elseif how == "earned" then
-		Remotes.Notify:FireClient(player, "message", `New look unlocked: {cosmetic.name}! Wear it from the Wardrobe.`)
+		Remotes.Notify:FireClient(player, "message", `New look: {cosmetic.name}!\nOpen Wardrobe to wear it.`)
 		AnalyticsService.custom(player, "CosmeticUnlocked", 1, id)
 	end
 end

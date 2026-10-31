@@ -213,11 +213,13 @@ do
 		Stats = Stats,
 		TradeJournal = TradeJournal,
 		DataService = dataService,
-		Remotes = { Notify = {
-			FireClient = function(_, player, _kind, text)
-				said[player] = text
-			end,
-		} },
+		Remotes = {
+			Notify = {
+				FireClient = function(_, player, _kind, text)
+					said[player] = text
+				end,
+			},
+		},
 		ActionService = {
 			register = function(name, fn)
 				handlers[name] = fn
@@ -368,7 +370,7 @@ do
 	drain()
 	assert(live[a].trades.pending and live[b].trades.pending, "Escrow stays until a decision is known")
 	local ok, reason = handlers.tradeRequest(a, b.UserId)
-	assert(not ok and reason and reason:find("still being saved"))
+	assert(not ok and reason and reason:find("Saving last trade", 1, true))
 	assert(#delayed >= 2, "Settling is retried later")
 	failJournal = false
 	queue = {}

@@ -129,8 +129,8 @@ function ArtifactService.roll(player: Player, zoneId: number, source: string)
 			player,
 			"message",
 			if boosted
-				then `Spare {Config.Artifacts[id].name} found! Spares from 2x Luck can't be traded.`
-				else `Spare {Config.Artifacts[id].name} found! Trade it from the Trade tab.`
+				then `Spare found: {Config.Artifacts[id].name}!\n2x Luck spares cannot be traded.`
+				else `Spare found: {Config.Artifacts[id].name}!\nOpen Trade to swap it.`
 		)
 		return
 	end
@@ -178,7 +178,7 @@ local function collectRelic(player: Player, zoneId: number)
 			minerals[mineral] = Config.HiddenRelic.consolationMinerals
 		end
 		EconomyService.grant(player, { minerals = minerals }, "relic")
-		Remotes.Notify:FireClient(player, "message", "You found a relic cache full of minerals!")
+		Remotes.Notify:FireClient(player, "message", "You found hidden minerals!")
 	end
 	task.delay(Config.HiddenRelic.respawn, placeRelic, zoneId)
 end
@@ -195,10 +195,10 @@ local function equip(player: Player, artifactId: any): (boolean, string?)
 		return false, "You haven't found that yet"
 	end
 	if table.find(data.artifacts.equipped, artifactId) then
-		return false, "Already equipped"
+		return false, "Already in use"
 	end
 	if #data.artifacts.equipped >= golem.stats.artifactSlots then
-		return false, "All artifact slots are full. Unequip one first."
+		return false, "Artifact slots full. Remove one first."
 	end
 	DataService.update(player, function(d)
 		table.insert(d.artifacts.equipped, artifactId)
@@ -213,7 +213,7 @@ local function unequip(player: Player, artifactId: any): (boolean, string?)
 	end
 	local index = table.find(data.artifacts.equipped, artifactId)
 	if not index then
-		return false, "Not equipped"
+		return false, "Not in use"
 	end
 	DataService.update(player, function(d)
 		table.remove(d.artifacts.equipped, index)

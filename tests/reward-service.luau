@@ -324,10 +324,7 @@ do
 			error("roblox API down")
 		end
 		local okApiDown, msgApiDown = claimGroup(player)
-		assert(
-			okApiDown == false and msgApiDown == "Join the group first, then try again",
-			"a failed lookup is refused"
-		)
+		assert(okApiDown == false and msgApiDown == "Join our group, then try again.", "a failed lookup is refused")
 
 		player.IsInGroupAsync = function()
 			return false

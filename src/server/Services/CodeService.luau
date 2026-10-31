@@ -40,7 +40,7 @@ local function redeem(player: Player, input: any): (boolean, string?)
 	local state: Attempts = attempts[player] or { last = 0, failures = 0, lockedUntil = 0 }
 	attempts[player] = state
 	if now < state.lockedUntil then
-		return false, `Too many tries. Wait {math.ceil(state.lockedUntil - now)}s and check the spelling.`
+		return false, `Too many tries. Wait {math.ceil(state.lockedUntil - now)}s.`
 	end
 	if now - state.last < Config.CodeLimits.cooldown then
 		return false, "One moment..."
@@ -59,10 +59,10 @@ local function redeem(player: Player, input: any): (boolean, string?)
 	local code = normalize(input)
 	local entry = code and Config.Codes[code]
 	if not code or not entry then
-		return fail("That code doesn't exist. Check the spelling!")
+		return fail("Code not found. Check the spelling.")
 	end
 	if entry.expires and os.time() >= entry.expires then
-		return fail("That code has expired. Watch for new ones with each update!")
+		return fail("Code ended. Find new codes in updates.")
 	end
 	if data.codesRedeemed[code] then
 		return false, "You already used that code."
@@ -75,7 +75,7 @@ local function redeem(player: Player, input: any): (boolean, string?)
 	EconomyService.grantFlat(player, entry.reward, "code")
 	Events.fire("codeRedeemed", player, code)
 	task.spawn(DataService.saveNow, player)
-	return true, `Code redeemed! You got {CodeService.rewardText(entry.reward)}.`
+	return true, `Code used! Rewards: {CodeService.rewardText(entry.reward)}`
 end
 
 function CodeService.rewardText(reward: any): string

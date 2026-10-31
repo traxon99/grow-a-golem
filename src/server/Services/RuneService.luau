@@ -43,7 +43,7 @@ local function onInput(player: Player, action: any, rune: any)
 		end
 		active[player] = nil
 		if not eligible(golem) then
-			Remotes.Notify:FireClient(player, "runeResult", false, "Mount an active golem to cast")
+			Remotes.Notify:FireClient(player, "runeResult", false, "Ride your golem to use runes.")
 			return
 		end
 		local remaining = (cooldownUntil[player] or 0) - now
@@ -68,7 +68,7 @@ local function onInput(player: Player, action: any, rune: any)
 		end
 		if golem ~= attempt.golem or not eligible(golem) then
 			active[player] = nil
-			Remotes.Notify:FireClient(player, "runeResult", false, "Casting interrupted (no penalty)")
+			Remotes.Notify:FireClient(player, "runeResult", false, "Runes stopped. Nothing lost.")
 			return
 		end
 		local result = RuneSequence.press(attempt.challenge, rune, now)
@@ -80,7 +80,7 @@ local function onInput(player: Player, action: any, rune: any)
 			Remotes.Notify:FireClient(player, "runeResult", true, Config.RuneCasting.boostSeconds)
 		elseif result ~= "ignored" then
 			active[player] = nil
-			Remotes.Notify:FireClient(player, "runeResult", false, "Rune missed (no penalty)")
+			Remotes.Notify:FireClient(player, "runeResult", false, "Rune missed. Nothing lost.")
 		end
 	end
 end

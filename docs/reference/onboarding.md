@@ -36,7 +36,7 @@ Last updated: 2026-10-27.
 ## Grow A Golem today
 
 - `TutorialService`: 5-step skippable tutorial with pointers, already emitting onboarding funnel events.
-- Goal card (top right): one short sentence, up to three checklist steps and a "to go" bar; tapping it opens the menu it points to (#85). The tutorial sign shows "STEP N OF M", a key cap for the input and step text of about 10 words (#96).
+- Goal card (top right): one short sentence, up to three checklist steps and a "to go" bar; tapping it opens the menu it points to (#85). The tutorial sign shows "STEP N OF M", a key cap for the input and step text aiming for fewer than 8 words, using plain language for ages 9–14 (#96; reading pass 2026-10-30).
 - Level-up banner and artifact reveal card exist as reward moments; 5-minute playtime gift.
 - XP curve (`Config.LevelCurve`, total XP to reach a level) `25*(level-1)^1.6`: level 2 = 25, level 5 about 230, level 10 about 840, level 20 about 2,780. Early steps are short, which matches Roblox's advice; real time-per-level depends on XP per kill (measure in #9).
 - Unknown until playtest (#9): time to first fight, first mineral, first forge; whether the funnel events reach an analytics sink (#11).

@@ -678,7 +678,7 @@ local function onMount(player: Player, wantMounted: any)
 	if not GolemService.isActive(golem) then
 		if now >= golem.nextMountChange then
 			golem.nextMountChange = now + Config.Golem.mountCooldown
-			Remotes.Notify:FireClient(player, "message", "Your golem is reforming. Try again in a moment.")
+			Remotes.Notify:FireClient(player, "message", "Golem rebuilding. Try again soon.")
 		end
 		return
 	end
@@ -687,7 +687,7 @@ local function onMount(player: Player, wantMounted: any)
 	end
 	golem.nextMountChange = now + Config.Golem.mountCooldown
 	if wantMounted and not GolemService.canClimbOn(golem) then
-		Remotes.Notify:FireClient(player, "message", "Walk up to your golem to climb on.")
+		Remotes.Notify:FireClient(player, "message", "Walk closer to ride your golem.")
 		return
 	end
 	GolemService.setMounted(golem, wantMounted)
@@ -1046,12 +1046,15 @@ function GolemService.damage(golem: Golem, amount: number)
 	golem.hp = math.max(golem.hp - amount, 0)
 	golem.model:SetAttribute("Hit", ((golem.model:GetAttribute("Hit") :: number?) or 0) + 1)
 	if golem.hp <= 0 then
-		-- Knocked out: carried back to the zone spawn to recover.
+		-- Knocked out: crumble where it stood, then reform at the zone spawn.
+		local head = golem.model:FindFirstChild("Head")
+		local color = if head and head:IsA("BasePart") then head.Color else Color3.fromRGB(120, 110, 96)
+		Remotes.Notify:FireAllClients("golemCrumble", golem.root.Position, golem.stats.scale, color)
 		golem.downedUntil = os.clock() + Config.Golem.respawnTime
 		golem.sprinting = false
 		GolemService.applySpeed(golem)
 		GolemService.sendToZone(golem, golem.zoneId)
-		Remotes.Notify:FireClient(golem.player, "message", "Your golem crumbled! Reforming...")
+		Remotes.Notify:FireClient(golem.player, "message", "Your golem fell! Rebuilding...")
 	end
 	publishHealth(golem)
 end

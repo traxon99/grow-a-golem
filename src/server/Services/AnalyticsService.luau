@@ -54,6 +54,7 @@ local SOURCES: { [string]: string } = {
 	purchase = "IAP",
 	-- sinks
 	forge = "Shop",
+	coreUpgrade = "Shop",
 	respec = "Shop",
 	awaken = "Gameplay",
 	ascend = "Gameplay",

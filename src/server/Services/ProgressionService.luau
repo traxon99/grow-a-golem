@@ -42,7 +42,7 @@ local function craft(player: Player, slot: any, tier: any, automatic: boolean?):
 		return false, "Unknown part"
 	end
 	if tierRank(tier) <= tierRank(data.golem.parts[slot]) then
-		return false, "You already have an equal or better part there"
+		return false, "You have this part or better."
 	end
 	local cost = Stats.partCost(slot, tier)
 	if not DataService.spend(player, cost, "forge") then
@@ -61,7 +61,7 @@ local function craft(player: Player, slot: any, tier: any, automatic: boolean?):
 		-- The normal forge is already complete. The player can ignore this.
 		Remotes.Notify:FireClient(player, "forgeStrike", slot, tier, targetAt)
 	end
-	return true, `Forged a {Config.Tiers[tier].displayName} {Config.Slots[slot].displayName}!`
+	return true, `Built {Config.Tiers[tier].displayName} {Config.Slots[slot].displayName}!`
 end
 
 -- Auto-Forge (the pass, or the first Awakening's unlock) crafts the best
@@ -90,15 +90,15 @@ end
 local function finishForgeStrike(player: Player): (boolean, string?)
 	local pending = pendingStrikes[player]
 	if not pending then
-		return false, "No forge strike waiting"
+		return false, "No anvil hit waiting."
 	end
 	pendingStrikes[player] = nil
 	local window = Config.ForgeStrike.halfWindowSeconds + Config.ForgeStrike.latencySlackSeconds
 	if not ForgeStrike.isPerfect(workspace:GetServerTimeNow(), pending.targetAt, window) then
-		return true, "Normal forge (no penalty)"
+		return true, "Part built. Nothing lost."
 	end
 	DataService.addMinerals(player, pending.refund, "forgeStrike")
-	return true, "Perfect anvil strike! Fixed mineral refund earned."
+	return true, "Perfect hit! Some minerals returned."
 end
 
 ---------------------------------------------------------------- travel
@@ -110,7 +110,7 @@ local function travel(player: Player, zoneId: any): (boolean, string?)
 		return false, "Not ready"
 	end
 	if not GolemService.isActive(golem) then
-		return false, "Wait for your golem to reform"
+		return false, "Wait for your golem to rebuild."
 	end
 	if zoneId == golem.zoneId then
 		return false, "You're already there"
@@ -119,7 +119,7 @@ local function travel(player: Player, zoneId: any): (boolean, string?)
 		-- The hub is always open and has no enemies.
 		GolemService.sendToZone(golem, zoneId)
 		DataService.markChanged(player)
-		return true, `Welcome to the {Config.Hub.name}! Walk up to a golem to inspect it.`
+		return true, `Welcome to {Config.Hub.name}!\nWalk to golems to see their stats.`
 	end
 	local unlocked, reason = Stats.zoneUnlocked(data, zoneId)
 	if not unlocked then
@@ -159,7 +159,30 @@ local function respec(player: Player): (boolean, string?)
 	DataService.update(player, function(d)
 		d.skills = {}
 	end)
-	return true, "Skill points refunded"
+	return true, "Skill points returned."
+end
+
+---------------------------------------------------------------- core upgrades
+
+local function buyCoreUpgrade(player: Player, id: any): (boolean, string?)
+	local data = DataService.get(player)
+	if not data or type(id) ~= "string" then
+		return false, "Not ready"
+	end
+	local allowed, reason = Stats.canBuyCoreUpgrade(data, id)
+	if not allowed then
+		return false, reason
+	end
+	local rank = (data.coreUpgrades or {})[id] or 0
+	-- No yield between validation, spending, and setting the next rank.
+	if not DataService.spend(player, Stats.coreUpgradeCost(id, rank), "coreUpgrade") then
+		return false, "Not enough minerals"
+	end
+	DataService.update(player, function(d)
+		d.coreUpgrades = d.coreUpgrades or {}
+		d.coreUpgrades[id] = rank + 1
+	end)
+	return true, `{Config.CoreUpgrades[id].name}: rank {rank + 1}!`
 end
 
 ---------------------------------------------------------------- awakening
@@ -183,6 +206,7 @@ local function awaken(player: Player): (boolean, string?)
 		d.golem.xp = 0
 		d.golem.parts = {}
 		d.skills = {}
+		d.coreUpgrades = {}
 		d.bossesDefeated = {}
 		for id in d.minerals do
 			d.minerals[id] = 0
@@ -192,7 +216,7 @@ local function awaken(player: Player): (boolean, string?)
 	Events.fire("mineralsSpent", player, wiped, "awaken")
 	Events.fire("awakened", player, data.awakening.count)
 	local unlocked = if unlock then ` Unlocked: {unlock.name}!` else ""
-	return true, `Your golem Awakens! +{shards} Awakening Shards.{unlocked}`
+	return true, `Awakened! +{shards} shards.{unlocked}`
 end
 
 local function buyUpgrade(player: Player, upgradeId: any): (boolean, string?)
@@ -223,7 +247,7 @@ local function ascend(player: Player): (boolean, string?)
 	local data = DataService.get(player)
 	local golem = GolemService.get(player)
 	if not data or not golem or not Stats.canAscend(data) then
-		return false, "Meet the Ascension requirements first"
+		return false, "Check Awaken for Ascension's goals."
 	end
 	local wiped = table.clone(data.minerals)
 	DataService.update(player, function(d)
@@ -233,6 +257,7 @@ local function ascend(player: Player): (boolean, string?)
 		d.golem.xp = 0
 		d.golem.parts = {}
 		d.skills = {}
+		d.coreUpgrades = {}
 		d.bossesDefeated = {}
 		for id in d.minerals do
 			d.minerals[id] = 0
@@ -241,7 +266,7 @@ local function ascend(player: Player): (boolean, string?)
 	GolemService.sendToZone(golem, 1)
 	Events.fire("mineralsSpent", player, wiped, "ascend")
 	Events.fire("ascended", player, data.ascension.count)
-	return true, "Ascended! Choose a permanent upgrade in Awaken."
+	return true, "Ascended! Choose a lasting upgrade in Awaken."
 end
 
 local function buyAscendUpgrade(player: Player, id: any): (boolean, string?)
@@ -252,16 +277,17 @@ local function buyAscendUpgrade(player: Player, id: any): (boolean, string?)
 	end
 	local rank = data.ascension.upgrades[id] or 0
 	if rank >= upgrade.maxRank or data.ascension.points < upgrade.cost then
-		return false, "Max rank or not enough Ascension points"
+		return false, "Max rank, or need more Ascension points."
 	end
 	DataService.update(player, function(d)
 		d.ascension.points -= upgrade.cost
 		d.ascension.upgrades[id] = rank + 1
 	end)
-	return true, "Ascension upgrade learned"
+	return true, "Ascension upgrade unlocked!"
 end
 
 function ProgressionService.start()
+	ActionService.register("buyCoreUpgrade", buyCoreUpgrade)
 	ActionService.register("ascend", ascend)
 	ActionService.register("buyAscendUpgrade", buyAscendUpgrade)
 	ActionService.register("craftPart", craft)

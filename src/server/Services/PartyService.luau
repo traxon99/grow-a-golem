@@ -232,7 +232,7 @@ function PartyService.start()
 			return false, "That player has party invites off"
 		end
 		if mode ~= "everyone" and not PartyService.areFriends(target, player) then
-			return false, "That player only accepts invites from friends"
+			return false, "That player accepts friends' invites only."
 		end
 
 		local now = os.clock()
@@ -240,7 +240,7 @@ function PartyService.start()
 		if (invites[target][player] or 0) > now then
 			-- Refresh the existing invite silently: never send a second toast.
 			invites[target][player] = now + Config.Party.inviteTimeout
-			return true, `Invite already pending for {target.DisplayName}`
+			return true, `Already invited {target.DisplayName}.`
 		end
 		local lastSent = inviteSentAt[player] and inviteSentAt[player][target]
 		if lastSent and now - lastSent < Config.Party.inviteCooldown then
@@ -258,11 +258,7 @@ function PartyService.start()
 		inviteSentAt[player] = inviteSentAt[player] or {}
 		inviteSentAt[player][target] = now
 		invites[target][player] = now + Config.Party.inviteTimeout
-		Remotes.Notify:FireClient(
-			target,
-			"message",
-			`{player.DisplayName} invited you to a party! Open Party to accept.`
-		)
+		Remotes.Notify:FireClient(target, "message", `{player.DisplayName} invited you!\nOpen Party to join.`)
 		DataService.markChanged(target)
 		return true, `Invite sent to {target.DisplayName}`
 	end)
@@ -310,7 +306,7 @@ function PartyService.start()
 		DataService.update(player, function(data)
 			data.social.partyInvites = mode
 		end)
-		return true, "Party invite preference saved"
+		return true, "Party invite setting saved."
 	end)
 
 	ActionService.register("partyDecline", function(player, userId)

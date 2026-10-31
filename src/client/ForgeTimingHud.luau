@@ -91,7 +91,7 @@ function ForgeTimingHud.start()
 	outline.Thickness = 3
 	outline.Parent = panel
 
-	label(panel, "Instruction", "Forged! Optional anvil strike", 6, 27)
+	label(panel, "Instruction", "Built! Try an anvil hit.", 6, 27)
 	local reward = label(panel, "FixedReward", "", 34, 42)
 	reward.TextSize = 14
 
@@ -164,7 +164,9 @@ function ForgeTimingHud.start()
 		end
 		targetAt = serverTarget
 		attempted = false
-		reward.Text = "Gold = refund " .. refundText(slot, tier) .. ". Miss/skip = normal forge."
+		reward.Text = "Hit gold to get minerals back: "
+			.. refundText(slot, tier)
+			.. ".\nMissing or skipping costs nothing extra."
 		panel.Visible = true
 	end)
 

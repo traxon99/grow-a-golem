@@ -130,16 +130,16 @@ function LiveEventService.start()
 			for id in running do
 				if not current[id] then
 					changed = true
-					announce(`{Stats.eventById(id).name} has ended. Thanks for playing!`)
+					announce(`{Stats.eventById(id).name} ended. Thanks for playing!`)
 				end
 			end
 			running = current
 			local beatPhase = WorldBeat.phase(now)
 			if beatPhase ~= previousBeatPhase then
 				if beatPhase == "active" then
-					announce("Mineral surge! Nodes on every island pay 2x for 90 seconds!")
+					announce("Double minerals everywhere for 90 seconds!")
 				elseif previousBeatPhase == "active" then
-					announce("Mineral surge ended. Thanks for mining!")
+					announce("Double minerals ended. Thanks for mining!")
 				end
 			end
 			previousBeatPhase = beatPhase

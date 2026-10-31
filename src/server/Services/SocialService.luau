@@ -108,7 +108,7 @@ local function setAnnounce(player: Player, on: any): (boolean, string?)
 	DataService.update(player, function(d)
 		d.social.announce = on
 	end)
-	return true, if on then "You'll hear about rare finds" else "Rare-find announcements are off"
+	return true, if on then "You'll hear about rare finds" else "Rare-find messages are off."
 end
 
 -- Tells everyone who hasn't opted out that someone found something rare.

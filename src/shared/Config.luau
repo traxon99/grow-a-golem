@@ -150,26 +150,72 @@ Config.Tiers = {
 		power = 3.5,
 		color = Color3.fromRGB(150, 156, 166),
 		material = Enum.Material.DiamondPlate,
-		cost = { iron = 30, copper = 40 },
+		cost = { iron = 30, copper = 40, stone = 50 },
 	},
 	crystal = {
 		displayName = "Crystal",
 		power = 5.5,
 		color = Color3.fromRGB(150, 110, 255),
 		material = Enum.Material.Glass,
-		cost = { crystal = 30, iron = 50 },
+		cost = { crystal = 30, iron = 50, stone = 60 },
 	},
 }
 
 Config.SlotOrder = { "core", "torso", "armL", "armR", "legs" }
 Config.Slots = {
 	core = { displayName = "Core", costMultiplier = 1.5 },
-	torso = { displayName = "Torso", costMultiplier = 1.2 },
+	torso = { displayName = "Body", costMultiplier = 1.2 },
 	armL = { displayName = "Left Arm", costMultiplier = 1 },
 	armR = { displayName = "Right Arm", costMultiplier = 1 },
 	legs = { displayName = "Legs", costMultiplier = 1 },
 }
 Config.FullSetBonus = 0.15 -- all five slots the same tier: +15% health and damage
+
+-- Minerals keep a job after their part tier. Core upgrades belong to the
+-- current run, survive part replacements, and reset on Awaken or Ascend.
+Config.CoreUpgradeRanksPerIsland = 3
+Config.CoreUpgradeOrder = { "toughBody", "quickHands", "heavyHits", "strongSpells" }
+Config.CoreUpgrades = {
+	toughBody = {
+		name = "Tougher Body",
+		mineral = "stone",
+		island = 1,
+		maxRank = 18,
+		baseCost = 60,
+		costStep = 20,
+		bonus = { health = 5 },
+	},
+	quickHands = {
+		name = "Quick Hands",
+		mineral = "copper",
+		island = 1,
+		maxRank = 18,
+		baseCost = 30,
+		costStep = 10,
+		bonus = { attackSpeed = 3 },
+	},
+	heavyHits = {
+		name = "Heavy Hits",
+		mineral = "iron",
+		island = 2,
+		maxRank = 15,
+		baseCost = 25,
+		costStep = 10,
+		bonus = { damage = 4 },
+	},
+	strongSpells = {
+		name = "Strong Spells",
+		mineral = "crystal",
+		island = 3,
+		maxRank = 12,
+		baseCost = 20,
+		costStep = 10,
+		bonus = { spellPower = 5 },
+	},
+}
+-- Each later unlocked island adds +50% mining yield on earlier islands,
+-- up to 3.5x. Applies to mined minerals only, before the normal multipliers.
+Config.ReturnMining = { perIsland = 0.5, maxMultiplier = 3.5 }
 
 ---------------------------------------------------------------- spells
 
@@ -505,20 +551,20 @@ local awakeningUnlocks: { [any]: any } = {
 		kind = "autoForge",
 		pass = "autoForge",
 		name = "Free Auto-Forge",
-		description = "Forges and equips the best part you can afford.",
+		description = "Builds and uses your best affordable part.",
 	},
 	{
 		count = 2,
 		kind = "artifactSlot",
 		name = "Extra Artifact Slot",
-		description = "+1 artifact slot, on top of any others.",
+		description = "Use 1 extra artifact. Adds to others.",
 	},
 	{
 		count = 3,
 		kind = "title",
 		title = "runebound",
 		name = "Runebound title",
-		description = "A nametag title for golems that have Awakened 3 times.",
+		description = "Awaken 3 times for this nametag title.",
 	},
 }
 Config.AwakeningUnlocks = awakeningUnlocks
@@ -542,7 +588,7 @@ Config.AwakenUpgrades = {
 	},
 	longRest = {
 		name = "Long Rest",
-		description = "+1 hour offline mining cap",
+		description = "+1h mining while away",
 		maxRank = 10,
 		baseCost = 4,
 		costStep = 3,
@@ -676,36 +722,36 @@ Config.SessionRewards = sessionRewards
 local questPool: { [any]: any } = {
 	{
 		id = "defeat50",
-		text = "Defeat 50 enemies",
+		text = "Beat 50 enemies",
 		event = "enemyDefeated",
 		target = 50,
 		reward = { xp = 200, minerals = { stone = 100 } },
 	},
 	{
 		id = "defeat150",
-		text = "Defeat 150 enemies",
+		text = "Beat 150 enemies",
 		event = "enemyDefeated",
 		target = 150,
 		reward = { xp = 500, minerals = { copper = 80 } },
 	},
 	{
 		id = "mine20",
-		text = "Break 20 mineral nodes",
+		text = "Break 20 rocks",
 		event = "nodeMined",
 		target = 20,
 		reward = { minerals = { stone = 150, copper = 30 } },
 	},
 	{
 		id = "mine60",
-		text = "Break 60 mineral nodes",
+		text = "Break 60 rocks",
 		event = "nodeMined",
 		target = 60,
 		reward = { minerals = { copper = 100, iron = 30 } },
 	},
-	{ id = "spells30", text = "Cast 30 spells", event = "spellCast", target = 30, reward = { xp = 300 } },
+	{ id = "spells30", text = "Use 30 spells", event = "spellCast", target = 30, reward = { xp = 300 } },
 	{
 		id = "boss1",
-		text = "Defeat a zone boss",
+		text = "Beat an island boss",
 		event = "bossDefeated",
 		target = 1,
 		reward = { xp = 400, minerals = { iron = 20 } },
@@ -723,21 +769,21 @@ Config.QuestPool = questPool
 local weeklyQuestPool: { [any]: any } = {
 	{
 		id = "w_defeat1000",
-		text = "Defeat 1,000 enemies",
+		text = "Beat 1,000 enemies",
 		event = "enemyDefeated",
 		target = 1000,
 		reward = { xp = 3000, minerals = { iron = 150 } },
 	},
 	{
 		id = "w_mine300",
-		text = "Break 300 mineral nodes",
+		text = "Break 300 rocks",
 		event = "nodeMined",
 		target = 300,
 		reward = { minerals = { iron = 120, crystal = 40 } },
 	},
 	{
 		id = "w_boss10",
-		text = "Defeat 10 zone bosses",
+		text = "Beat 10 island bosses",
 		event = "bossDefeated",
 		target = 10,
 		reward = { xp = 4000, minerals = { crystal = 60 } },
@@ -804,15 +850,15 @@ Config.CodeLimits = {
 -- An id of 0 shows the item as "Coming soon".
 Config.GamePassOrder = { "doubleMinerals", "autoForge", "extraSlot", "longRest", "vip" }
 Config.GamePasses = {
-	doubleMinerals = { id = 0, name = "2x Minerals", description = "Double all mineral income, forever.", price = 299 },
+	doubleMinerals = { id = 0, name = "2x Minerals", description = "Get double minerals forever.", price = 299 },
 	autoForge = {
 		id = 0,
 		name = "Auto-Forge",
-		description = "Automatically forges and equips the best part you can afford.",
+		description = "Builds and uses your best affordable part.",
 		price = 149,
 	},
 	extraSlot = { id = 0, name = "Extra Artifact Slot", description = "+1 artifact slot.", price = 199 },
-	longRest = { id = 0, name = "Long Rest", description = "Offline mining cap becomes 12 hours.", price = 249 },
+	longRest = { id = 0, name = "Long Rest", description = "Mine while away for up to 12h.", price = 249 },
 	vip = { id = 0, name = "VIP", description = "VIP nametag, +10% XP.", price = 399 },
 }
 Config.LongRestCapHours = 12
@@ -893,7 +939,7 @@ Config.Cosmetics = {
 	lava = {
 		slot = "skin",
 		name = "Lava",
-		description = "Cooled rock with molten glowing runes.",
+		description = "Dark rock with glowing fire runes.",
 		unlock = { kind = "boss", zone = 2 },
 		skin = {
 			color = Color3.fromRGB(58, 42, 38),
@@ -918,7 +964,7 @@ Config.Cosmetics = {
 	gilded = {
 		slot = "skin",
 		name = "Gilded",
-		description = "Shining gold, for golems that have Awakened.",
+		description = "Shining gold for Awakened golems.",
 		unlock = { kind = "awaken", count = 1 },
 		skin = {
 			color = Color3.fromRGB(232, 182, 60),
@@ -931,19 +977,19 @@ Config.Cosmetics = {
 	apprentice = {
 		slot = "outfit",
 		name = "Apprentice",
-		description = "A pointy blue hat, a cape and an oak staff.",
+		description = "Blue hat, cape, and wooden staff.",
 		unlock = { kind = "tutorial" },
 	},
 	emberMage = {
 		slot = "outfit",
 		name = "Ember Mage",
-		description = "Fire-red robes and a staff with a burning coal.",
+		description = "Red robes and a fiery staff.",
 		unlock = { kind = "zoneSet", zone = 2 },
 	},
 	starlight = {
 		slot = "outfit",
 		name = "Starlight Wizard",
-		description = "A starry hat and cape with a glowing crystal staff.",
+		description = "Starry hat, cape, and glowing crystal staff.",
 		passId = 0,
 		price = 79,
 	},
@@ -965,7 +1011,7 @@ Config.Cosmetics = {
 	crystalOwl = {
 		slot = "pet",
 		name = "Crystal Owl",
-		description = "A wise owl made of glowing crystal.",
+		description = "A wise, glowing crystal owl.",
 		passId = 0,
 		price = 149,
 	},
@@ -974,14 +1020,14 @@ Config.Cosmetics = {
 	dustTrail = {
 		slot = "trail",
 		name = "Dust Trail",
-		description = "A cloud of quarry dust behind every step.",
+		description = "A dust cloud follows each step.",
 		unlock = { kind = "streak", days = 7 },
 		trail = { colors = { Color3.fromRGB(200, 186, 160), Color3.fromRGB(150, 140, 120) }, lifetime = 0.9, glow = 0 },
 	},
 	runeTrail = {
 		slot = "trail",
 		name = "Rune Trail",
-		description = "Glowing blue rune light behind every step.",
+		description = "Blue rune lights follow each step.",
 		passId = 0,
 		price = 59,
 		trail = { colors = { Color3.fromRGB(90, 200, 255), Color3.fromRGB(150, 110, 255) }, lifetime = 0.7, glow = 1 },
@@ -1044,7 +1090,9 @@ Config.Visuals = {
 -- Upload each PNG in assets/ui-textures/ as a Decal or Image in Studio and
 -- paste its image id here. 0 = no image: the panel still gets its material's
 -- color, grain gradient, edge and details, all drawn in code.
-Config.UiTextures = { wood = 0, stone = 0, metal = 0, studs = 0, crystal = 0 }
+-- Image behind the public-domain Studs Texture decal (14905298664), resolved
+-- from its textureId. ImageLabels use the image directly, tinted per surface.
+Config.UiTextures = { wood = 0, stone = 0, metal = 0, studs = 14905298636, crystal = 0, plate = 14905298636 }
 
 -- The one rarity table (#82), shared by item cards, the artifact reveal and
 -- the Shop. Matches docs/reference/images/rarity-colors.png: `color` is the
@@ -1067,7 +1115,7 @@ Config.ArtifactSourceRarity = { drop = "rare", boss = "epic", hidden = "legendar
 
 -- Sound ids for the big moments (artifact reveal, level up, growing a size).
 -- 0 = silent. Paste rbxassetid numbers from the Creator Store.
-Config.Sounds = { artifact = 0, levelUp = 0, grow = 0 }
+Config.Sounds = { artifact = 0, levelUp = 134821092416328, grow = 0 }
 
 -- Everyday sound effects. Each `id` is either a sound that ships inside every
 -- Roblox client ("rbxasset://sounds/..."), which always works, or an asset id
@@ -1078,6 +1126,8 @@ local THUD = "rbxasset://sounds/action_jump_land.mp3"
 local WIND = "rbxasset://sounds/action_falling.ogg"
 local SPLASH = "rbxasset://sounds/impact_water.mp3"
 local WHOOSH = "rbxasset://sounds/action_jump.mp3"
+-- UI pop sound from the public Roblox Creator Store.
+local BUBBLE = 72264591133889
 Config.SoundEffects = {
 	golemStep = { id = THUD, speed = 0.5, volume = 0.35, bass = true },
 	bossStep = { id = THUD, speed = 0.4, volume = 0.5, bass = true },
@@ -1091,12 +1141,11 @@ Config.SoundEffects = {
 	magnet = { id = WIND, speed = 1.6, volume = 0.5, length = 1.2 },
 	slamWarn = { id = WIND, speed = 0.6, volume = 0.6, length = 1.5 },
 	slam = { id = THUD, speed = 0.25, volume = 1, distortion = 0.7, reverb = true },
-	downed = { id = "rbxasset://sounds/uuhhh.mp3", speed = 0.55, volume = 0.6, reverb = true },
 	artifact = { id = SPLASH, speed = 2.4, volume = 0.7, reverb = true },
 	levelUp = { id = SPLASH, speed = 2, volume = 0.7, reverb = true },
 	grow = { id = THUD, speed = 0.45, volume = 0.9, reverb = true },
-	click = { id = THUD, speed = 2.6, volume = 0.25 },
-	tutorialStep = { id = SPLASH, speed = 2.8, volume = 0.5 },
+	click = { id = BUBBLE, speed = 2.6, volume = 0.25 },
+	tutorialStep = { id = BUBBLE, speed = 2.8, volume = 0.5 },
 	wind = { id = WIND, speed = 0.45, volume = 0.07, loop = true },
 }
 
@@ -1108,31 +1157,31 @@ Config.SoundEffects = {
 -- (the Forge tab), "spell" (a spell button), or nil. `reward` is granted
 -- flat when the step completes. `touchText` / `gamepadText` replace `text` on
 -- those devices. `key` / `touchKey` / `gamepadKey` is the input shown as a
--- key cap beside the words. Keep each step to about 10 words.
+-- key cap beside the words. Aim for fewer than 8 words per step.
 -- A typed local, so entries of different shapes are accepted (see the top).
 local tutorialSteps: { any } = {
 	{
 		id = "steer",
-		text = "Steer your golem with WASD. It fights by itself!",
-		touchText = "Steer your golem with the stick. It fights by itself!",
-		gamepadText = "Steer your golem with the left stick!",
+		text = "Move: WASD. Your golem fights automatically!",
+		touchText = "Move: stick. Your golem fights automatically!",
+		gamepadText = "Move with the left stick.",
 		key = "WASD",
 		touchKey = "Stick",
 		gamepadKey = "L",
 	},
-	{ id = "mine", text = "Walk to the glowing rock to mine it!", pointer = "node" },
+	{ id = "mine", text = "Walk to glowing rocks to mine.", pointer = "node" },
 	{
 		id = "forge",
-		text = "Open Forge and build your first part!",
+		text = "Open Forge. Build your first part!",
 		pointer = "forge",
 		topUpStone = true,
 		touchKey = "Tap",
 	},
 	{
 		id = "quake",
-		text = "Press Q to smash enemies with Quake!",
+		text = "Press Q: smash enemies with Quake!",
 		touchText = "Tap Quake to smash enemies!",
-		gamepadText = "Press X to smash enemies with Quake!",
+		gamepadText = "Press X: smash enemies with Quake!",
 		key = "Q",
 		touchKey = "Tap",
 		gamepadKey = "X",
@@ -1145,7 +1194,7 @@ local tutorialSteps: { any } = {
 local tutorial: { [any]: any } = {
 	steerSeconds = 2, -- seconds of steering that finish the first step
 	steps = tutorialSteps,
-	doneText = "You're ready! Follow your Goal card to grow your golem.",
+	doneText = "Ready! Follow your Goal to grow.",
 }
 Config.Tutorial = tutorial
 
@@ -1185,7 +1234,7 @@ Config.Tiers.stormglass = {
 	power = 8,
 	color = Color3.fromRGB(100, 190, 255),
 	material = Enum.Material.Metal,
-	cost = { stormglass = 80, crystal = 120 },
+	cost = { stormglass = 80, crystal = 120, stone = 70 },
 }
 Config.Nodes.stormglass = { maxHealth = 720, yield = 3, size = Vector3.new(5, 6, 5), material = Enum.Material.Neon }
 table.insert(Config.MineralOrder, "abyssite")
@@ -1196,7 +1245,7 @@ Config.Tiers.abyssite = {
 	power = 11,
 	color = Color3.fromRGB(55, 175, 160),
 	material = Enum.Material.Metal,
-	cost = { abyssite = 110, stormglass = 165 },
+	cost = { abyssite = 110, stormglass = 165, stone = 80 },
 }
 Config.Nodes.abyssite = { maxHealth = 990, yield = 3, size = Vector3.new(5, 6, 5), material = Enum.Material.Neon }
 table.insert(Config.MineralOrder, "sunsteel")
@@ -1207,7 +1256,7 @@ Config.Tiers.sunsteel = {
 	power = 15,
 	color = Color3.fromRGB(255, 190, 70),
 	material = Enum.Material.Metal,
-	cost = { sunsteel = 150, abyssite = 225 },
+	cost = { sunsteel = 150, abyssite = 225, stone = 90 },
 }
 Config.Nodes.sunsteel = { maxHealth = 1350, yield = 3, size = Vector3.new(5, 6, 5), material = Enum.Material.Neon }
 table.insert(Config.MineralOrder, "aether")
@@ -1218,7 +1267,7 @@ Config.Tiers.aether = {
 	power = 20,
 	color = Color3.fromRGB(230, 170, 255),
 	material = Enum.Material.Metal,
-	cost = { aether = 200, sunsteel = 300 },
+	cost = { aether = 200, sunsteel = 300, stone = 100 },
 }
 Config.Nodes.aether = { maxHealth = 1800, yield = 3, size = Vector3.new(5, 6, 5), material = Enum.Material.Neon }
 table.insert(Config.ZoneOrder, 4)

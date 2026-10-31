@@ -1,6 +1,6 @@
 --!strict
 -- The menu kit (#82): every piece of UI is built from these helpers, so all
--- menus share one look. Dark stud plates for windows, a colored header bar
+-- menus share one look. Dark stone plates for windows, a colored header bar
 -- per menu, chunky outlined text, five button styles, rarity cards, "N to go"
 -- progress bars, step checklists, friendly empty states and speech-bubble
 -- dialogs. Surfaces get their material through `Ui.surface` (see
@@ -21,7 +21,7 @@ local Ui = {}
 
 Ui.Colors = {
 	panel = Color3.fromRGB(30, 34, 40),
-	-- The window body: a dark night-blue plate.
+	-- The window body: dark night-blue stone.
 	plate = Color3.fromRGB(30, 34, 50),
 	row = Color3.fromRGB(46, 54, 74),
 	card = Color3.fromRGB(40, 46, 64),
@@ -317,17 +317,16 @@ Ui.Materials = {
 		tile = 96,
 		imageTransparency = 0.5,
 	},
-	-- The window body: a dark night-blue brick plate with faint studs. Uses
-	-- the studs texture, tinted dark.
+	-- The window body: dark stone, tinted night-blue so text stays clear.
 	plate = {
 		color = Color3.fromRGB(30, 34, 50),
 		edge = Color3.fromRGB(10, 10, 18),
 		edgeWidth = 5,
 		rotation = 90,
 		grain = { 1, 0.9, 0.82 },
-		tile = 48,
-		imageTransparency = 0.25,
-		texture = "studs",
+		tile = 128,
+		imageTransparency = 0.45,
+		texture = "plate",
 	},
 	-- Chunky glossy plastic: header bars and every kit button. Always tinted
 	-- (a style or header color); the base here is the secondary gray. Uses the
@@ -347,7 +346,7 @@ Ui.Materials = {
 -- A gradient on a text object also tints its text, so text surfaces get a
 -- shallower grain and no image layer.
 local TEXT_GRAIN_FLOOR = 0.82
-local SURFACE_PARTS = { "Grain", "Edge", "Texture", "Detail", "Lip" }
+local SURFACE_PARTS = { "Grain", "Edge", "Surface", "Texture", "Detail", "Lip" }
 
 local function isTextObject(target: GuiObject): boolean
 	if target:IsA("TextBox") then
@@ -357,7 +356,7 @@ local function isTextObject(target: GuiObject): boolean
 end
 
 local function detail(
-	target: GuiObject,
+	target: Instance,
 	size: UDim2,
 	position: UDim2,
 	color: Color3,
@@ -385,7 +384,7 @@ end
 -- rivets, brick studs, rune diamonds, a top highlight. They sit under the
 -- surface's own children (ZIndex 0), and only on frames built once, never on
 -- list rows or cards.
-local function addDetails(target: GuiObject, material: string, m: Material, base: Color3)
+local function addDetails(target: Instance, material: string, m: Material, base: Color3)
 	if material == "wood" then
 		for _, y in { 0.34, 0.67 } do
 			detail(target, UDim2.new(1, -8, 0, 2), UDim2.new(0, 4, y, 0), m.edge, 0.55, false)
@@ -423,25 +422,6 @@ local function addDetails(target: GuiObject, material: string, m: Material, base
 			local c = Instance.new("UICorner")
 			c.CornerRadius = UDim.new(0, 2)
 			c.Parent = stud
-		end
-	elseif material == "plate" then
-		-- Embossed studs across the whole plate: a staggered grid, lighter than
-		-- the plate and faint enough that text stays above 4.5:1. The public
-		-- stud tile (6927295847) loaded but drew blank in Studio (no permission
-		-- for our place), so they are drawn in code.
-		local columns, rows = 12, 9
-		for row = 0, rows - 1 do
-			for column = 0, columns - 1 do
-				local stud = detail(
-					target,
-					UDim2.fromOffset(16, 16),
-					UDim2.new((column + 0.5 + (row % 2) * 0.5) / (columns + 0.5), 0, (row + 0.5) / rows, 0),
-					base:Lerp(Color3.new(1, 1, 1), 0.3),
-					0.55,
-					true
-				)
-				stud.AnchorPoint = Vector2.new(0.5, 0.5)
-			end
 		end
 	elseif material == "gem" then
 		-- A glossy top half and a carved rune diamond at each end.
@@ -523,23 +503,33 @@ function Ui.surface(
 	edge.Thickness = m.edgeWidth
 	edge.Parent = target
 
+	-- Folder contents render relative to the surface without participating in
+	-- its UIListLayout/UIGridLayout. A full-size texture directly in a summary
+	-- or empty-state layout becomes a content item and inflates the whole row.
+	local decoration = Instance.new("Folder")
+	decoration.Name = "Surface"
+	decoration.Parent = target
+
 	local imageId = Config.UiTextures[m.texture or material]
 	if imageId and imageId ~= 0 and not onText then
 		local texture = Instance.new("ImageLabel")
 		texture.Name = "Texture"
 		texture.BackgroundTransparency = 1
+		texture.BorderSizePixel = 0
 		texture.Size = UDim2.fromScale(1, 1)
 		texture.Image = `rbxassetid://{imageId}`
 		texture.ScaleType = Enum.ScaleType.Tile
 		texture.TileSize = UDim2.fromOffset(m.tile, m.tile)
 		texture.ImageColor3 = base
 		texture.ImageTransparency = m.imageTransparency
+		-- Under Sibling ordering, children draw above their parent's fill.
+		-- Keep decorations below content even when setTheme recreates them.
 		texture.ZIndex = 0
 		local corner = target:FindFirstChildOfClass("UICorner")
 		if corner then
 			corner:Clone().Parent = texture
 		end
-		texture.Parent = target
+		texture.Parent = decoration
 	end
 
 	-- The stud look: a darker band of the same hue along the bottom of every
@@ -555,11 +545,11 @@ function Ui.surface(
 		local c = Instance.new("UICorner")
 		c.CornerRadius = UDim.new(0, 4)
 		c.Parent = lip
-		lip.Parent = target
+		lip.Parent = decoration
 	end
 
 	if opts.details then
-		addDetails(target, material, m, base)
+		addDetails(decoration, material, m, base)
 	end
 	return edge
 end
@@ -824,7 +814,7 @@ export type Window = {
 
 local HEADER_HEIGHT = 60
 
--- A menu window: a dark stud plate, a chunky colored header bar with an icon
+-- A menu window: a dark stone plate, a chunky colored header bar with an icon
 -- slot, a big title and the red X. Put content in `body`.
 function Ui.window(parent: Instance, title: string, color: Color3, icon: string?, onClose: () -> ()): Window
 	local frame = Instance.new("Frame")
@@ -832,7 +822,13 @@ function Ui.window(parent: Instance, title: string, color: Color3, icon: string?
 	frame.BackgroundTransparency = 0.02
 	frame.Parent = parent
 	Ui.corner(frame, 16)
-	Ui.surface(frame, "plate", { details = true })
+	local function tintPlate(tint: Color3)
+		-- Keep the night-stone contrast while carrying each menu's header color
+		-- through the shared textured background.
+		local plate = Ui.Materials.plate.color:Lerp(tint, 0.24)
+		Ui.surface(frame, "plate", { tint = plate, details = true })
+	end
+	tintPlate(color)
 
 	local header = Instance.new("Frame")
 	header.Name = "Header"
@@ -865,6 +861,7 @@ function Ui.window(parent: Instance, title: string, color: Color3, icon: string?
 	local iconObject: GuiObject? = nil
 	local function setTheme(text: string, tint: Color3, iconKey: string?)
 		titleLabel.Text = string.upper(text)
+		tintPlate(tint)
 		Ui.surface(header, "gem", { tint = tint, details = true })
 		if iconObject then
 			iconObject:Destroy()
@@ -1726,9 +1723,9 @@ local STAT_NAMES = {
 	minerals = "minerals",
 	speed = "speed",
 	luck = "luck",
-	spellPower = "spell power",
-	spellHaste = "spell cooldowns",
-	regen = "regen",
+	spellPower = "spell damage",
+	spellHaste = "spell recharge speed",
+	regen = "healing",
 	xp = "XP",
 }
 
