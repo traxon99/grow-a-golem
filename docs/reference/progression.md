@@ -36,6 +36,8 @@ Last updated: 2026-10-30. See also [gameplay-loops.md](gameplay-loops.md) and [m
 
 ## Grow A Golem today
 
+- **Kingdom save foundation (#213):** versioned campaign region access, learned utility abilities, discoveries, obstacles, sanctuary restoration and titan milestones survive both prestige resets. Existing saves infer access only from their current legacy gates and abilities from qualifying equipped part tiers; migration grants no rewards. Rollout defaults off, retaining legacy travel. Campaign travel has a separate helper; Core caps, return-mining bonuses and Ascension still use current-run progress. World content and forge mastery learning follow in later stories; see [save-design.md](../save-design.md).
+
 - Max level 100; total XP to reach level L = `25*(L-1)^1.6` (level 10 about 840, level 20 about 2,780, level 60 about 17,000).
 - Golem size steps at levels 1/5/10/18/28/40/55/75/100 (each +25% model scale) gate zones together with boss kills.
 - Forge: 5 part slots x 8 tiers (stone, copper, iron, crystal, stormglass, abyssite, sunsteel, aether) with a full-set bonus.

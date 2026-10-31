@@ -57,3 +57,25 @@ If it's reopened, the switch needs a written migration plan (reading old `Player
 
 - Roblox Creator Docs, Implement player data and purchasing systems: https://create.roblox.com/docs/cloud-services/data-stores/player-data-purchasing (accessed 2026-10)
 - Roblox DevForum, ProfileStore announcement by loleris, 2024-10-11: https://devforum.roblox.com/t/profilestore-save-your-player-data-easy-datastore-module/3190543/ (accessed 2026-10)
+
+## Kingdom campaign foundation (#213)
+
+`campaign` has an independent schema version (currently 1), string-keyed region access,
+learned abilities, discoveries, completed obstacles, sanctuary projects and titan milestones.
+New profiles have quarry access and otherwise empty records. Reconciliation fills missing
+fields; the one-time migration evaluates the unchanged legacy boss/size gates and eligible
+current part tiers. It grants no rewards and invents no obstacle, project or hunt history.
+Existing inventory, receipts and artifact bags keep their values.
+
+Migration runs after successful lease acquisition and reconciliation, before gameplay starts,
+even with `Config.Kingdom.enabled = false`. The same profile save/lease lifecycle persists it;
+failed live loads still kick without creating a writable blank profile. Snapshots explicitly
+project the six campaign state maps, omitting the schema version and future server bookkeeping.
+Both prestige handlers retain the campaign while resetting their existing run fields.
+
+`Stats.zoneUnlocked` remains the current-run boss/size check for Core caps and return mining;
+`Stats.campaignZoneUnlocked` checks earned access. `Stats.travelUnlocked` selects the latter
+only when kingdom rollout is enabled. Ascension still requires a fresh current-run boss win.
+The rollout flag stays off pending #219/#228; toggling it off preserves campaign data and
+restores legacy travel. Rollback here means disabling the flag in a campaign-aware build.
+Published save/rejoin validation remains part of those integration stories.

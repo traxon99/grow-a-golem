@@ -1,5 +1,12 @@
 do
+	local campaign = {
+		regions = { ["1"] = true, ["6"] = true },
+		abilities = { smash = true },
+		projects = { hearth = true },
+		titan = { clue = true },
+	}
 	local data = {
+		campaign = campaign,
 		golem = { xp = Stats.xpForLevel(100), parts = { torso = "aether" } },
 		minerals = { stone = 100, aether = 200 },
 		skills = { e1 = true },
@@ -58,6 +65,14 @@ do
 	assert(data.minerals.stone == 0 and data.minerals.aether == 0)
 	assert(next(data.bossesDefeated) == nil and trips[1] == 1)
 	assert(data.artifacts.found.pebbleCharm and data.cosmetics.owned.earned)
+	assert(data.campaign == campaign and campaign.projects.hearth and campaign.abilities.smash and campaign.titan.clue)
+	Config.Kingdom.enabled = true
+	assert(Stats.travelUnlocked(data, 6) and not Stats.zoneUnlocked(data, 6))
+	assert(Stats.highestZone(data) == 1 and not Stats.canAscend(data))
+	assert(Stats.coreUpgradeRankCap(data, "toughBody") == Config.CoreUpgradeRanksPerIsland)
+	assert(not Stats.travelUnlocked(data, 999))
+	Config.Kingdom.enabled = false
+	assert(not Stats.travelUnlocked(data, 6))
 	assert(not actions.ascend({}), "Repeat requests must not mint extra points")
 	data.bossesDefeated["6"] = true
 	assert(not actions.ascend({}), "Beating the boss again cannot reuse spent Awakenings")
@@ -77,7 +92,14 @@ end
 
 -- Awakening names the unlock it gives in its message.
 do
+	local campaign = {
+		regions = { ["1"] = true, ["6"] = true },
+		abilities = { smash = true },
+		projects = { hearth = true },
+		titan = { clue = true },
+	}
 	local data = {
+		campaign = campaign,
 		golem = { xp = Stats.xpForLevel(Config.Awakening.minLevel), parts = { torso = "stone" } },
 		minerals = { stone = 10 },
 		skills = {},
@@ -116,6 +138,7 @@ do
 	service.start()
 	local ok, message = actions.awaken({})
 	assert(ok and data.awakening.count == 1)
+	assert(data.campaign == campaign and campaign.projects.hearth and campaign.abilities.smash and campaign.titan.clue)
 	assert(string.find(message, Config.AwakeningUnlocks[1].name, 1, true), "Awakening 1 names its unlock")
 	data.golem.xp = Stats.xpForLevel(Config.Awakening.minLevel)
 	ok, message = actions.awaken({})
