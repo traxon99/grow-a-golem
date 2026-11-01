@@ -143,6 +143,27 @@ local function travel(player: Player, zoneId: any): (boolean, string?)
 	return true, `Welcome to {Config.Zones[zoneId].name}!`
 end
 
+-- Walking or riding over a boundary on the connected kingdom ground (#214)
+-- is travel without the teleport, so it uses the same server-side checks.
+-- GolemService calls this from the golem's own position only.
+local function crossInto(player: Player, _golem: any, zoneId: number): (boolean, string?)
+	local data = DataService.get(player)
+	if not data then
+		return false, "Not ready"
+	end
+	if zoneId == Config.HubZone then
+		DataService.markChanged(player)
+		return true, nil
+	end
+	local unlocked, reason = Stats.travelUnlocked(data, zoneId)
+	if not unlocked then
+		return false, reason
+	end
+	DataService.markChanged(player)
+	Events.fire("zoneEntered", player, zoneId)
+	return true, nil
+end
+
 ---------------------------------------------------------------- skills
 
 local function learn(player: Player, skillId: any): (boolean, string?)
@@ -308,6 +329,7 @@ function ProgressionService.start()
 		pendingStrikes[player] = nil
 	end)
 	ActionService.register("travel", travel)
+	GolemService.setCrossingHandler(crossInto)
 	ActionService.register("learnSkill", learn)
 	ActionService.register("respecSkills", respec)
 	ActionService.register("awaken", awaken)

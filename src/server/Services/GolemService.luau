@@ -57,11 +57,18 @@ export type Golem = {
 	lastSteerAt: number,
 	steerWindowStart: number,
 	steerCount: number,
+	lastSafe: Vector3?, -- root position last seen inside its own kingdom zone
+	blockedNoticeAt: number?, -- when a refused crossing may next say why
 }
+
+-- Decides whether a golem may walk into another kingdom zone; returns
+-- (allowed, reason). ProgressionService sets it.
+export type CrossingHandler = (player: Player, golem: Golem, zoneId: number) -> (boolean, string?)
 
 local GolemService = {}
 
 local golems: { [Player]: Golem } = {}
+local crossingHandler: CrossingHandler? = nil
 
 local STEER_TIMEOUT = 0.5 -- stop if the client stops sending
 local MAX_STEERS_PER_SECOND = 20
@@ -1016,10 +1023,16 @@ end
 -- Moves the golem to a zone's spawn point.
 function GolemService.sendToZone(golem: Golem, zoneId: number)
 	golem.zoneId = zoneId
+	golem.lastSafe = nil
 	golem.humanoid:Move(Vector3.zero)
 	local spread = if zoneId == Config.HubZone then Config.Hub.spread else 10
 	local spawn = WorldService.getSpawnPoint(zoneId)
 		+ Vector3.new(math.random(-spread, spread), 0, math.random(-spread, spread))
+	if WorldService.isKingdomZone(zoneId) then
+		-- Authored ground can be narrow: keep the whole golem on a flat terrace.
+		local margin = Config.Kingdom.clearance.golemWidth * golem.stats.scale / 2
+		spawn = WorldService.safePoint(zoneId, spawn, margin)
+	end
 	golem.model:PivotTo(CFrame.new(spawn + Vector3.new(0, golem.groundOffset, 0)))
 	-- Teleporting doesn't discard falling momentum. Stop the whole assembly
 	-- so a fall can't carry the golem straight through its recovery spawn.
@@ -1057,6 +1070,45 @@ function GolemService.damage(golem: Golem, amount: number)
 		Remotes.Notify:FireClient(golem.player, "message", "Your golem fell! Rebuilding...")
 	end
 	publishHealth(golem)
+end
+
+function GolemService.setCrossingHandler(handler: CrossingHandler)
+	crossingHandler = handler
+end
+
+-- On the connected kingdom ground, walking or riding over a zone boundary
+-- is travel. Only the golem's own server position counts, so client
+-- steering or a rider walking ahead can't move it into a zone. A refused
+-- crossing puts it back where it last stood in its own zone.
+local function checkBoundary(golem: Golem, now: number)
+	local handler = crossingHandler
+	if not handler or not WorldService.isKingdomZone(golem.zoneId) then
+		return
+	end
+	local here = WorldService.zoneAt(golem.root.Position)
+	if here == nil or not WorldService.isKingdomZone(here) then
+		return -- over the void: the fall check handles it
+	end
+	if here == golem.zoneId then
+		golem.lastSafe = golem.root.Position
+		return
+	end
+	local allowed, reason = handler(golem.player, golem, here)
+	if allowed then
+		golem.zoneId = here
+		golem.lastSafe = golem.root.Position
+		return
+	end
+	local back = golem.lastSafe or WorldService.getSpawnPoint(golem.zoneId) + Vector3.new(0, golem.groundOffset, 0)
+	golem.humanoid:Move(Vector3.zero)
+	golem.following = false
+	golem.model:PivotTo(CFrame.new(back))
+	golem.root.AssemblyLinearVelocity = Vector3.zero
+	golem.root.AssemblyAngularVelocity = Vector3.zero
+	if now >= (golem.blockedNoticeAt or 0) then
+		golem.blockedNoticeAt = now + Config.Kingdom.blockedNoticeSeconds
+		Remotes.Notify:FireClient(golem.player, "message", reason or "Your golem can't go that way yet.")
+	end
 end
 
 -- Called every server tick by CombatService.
@@ -1099,6 +1151,7 @@ function GolemService.update(golem: Golem, dt: number)
 		return
 	end
 
+	checkBoundary(golem, now)
 	GolemService.applySpeed(golem)
 
 	if golem.hp < golem.stats.maxHealth then

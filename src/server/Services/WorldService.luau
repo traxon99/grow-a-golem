@@ -4,16 +4,32 @@
 -- Once you build real islands in Studio, name each ground part "Zone1",
 -- "Zone2"... (and "Hub" for the hub) and this service will use yours instead
 -- of making flat ones.
+-- With Config.Kingdom.enabled, the zones in Config.Kingdom.layout are one
+-- connected graybox ground instead (#214), and every query below answers
+-- from that authored layout (KingdomLayout). Other zones and the tower and
+-- Golem Run arenas keep working as islands.
 
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local KingdomLayout = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KingdomLayout"))
 local Islands = require(script.Parent.Parent.Models.Islands)
+local Kingdom = require(script.Parent.Parent.Models.Kingdom)
 
 local WorldService = {}
 
 local grounds: { [number]: BasePart } = {}
+-- The authored kingdom layout while it is in use, else nil.
+local kingdom: KingdomLayout.Layout? = nil
+
+-- The layout, if `zoneId` is one of its zones.
+local function kingdomFor(zoneId: number): KingdomLayout.Layout?
+	if kingdom and kingdom[zoneId] then
+		return kingdom
+	end
+	return nil
+end
 local folders: { [string]: Folder } = {}
 
 local function getOrMakeFolder(name: string): Folder
@@ -172,12 +188,28 @@ function WorldService.start()
 		cloudSea()
 	end
 
+	if Config.Kingdom.enabled then
+		WorldService.useKingdom(Config.Kingdom.layout)
+		local layout = Config.Kingdom.layout :: KingdomLayout.Layout
+		local parts = Kingdom.build(layout, getOrMakeFolder("Kingdom"))
+		for id, zone in layout do
+			local terrace = parts[zone.spawnArea]
+			local info = if id == Config.HubZone then Config.Hub else Config.Zones[id]
+			if terrace and info then
+				makeSign(terrace, info.name)
+			end
+		end
+	end
+
 	-- The hub is built like an island but has its own config and no gate.
 	local islands: { { id: number, zone: any } } = { { id = Config.HubZone, zone = Config.Hub } }
 	for id, zone in Config.Zones do
 		table.insert(islands, { id = id, zone = zone })
 	end
 	for _, island in islands do
+		if kingdomFor(island.id) then
+			continue -- part of the connected ground
+		end
 		local id, zone = island.id, island.zone
 		local name = if id == Config.HubZone then "Hub" else "Zone" .. id
 		local ground = workspace:FindFirstChild(name)
@@ -238,23 +270,46 @@ function WorldService.addArena(zoneId: number, center: Vector3, size: Vector3, n
 	grounds[zoneId] = part
 end
 
+-- Answers every query below from `layout` for the zones it lists. start()
+-- calls this when the kingdom is enabled; tests call it directly.
+function WorldService.useKingdom(layout: KingdomLayout.Layout?)
+	kingdom = layout
+end
+
+function WorldService.isKingdomZone(zoneId: number): boolean
+	return kingdomFor(zoneId) ~= nil
+end
+
 function WorldService.getFolder(name: string): Folder
 	return folders[name]
 end
 
--- Height of the walkable top surface of a zone.
+-- Height of the walkable top surface of a zone. For a kingdom zone, its
+-- lowest piece, so the fall plane sits under all of its terraces and ramps.
 function WorldService.getSurfaceY(zoneId: number): number
+	local layout = kingdomFor(zoneId)
+	if layout then
+		return KingdomLayout.lowestSurface(layout, zoneId)
+	end
 	local ground = grounds[zoneId]
 	return ground.Position.Y + ground.Size.Y / 2
 end
 
 function WorldService.getSpawnPoint(zoneId: number): Vector3
+	local layout = kingdomFor(zoneId)
+	if layout then
+		return KingdomLayout.spawnPoint(layout, zoneId)
+	end
 	local ground = grounds[zoneId]
 	return Vector3.new(ground.Position.X, WorldService.getSurfaceY(zoneId), ground.Position.Z)
 end
 
 -- Where the zone's boss lives: the far corner, away from the spawn.
 function WorldService.getBossPoint(zoneId: number): Vector3
+	local layout = kingdomFor(zoneId)
+	if layout then
+		return KingdomLayout.bossPoint(layout, zoneId)
+	end
 	local ground = grounds[zoneId]
 	local x = ground.Position.X + ground.Size.X * 0.32
 	local z = ground.Position.Z - ground.Size.Z * 0.32
@@ -262,6 +317,10 @@ function WorldService.getBossPoint(zoneId: number): Vector3
 end
 
 function WorldService.randomPoint(zoneId: number, margin: number): Vector3
+	local layout = kingdomFor(zoneId)
+	if layout then
+		return KingdomLayout.randomPoint(layout, zoneId, margin, math.random)
+	end
 	local ground = grounds[zoneId]
 	local halfX = math.max(ground.Size.X / 2 - margin, 0)
 	local halfZ = math.max(ground.Size.Z / 2 - margin, 0)
@@ -270,9 +329,48 @@ function WorldService.randomPoint(zoneId: number, margin: number): Vector3
 	return Vector3.new(x, WorldService.getSurfaceY(zoneId), z)
 end
 
--- Which zone a point is over, or nil.
+-- The nearest point to `position` where a golem can safely stand in the
+-- zone, `margin` in from the edges (never on a ramp or a plot boundary).
+function WorldService.safePoint(zoneId: number, position: Vector3, margin: number): Vector3
+	local layout = kingdomFor(zoneId)
+	if layout then
+		return KingdomLayout.safePoint(layout, zoneId, position, margin)
+	end
+	local ground = grounds[zoneId]
+	local halfX = math.max(ground.Size.X / 2 - margin, 0)
+	local halfZ = math.max(ground.Size.Z / 2 - margin, 0)
+	local x = math.clamp(position.X, ground.Position.X - halfX, ground.Position.X + halfX)
+	local z = math.clamp(position.Z, ground.Position.Z - halfZ, ground.Position.Z + halfZ)
+	return Vector3.new(x, WorldService.getSurfaceY(zoneId), z)
+end
+
+-- Height of the authored ground under `position`, or nil over the void.
+function WorldService.groundHeight(position: Vector3): number?
+	local layout = kingdom
+	if layout then
+		local height = KingdomLayout.groundHeight(layout, position)
+		if height then
+			return height
+		end
+	end
+	local zoneId = WorldService.zoneAt(position)
+	return if zoneId then WorldService.getSurfaceY(zoneId) else nil
+end
+
+-- Which zone a point is over, or nil. Kingdom ground answers first; the
+-- arenas and remaining islands never overlap it.
 function WorldService.zoneAt(position: Vector3): number?
+	local layout = kingdom
+	if layout then
+		local zoneId = KingdomLayout.zoneAt(layout, position)
+		if zoneId then
+			return zoneId
+		end
+	end
 	for id, ground in grounds do
+		if kingdomFor(id) then
+			continue
+		end
 		local offset = position - ground.Position
 		if math.abs(offset.X) <= ground.Size.X / 2 and math.abs(offset.Z) <= ground.Size.Z / 2 then
 			return id

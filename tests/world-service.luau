@@ -12,6 +12,8 @@ do
 	local world = loadWorldService({
 		Config = Config,
 		Islands = {},
+		KingdomLayout = KingdomLayout,
+		Kingdom = {},
 	}, {
 		GetService = function()
 			return {
@@ -79,6 +81,32 @@ do
 		collapsed.X == center2.X and collapsed.Z == center2.Z,
 		"a margin covering the whole footprint collapses randomPoint to the center"
 	)
+
+	-- Kingdom ground (#214): its zones answer from the authored layout, and
+	-- arenas keep answering as before. Island queries are unchanged without it.
+	assert(not world.isKingdomZone(1), "no kingdom until it is in use")
+	world.useKingdom(Config.Kingdom.layout)
+	assert(world.isKingdomZone(1) and world.isKingdomZone(Config.HubZone) and not world.isKingdomZone(101))
+	local quarrySpawn = Config.Kingdom.layout[1].spawn
+	local got = world.getSpawnPoint(1)
+	assert(got.X == quarrySpawn.X and got.Y == quarrySpawn.Y and got.Z == quarrySpawn.Z)
+	assert(world.getSurfaceY(1) == 60 and world.getSurfaceY(Config.HubZone) == 68)
+	assert(world.zoneAt(Vector3.new(-500, 70, 0)) == Config.HubZone, "the hub is on the connected ground")
+	assert(world.zoneAt(Vector3.new(-210, 62, 0)) == 1, "the quarry road belongs to the quarry")
+	assert(world.zoneAt(spawn) == 101, "arenas still resolve")
+	assert(world.getSurfaceY(101) == center.Y)
+	assert(world.groundHeight(Vector3.new(-290, 80, 0)) > 60, "the ramp rises toward the hub")
+	assert(world.groundHeight(Vector3.new(-290, 80, 300)) == nil, "beside the road is void")
+	local safe = world.safePoint(1, Vector3.new(-290, 64, 0), 8)
+	assert(safe.Y == 60 and safe.X >= -252, "safe points step off the ramp onto flat road")
+	local legacySafe = world.safePoint(102, Vector3.new(500, 20, 0), 10)
+	assert(legacySafe.X == center2.X + size2.X / 2 - 10 and legacySafe.Y == center2.Y, "islands clamp too")
+	for _ = 1, 20 do
+		local point = world.randomPoint(1, 16)
+		assert(world.zoneAt(point) == 1 and point.Y == 60 and point.X >= -144, "spawns stay on the quarry terrace")
+	end
+	world.useKingdom(nil)
+	assert(not world.isKingdomZone(1))
 
 	print("world-service: ok")
 end

@@ -114,6 +114,10 @@ bundle += (ROOT / "tests/gauntlet-rules.luau").read_text()
 rune_sequence = (ROOT / "src/shared/RuneSequence.luau").read_text()
 bundle += 'local RuneSequence = (function()\n' + rune_sequence + '\nend)()\n'
 bundle += (ROOT / "tests/rune-sequence.luau").read_text()
+# Connected kingdom ground queries (#214), against the shipped layout.
+kingdom_layout = (ROOT / "src/shared/KingdomLayout.luau").read_text()
+bundle += 'local KingdomLayout = (function()\n' + kingdom_layout + '\nend)()\n'
+bundle += (ROOT / "tests/kingdom-layout.luau").read_text()
 bundle += 'local MarbleBag = (function()\n' + marble_bag + '\nend)()\n'
 bundle += 'local Stats = (function()\n' + stats + '\nend)()\n'
 bundle += (ROOT / "tests/stats.luau").read_text()

@@ -50,6 +50,32 @@ local game = {
 	end,
 }
 local now = 100
+-- Zones that count as connected kingdom ground; none until the boundary
+-- checks at the end. `zoneHere` is what zoneAt answers (1 by default).
+local kingdomZones = {}
+local zoneHere = 1
+local safeCalls = {}
+local world = {
+	getSurfaceY = function()
+		return 50
+	end,
+	getSpawnPoint = function()
+		return Vector3.new(0, 50, 0)
+	end,
+	getFolder = function()
+		return nil
+	end,
+	zoneAt = function()
+		return zoneHere
+	end,
+	isKingdomZone = function(zoneId)
+		return kingdomZones[zoneId] == true
+	end,
+	safePoint = function(zoneId, position, margin)
+		table.insert(safeCalls, { zoneId = zoneId, margin = margin })
+		return Vector3.new(7, 50, 7)
+	end,
+}
 local messages = 0
 local puffs = 0
 local service = loadGolemService(
@@ -69,20 +95,7 @@ local service = loadGolemService(
 			},
 		},
 		Stats = {},
-		WorldService = {
-			getSurfaceY = function()
-				return 50
-			end,
-			getSpawnPoint = function()
-				return Vector3.new(0, 50, 0)
-			end,
-			getFolder = function()
-				return nil
-			end,
-			zoneAt = function()
-				return 1
-			end,
-		},
+		WorldService = world,
 	},
 	game,
 	Vector3,
@@ -401,3 +414,65 @@ leashed.root.Position = Vector3.new(1, 58, 0)
 leashHumanoid.Health = 0
 assert(not service.canClimbOn(leashed))
 print("GolemService leash and climb-on checks passed")
+
+-- Kingdom boundaries (#214): walking over a seam between connected zones is
+-- travel, judged only from the golem's own server position.
+Config.Kingdom = { blockedNoticeSeconds = 3, clearance = { golemWidth = 8 } }
+kingdomZones[0], kingdomZones[1], kingdomZones[2] = true, true, true
+local crossings = {}
+service.setCrossingHandler(function(_, _, zoneId)
+	table.insert(crossings, zoneId)
+	if zoneId == 0 then
+		return true, nil
+	end
+	return false, "Discover this region first"
+end)
+local walker = fixture(8)
+walker.zoneId = 1
+walker.root.Position = Vector3.new(0, 58, 0)
+service.update(walker, 0)
+assert(walker.zoneId == 1 and #crossings == 0 and walker.lastSafe.X == 0, "inside its zone: remembered as safe")
+zoneHere = nil
+walker.root.Position = Vector3.new(5, 58, 0)
+service.update(walker, 0)
+assert(walker.zoneId == 1 and #crossings == 0 and walker.lastSafe.X == 0, "over the void: no crossing, not safe")
+zoneHere = 0
+walker.root.Position = Vector3.new(-330, 58, 0)
+service.update(walker, 0)
+assert(walker.zoneId == 0 and #crossings == 1 and crossings[1] == 0, "an allowed crossing switches zones")
+service.update(walker, 0)
+service.update(walker, 0)
+assert(#crossings == 1, "staying in the new zone asks only once")
+
+local before = messages
+zoneHere = 2
+walker.root.Position = Vector3.new(-340, 58, 0)
+service.update(walker, 0)
+assert(walker.zoneId == 0 and #crossings == 2, "a locked zone is refused")
+assert(walker.root.Position.X == -330 and walker.root.AssemblyLinearVelocity == Vector3.zero, "put back")
+assert(messages == before + 1, "told why")
+walker.root.Position = Vector3.new(-340, 58, 0)
+service.update(walker, 0)
+assert(walker.root.Position.X == -330 and messages == before + 1, "the reason isn't repeated every tick")
+now += 3
+walker.root.Position = Vector3.new(-340, 58, 0)
+service.update(walker, 0)
+assert(messages == before + 2)
+
+-- A legacy island zone never asks, whatever zoneAt says.
+kingdomZones[2] = nil
+local islander = fixture(8)
+islander.zoneId = 2
+local asked = #crossings
+service.update(islander, 0)
+assert(#crossings == asked and islander.zoneId == 2)
+
+-- Respawning or travelling onto kingdom ground lands on a safe flat point,
+-- with room for the whole golem, and forgets the old zone's safe spot.
+zoneHere = 1
+walker.stats.scale = 3
+service.sendToZone(walker, 1)
+local last = safeCalls[#safeCalls]
+assert(last.zoneId == 1 and last.margin == 12 and walker.zoneId == 1 and walker.lastSafe == nil)
+assert(walker.root.Position.X == 7 and walker.root.Position.Y == 58)
+print("GolemService kingdom boundary checks passed")

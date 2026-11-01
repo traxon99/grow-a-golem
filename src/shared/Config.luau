@@ -58,6 +58,57 @@ Config.Kingdom = {
 			hint = "The flooded city's currents push you back.",
 		},
 	},
+	-- Connected graybox ground (#214), built only while `enabled`. Each zone
+	-- lists flat `areas` (top-surface center; size.Y is thickness) and
+	-- straight `ramps` (top-surface centerline from -> to). Only these pieces
+	-- count as ground (see KingdomLayout). `spawnArea` is the flat terrace
+	-- enemies, nodes and relics use, so idle golems never chase across a
+	-- ramp or into the road. `exclude` boxes are plot boundaries: walkable,
+	-- never a spawn or safe point. Zones not listed keep their island.
+	-- Production art waits until #218 validates this layout.
+	layout = {
+		[1] = {
+			spawn = Vector3.new(0, 60, 40),
+			boss = Vector3.new(100, 60, -100),
+			spawnArea = "quarry",
+			areas = {
+				{ id = "quarry", center = Vector3.new(0, 60, 0), size = Vector3.new(320, 6, 320) },
+				{ id = "quarryRoad", center = Vector3.new(-210, 60, 0), size = Vector3.new(100, 6, 72) },
+			},
+			ramps = {
+				{
+					id = "roadRise",
+					from = Vector3.new(-260, 60, 0),
+					to = Vector3.new(-320, 68, 0),
+					width = 72,
+					thickness = 4,
+				},
+			},
+		},
+		[0] = {
+			spawn = Vector3.new(-500, 68, 0),
+			spawnArea = "hub",
+			areas = {
+				{ id = "sanctuaryApproach", center = Vector3.new(-365, 68, 0), size = Vector3.new(90, 6, 160) },
+				{ id = "hub", center = Vector3.new(-500, 68, 0), size = Vector3.new(180, 6, 180) },
+			},
+			-- Reserved for personal sanctuary plots (#218).
+			exclude = {
+				{ id = "sanctuaryPlots", center = Vector3.new(-365, 68, -60), size = Vector3.new(80, 1, 36) },
+			},
+		},
+	},
+	-- The authored first route, quarry spawn to hub spawn: the travel lane.
+	-- Tests walk it at the largest golem size, so widen the ground with it.
+	firstRoute = { Vector3.new(0, 60, 40), Vector3.new(0, 60, 0), Vector3.new(-500, 68, 0) },
+	clearance = {
+		golemWidth = 8, -- studs across a size-1 golem, scaled up with size
+		edgeMargin = 4, -- extra room past a dismounted rider at the lane edge
+		maxSlopeDegrees = 20,
+	},
+	-- While crossing into a zone the golem may not enter, it is put back and
+	-- told why at most this often.
+	blockedNoticeSeconds = 3,
 }
 
 Config.TickRate = 10 -- server game-logic updates per second
