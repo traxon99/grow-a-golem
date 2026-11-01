@@ -90,7 +90,7 @@ Original wireframes drawn for Grow A Golem, stored in `docs/reference/images/`. 
 
 - #109: The existing HUD and menus now consume `Icons.create`: XP/minerals/spells, all 13 tabs, the current window header, close, travel guide/locks, quests and event points/reward status. Icons retain adjacent words and zero-ID text fallbacks. No new animation, remote, rarity assignment or purchase behavior is added. Approved sprite uploads still require the owner (#83); broader menu restyles remain separate.
 
-- [Original illustrated icon proof](images/ui-icons.png): 37 runtime mappings at 128 px and 32 px, with grayscale checks (#179). All artwork comes from the owner’s uploaded 48-icon sheet; `assets/ui-icons/source.json` records exact crop rectangles and the source hash. Rebuild with `assets/ui-icons/build.cjs`. Existing UI wiring is preserved; hosted versions are recorded in `assets/ui-icons/README.md`.
+- [Original illustrated icon proof](images/ui-icons.png): 37 runtime mappings at 128 px and 32 px, with grayscale checks (#179). Non-rarity artwork comes from the owner’s uploaded 48-icon sheet; generated rarity artwork is documented in `assets/ui-icons/rarity/`; `assets/ui-icons/source.json` records exact crop rectangles and the source hash. Rebuild with `assets/ui-icons/build.cjs`. Existing UI wiring is preserved; hosted versions are recorded in `assets/ui-icons/README.md`.
 
 ## Sources
 
