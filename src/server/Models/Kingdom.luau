@@ -47,7 +47,7 @@ function Kingdom.build(layout: KingdomLayout.Layout, parent: Instance): { [strin
 			part.Material = material
 			parts[area.id] = part
 		end
-		for _, ramp in zone.ramps or {} do
+		for _, ramp in KingdomLayout.rampsOf(zone) do
 			local length = (ramp.to - ramp.from).Magnitude
 			local middle = ramp.from:Lerp(ramp.to, 0.5)
 			local part = ground(ramp.id, zoneId, parent)
@@ -58,7 +58,7 @@ function Kingdom.build(layout: KingdomLayout.Layout, parent: Instance): { [strin
 			part.Material = Enum.Material.Cobblestone
 			parts[ramp.id] = part
 		end
-		for _, box in zone.exclude or {} do
+		for _, box in KingdomLayout.excludesOf(zone) do
 			local marker = ground(box.id, zoneId, parent)
 			marker.Size = Vector3.new(box.size.X, 0.2, box.size.Z)
 			marker.Position = Vector3.new(box.center.X, box.center.Y + 0.1, box.center.Z)

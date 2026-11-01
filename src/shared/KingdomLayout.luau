@@ -29,6 +29,17 @@ export type Sample = { zoneId: number, height: number, piece: string }
 -- ground under it (a step up a seam or a ramp).
 KingdomLayout.STEP_UP = 3
 
+local NO_RAMPS: { Ramp } = {}
+local NO_BOXES: { Box } = {}
+
+function KingdomLayout.rampsOf(zone: Zone): { Ramp }
+	return zone.ramps or NO_RAMPS
+end
+
+function KingdomLayout.excludesOf(zone: Zone): { Box }
+	return zone.exclude or NO_BOXES
+end
+
 local function sortedIds(layout: Layout): { number }
 	local ids = {}
 	for id in layout do
@@ -82,7 +93,7 @@ function KingdomLayout.sample(layout: Layout, position: Vector3, anyHeight: bool
 				consider(zoneId, area.center.Y, area.id)
 			end
 		end
-		for _, ramp in zone.ramps or {} do
+		for _, ramp in KingdomLayout.rampsOf(zone) do
 			local height = rampHeight(ramp, position.X, position.Z)
 			if height then
 				consider(zoneId, height, ramp.id)
@@ -109,7 +120,7 @@ function KingdomLayout.lowestSurface(layout: Layout, zoneId: number): number
 	for _, area in zone.areas do
 		lowest = math.min(lowest, area.center.Y)
 	end
-	for _, ramp in zone.ramps or {} do
+	for _, ramp in KingdomLayout.rampsOf(zone) do
 		lowest = math.min(lowest, ramp.from.Y, ramp.to.Y)
 	end
 	return lowest
@@ -125,7 +136,7 @@ local function findArea(zone: Zone, id: string): Area?
 end
 
 local function excluded(zone: Zone, x: number, z: number, margin: number): boolean
-	for _, box in zone.exclude or {} do
+	for _, box in KingdomLayout.excludesOf(zone) do
 		if inBox(box.center, box.size, x, z, -margin) then
 			return true
 		end
