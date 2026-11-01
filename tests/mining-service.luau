@@ -147,6 +147,7 @@ b.Character = characterAt(v(0, 2, 0))
 local paid = {}
 local mined = {}
 local notices = {}
+local spawnCount = 0
 local mining = loadMiningService({
 	Config = Config,
 	MarbleBag = {
@@ -180,8 +181,19 @@ local mining = loadMiningService({
 	},
 	Events = { fire = function() end },
 	WorldService = {
+		-- Every node this test places ends up at a distinct point, each
+		-- one strictly closer to (0, 2, 0) than the last. Nodes from
+		-- earlier spawnNode() calls are never cleaned out of the real
+		-- service's internal `nodes` table, so without this, every node
+		-- ever placed landed on the exact same point and findNearest's
+		-- tie-break fell back to iterating that table -- which is keyed
+		-- by part identity, so its order isn't guaranteed stable from
+		-- one luau process run to the next. That's what made #233
+		-- flaky: findNearest could return a stale node instead of the
+		-- one just spawned.
 		randomPoint = function()
-			return v(0, 0, 0)
+			spawnCount += 1
+			return v(10 / spawnCount, 0, 0)
 		end,
 		getFolder = function()
 			return {}
