@@ -30,7 +30,7 @@ controls, without adding game features. Robux continues to use the existing
 
 The HUD, menus and status displays already use `Icons.create` and the stable
 registry in `Config.UiIcons`. The illustrated sheets were uploaded on
-2026-10-29 as color `132163688139815` and mono `111754038303125`. The older IDs
+2026-10-31 as color `138607122114991` and mono `117623169236758` (rarity emblems #238). Previous illustrated IDs are `132163688139815` / `111754038303125`. The older IDs
 `130214142096922` / `96019795815429` hold the previous drawn artwork. A GitHub
 merge cannot replace hosted image pixels, so any rebuild needs a fresh upload.
 
