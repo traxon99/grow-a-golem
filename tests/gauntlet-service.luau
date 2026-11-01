@@ -53,9 +53,11 @@ do
 			return {}
 		end,
 	}
-	local CFrame = { new = function(position)
-		return { Position = position }
-	end }
+	local CFrame = {
+		new = function(position)
+			return { Position = position }
+		end,
+	}
 
 	local gauntletClock = 0
 	local function clock(): number
@@ -191,8 +193,10 @@ do
 	gauntletClock = 1000
 	entrySignal:Fire(pMain)
 	assert(golems[pMain].zoneId == Config.Gauntlet.zoneId, "a successful start sends the golem to the course")
+	-- A successful start fires gauntletStart, then a plain say() message
+	-- right after, so the notify to check is the second-to-last one.
 	assert(
-		notified[#notified].kind == "gauntletStart" and notified[#notified][2] == #Config.Gauntlet.checkpoints,
+		notified[#notified - 1].kind == "gauntletStart" and notified[#notified - 1][2] == #Config.Gauntlet.checkpoints,
 		"a successful start reports the checkpoint count"
 	)
 	-- buildCourse's teleportTo only moves the real model/humanoid (mocked as
@@ -209,7 +213,12 @@ do
 		#granted == 1 and granted[1].amounts.minerals.stone == Config.Gauntlet.checkpoints[1].reward.stone,
 		"checkpoint 1 pays its fixed reward"
 	)
-	assert(notified[#notified].kind == "gauntletCheckpoint" and notified[#notified][1] == 1, "checkpoint 1 is reported")
+	-- Checkpoint 1 isn't the last one, so a say() message follows its
+	-- gauntletCheckpoint notify.
+	assert(
+		notified[#notified - 1].kind == "gauntletCheckpoint" and notified[#notified - 1][1] == 1,
+		"checkpoint 1 is reported"
+	)
 
 	gauntlet.tick()
 	assert(#granted == 1, "standing on an already-claimed checkpoint pays nothing")
@@ -255,9 +264,11 @@ do
 	golems[pMain].root.Position = at(0, Config.Gauntlet.checkpoints[3].z)
 	gauntlet.tick()
 	assert(#granted == 3, "checkpoint 3 pays its reward too")
+	-- finish() fires gauntletEnd immediately followed by a say() message
+	-- with the same text, so the gauntletEnd notify is second-to-last.
 	assert(
-		notified[#notified].kind == "gauntletEnd"
-			and notified[#notified][1] == "Run complete! You earned all 3 rewards.",
+		notified[#notified - 1].kind == "gauntletEnd"
+			and notified[#notified - 1][1] == "Run complete! You earned all 3 rewards.",
 		"the third checkpoint completes the run"
 	)
 	assert(golems[pMain].zoneId == Config.HubZone, "finishing sends the golem back to the Hub")
@@ -277,8 +288,11 @@ do
 	gauntlet.tick()
 	local earnedBeforeLeaving = #granted
 	leaveSignal:Fire(pLeave)
+	-- finish() fires gauntletEnd then a say() with the same text; the
+	-- gauntletEnd notify is second-to-last.
 	assert(
-		notified[#notified].kind == "gauntletEnd" and notified[#notified][1] == "Run ended. You keep earned rewards.",
+		notified[#notified - 1].kind == "gauntletEnd"
+			and notified[#notified - 1][1] == "Run ended. You keep earned rewards.",
 		"leaving ends the run with its own message"
 	)
 	assert(golems[pLeave].zoneId == Config.HubZone, "leaving sends the golem back to the Hub")
@@ -295,7 +309,8 @@ do
 	golems[pDismount].mounted = false
 	gauntlet.tick()
 	assert(
-		notified[#notified].kind == "gauntletEnd" and notified[#notified][1] == "Run ended. You keep earned rewards.",
+		notified[#notified - 1].kind == "gauntletEnd"
+			and notified[#notified - 1][1] == "Run ended. You keep earned rewards.",
 		"dismounting mid-run ends it"
 	)
 	assert(golems[pDismount].zoneId == Config.HubZone, "dismounting still sends the golem home")
@@ -357,8 +372,10 @@ do
 	golems[pRemoved].zoneId = Config.HubZone
 	local beforeRemovedRetry = #notified
 	entrySignal:Fire(pRemoved)
+	-- A successful start fires gauntletStart then a say() message, so
+	-- the gauntletStart notify is second-to-last.
 	assert(
-		notified[#notified].kind == "gauntletStart",
+		notified[#notified - 1].kind == "gauntletStart",
 		"PlayerRemoving clears the cooldown too, so a returning player starts fresh"
 	)
 	assert(#notified > beforeRemovedRetry)
