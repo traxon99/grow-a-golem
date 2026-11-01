@@ -198,17 +198,31 @@ local function renderForge(list: ScrollingFrame, snap: any)
 			end
 		end
 		local nextName = Config.Tiers[nextTier].displayName
+		local subtitle = if canAfford
+			then `Forge {nextName} for {Ui.costText(cost)}.`
+			else `Need {table.concat(missing, " and ")}.`
+		local chips = {
+			{ text = currentName, color = deep(currentColor) },
+			{ text = `Next: {nextName}`, color = deep(Config.Tiers[nextTier].color) },
+		}
+		-- Exploration tools this forge teaches, or already taught.
+		if Config.Kingdom.enabled then
+			for _, id in Stats.abilitiesForPart(slot, nextTier) do
+				local ability = Config.Kingdom.abilities[id]
+				if Stats.abilityLearned(data, id) then
+					table.insert(chips, { text = `{ability.name} learned`, color = deep(currentColor) })
+				else
+					subtitle ..= `\nTeaches {ability.name}: {ability.description}`
+					table.insert(chips, { text = `Learn {ability.name}`, color = deep(Ui.Colors.gold) })
+				end
+			end
+		end
 		Ui.item(list, nextOrder(), {
 			title = `{slotName}: {partGain(data, slot, nextTier)}`,
-			subtitle = if canAfford
-				then `Forge {nextName} for {Ui.costText(cost)}.`
-				else `Need {table.concat(missing, " and ")}.`,
+			subtitle = subtitle,
 			accent = Config.Tiers[nextTier].color,
 			ready = canAfford,
-			chips = {
-				{ text = currentName, color = deep(currentColor) },
-				{ text = `Next: {nextName}`, color = deep(Config.Tiers[nextTier].color) },
-			},
+			chips = chips,
 			progress = bar,
 			action = {
 				text = "Forge",

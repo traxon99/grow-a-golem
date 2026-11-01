@@ -401,6 +401,69 @@ local function startLevelUp(gui: ScreenGui)
 	end)
 end
 
+---------------------------------------------------------------- ability learned
+
+-- A forged part taught a lasting exploration tool. Only the server's notify
+-- starts it, and it names the tool, what it does and where to try it.
+local function startAbilityLearned(gui: ScreenGui)
+	local banner = Ui.label(gui, "", UDim2.fromOffset(560, 64), UDim2.fromScale(0.5, 0.15), {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextColor3 = Ui.Colors.gold,
+		Title = true,
+		TextSize = 48,
+		TextWrapped = false,
+		Visible = false,
+	})
+	Ui.outline(banner, 4)
+	local pop = Instance.new("UIScale")
+	pop.Parent = banner
+	local sub = Ui.label(gui, "", UDim2.fromOffset(620, 64), UDim2.fromScale(0.5, 0.15), {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0.15, 36),
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextColor3 = Ui.Colors.text,
+		Title = true,
+		TextSize = 24,
+		TextWrapped = true,
+		Visible = false,
+	})
+	Ui.outline(sub, 3)
+
+	local queue: { string } = {}
+	local showing = false
+	local function show(id: string)
+		local ability = Config.Kingdom.abilities[id]
+		banner.Text = `NEW ABILITY: {string.upper(ability.name)}!`
+		sub.Text = `{ability.description}\n{ability.hint}`
+		banner.Visible = true
+		sub.Visible = true
+		pop.Scale = if Ui.reducedMotion() then 1 else 0.4
+		Ui.tween(pop, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
+		Sfx.moment("levelUp")
+		task.wait(3.5)
+		banner.Visible = false
+		sub.Visible = false
+	end
+
+	Remotes.Notify.OnClientEvent:Connect(function(kind: string, id: any)
+		if kind ~= "abilityLearned" or type(id) ~= "string" or not Config.Kingdom.abilities[id] then
+			return
+		end
+		table.insert(queue, id)
+		if showing then
+			return
+		end
+		showing = true
+		task.spawn(function()
+			while #queue > 0 do
+				show(table.remove(queue, 1) :: string)
+			end
+			showing = false
+		end)
+	end)
+end
+
 function Moments.start()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "GolemMoments"
@@ -411,6 +474,7 @@ function Moments.start()
 	startBossBar(gui)
 	startReveal(gui)
 	startLevelUp(gui)
+	startAbilityLearned(gui)
 end
 
 return Moments

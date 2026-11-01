@@ -12,12 +12,51 @@ Config.Kingdom = {
 	enabled = false,
 	campaignVersion = 1,
 	startingRegion = 1,
+	-- Exploration tools learned for good by forging a qualifying part (this
+	-- tier or better in any listed slot). `region` is where the first
+	-- obstacle that needs the tool sits; its minerals must be minable by then.
+	abilityOrder = { "smash", "lift", "reveal", "conduit", "anchor" },
 	abilities = {
-		smash = { tier = "copper", slots = { "armL", "armR" } },
-		lift = { tier = "iron", slots = { "armL", "armR" } },
-		reveal = { tier = "crystal", slots = { "core" } },
-		conduit = { tier = "stormglass", slots = { "torso" } },
-		anchor = { tier = "abyssite", slots = { "legs" } },
+		smash = {
+			tier = "copper",
+			slots = { "armL", "armR" },
+			name = "Smash",
+			description = "Break cracked walls.",
+			region = 1,
+			hint = "A cracked wall blocks the quarry road.",
+		},
+		lift = {
+			tier = "iron",
+			slots = { "armL", "armR" },
+			name = "Lift",
+			description = "Raise fallen gates.",
+			region = 2,
+			hint = "A fallen gate waits at the end of the Ember road.",
+		},
+		reveal = {
+			tier = "crystal",
+			slots = { "core" },
+			name = "Reveal",
+			description = "Uncover hidden paths.",
+			region = 3,
+			hint = "Glasswood hides a road among its trees.",
+		},
+		conduit = {
+			tier = "stormglass",
+			slots = { "torso" },
+			name = "Conduit",
+			description = "Channel storms into old machines.",
+			region = 4,
+			hint = "Storm Peak's machinery needs a spark.",
+		},
+		anchor = {
+			tier = "abyssite",
+			slots = { "legs" },
+			name = "Anchor",
+			description = "Hold steady in deep water.",
+			region = 5,
+			hint = "The flooded city's currents push you back.",
+		},
 	},
 }
 

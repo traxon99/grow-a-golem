@@ -48,10 +48,22 @@ local function craft(player: Player, slot: any, tier: any, automatic: boolean?):
 	if not DataService.spend(player, cost, "forge") then
 		return false, "Not enough minerals"
 	end
+	-- Manual forging and Auto-Forge share this rule. Tools stay learned when
+	-- parts change or the player Awakens or Ascends; they never grant access.
+	local learned = Stats.newAbilitiesForPart(data, slot, tier)
 	DataService.update(player, function(d)
 		d.golem.parts[slot] = tier
+		for _, id in learned do
+			d.campaign.abilities[id] = true
+		end
 	end)
 	Events.fire("partCrafted", player, slot, tier)
+	for _, id in learned do
+		Events.fire("abilityLearned", player, id)
+		if Config.Kingdom.enabled then
+			Remotes.Notify:FireClient(player, "abilityLearned", id)
+		end
+	end
 	if automatic ~= true then
 		local targetAt = workspace:GetServerTimeNow() + Config.ForgeStrike.delaySeconds
 		pendingStrikes[player] = {

@@ -180,6 +180,44 @@ function Stats.travelUnlocked(data: any, zoneId: number): (boolean, string?)
 	return Stats.zoneUnlocked(data, zoneId)
 end
 
+---------------------------------------------------------------- material mastery
+
+-- Every exploration tool a part of this slot and tier qualifies for, in
+-- Config.Kingdom.abilityOrder. Higher tiers also qualify, so forging past an
+-- intermediate tier still teaches the tools it would have taught.
+function Stats.abilitiesForPart(slot: string, tier: string): { string }
+	local found = {}
+	local rank = table.find(Config.TierOrder, tier)
+	if not rank then
+		return found
+	end
+	for _, id in Config.Kingdom.abilityOrder do
+		local ability = Config.Kingdom.abilities[id]
+		local required = table.find(Config.TierOrder, ability.tier)
+		if required and rank >= required and table.find(ability.slots, slot) then
+			table.insert(found, id)
+		end
+	end
+	return found
+end
+
+-- The tools forging this part would teach that the player hasn't learned yet.
+function Stats.newAbilitiesForPart(data: any, slot: string, tier: string): { string }
+	local learned = if data.campaign then data.campaign.abilities else nil
+	local found = {}
+	for _, id in Stats.abilitiesForPart(slot, tier) do
+		if not (learned and learned[id] == true) then
+			table.insert(found, id)
+		end
+	end
+	return found
+end
+
+function Stats.abilityLearned(data: any, id: string): boolean
+	local campaign = data.campaign
+	return campaign ~= nil and campaign.abilities ~= nil and campaign.abilities[id] == true
+end
+
 -- Reconcile once, then accumulate verifiable legacy progress while rollout is
 -- off. A pending legacy session is captured once more on entry to kingdom mode.
 -- This grants no rewards, obstacles, or speculative historical accomplishments.
@@ -193,11 +231,10 @@ function Stats.migrateCampaign(data: any)
 			campaign.regions[tostring(zoneId)] = true
 		end
 	end
-	for id, ability in Config.Kingdom.abilities do
-		local required = table.find(Config.TierOrder, ability.tier)
-		for _, slot in ability.slots do
-			local rank = table.find(Config.TierOrder, data.golem.parts[slot])
-			if rank and required and rank >= required then
+	for _, slot in Config.SlotOrder do
+		local tier = data.golem.parts[slot]
+		if tier then
+			for _, id in Stats.abilitiesForPart(slot, tier) do
 				campaign.abilities[id] = true
 			end
 		end
