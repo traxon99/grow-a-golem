@@ -299,6 +299,19 @@ bundle += "\nlocal function loadRuneService(dependencies, game, osClock, workspa
 bundle += 'local os = { clock = osClock }\nlocal workspace = { GetServerTimeNow = workspaceNow }\n'
 bundle += rune_service + "\nend\n"
 bundle += (ROOT / "tests/rune-service.luau").read_text()
+# The real GauntletService with mocked Remotes/DataService/EconomyService/
+# GolemService/WorldService. Instance/UDim2/CFrame/workspace/os.clock are
+# all injected by the test, so it can give Instance.new("ProximityPrompt")
+# a real, connectable Triggered signal (buildCourse()'s other instances --
+# Parts, BillboardGuis -- only ever have plain fields written on them).
+# task.spawn is a no-op so the periodic tick loop never runs; the test
+# calls GauntletService.tick() directly instead.
+gauntlet_service = (ROOT / "src/server/Services/GauntletService.luau").read_text()
+gauntlet_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', gauntlet_service)
+bundle += "\nlocal function loadGauntletService(dependencies, game, Instance, UDim2, CFrame, workspace, osClock)\n"
+bundle += 'local os = { clock = osClock }\nlocal task = { spawn = function() end }\n'
+bundle += gauntlet_service + "\nend\n"
+bundle += (ROOT / "tests/gauntlet-service.luau").read_text()
 with tempfile.TemporaryDirectory(prefix="golem-check-") as folder:
     path = Path(folder) / "regression.luau"
     path.write_text(bundle)
