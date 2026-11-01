@@ -12,7 +12,9 @@ local Config = require(Shared:WaitForChild("Config"))
 local KingdomRules = require(Shared:WaitForChild("KingdomRules"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 
+local Sfx = require(script.Parent:WaitForChild("Sfx"))
 local State = require(script.Parent:WaitForChild("State"))
+local Ui = require(script.Parent:WaitForChild("Ui"))
 
 local KingdomPrompts = {}
 
@@ -49,13 +51,57 @@ local function attach(part: BasePart, id: string)
 	refresh()
 end
 
+-- The breakout moment: a short banner naming where to go next. The pop is
+-- skipped under Reduced Motion (Ui.tween snaps).
+local function reveal(title: string, text: string)
+	local player = game:GetService("Players").LocalPlayer
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "KingdomReveal"
+	gui.ResetOnSpawn = false
+	gui.DisplayOrder = 6
+	gui.Parent = player:WaitForChild("PlayerGui")
+	local banner = Ui.label(gui, title, UDim2.new(0.9, 0, 0, 64), UDim2.fromScale(0.5, 0.2), {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextColor3 = Ui.Colors.gold,
+		Title = true,
+		TextScaled = true,
+		TextWrapped = false,
+	})
+	local size = Instance.new("UITextSizeConstraint")
+	size.MaxTextSize = 52
+	size.Parent = banner
+	local width = Instance.new("UISizeConstraint")
+	width.MaxSize = Vector2.new(680, 64)
+	width.Parent = banner
+	Ui.outline(banner, 4)
+	local sub = Ui.label(gui, text, UDim2.new(0.9, 0, 0, 40), UDim2.new(0.5, 0, 0.2, 38), {
+		AnchorPoint = Vector2.new(0.5, 0),
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Title = true,
+		TextSize = 26,
+		AutomaticSize = Enum.AutomaticSize.Y, -- wraps to two lines on a phone
+	})
+	Ui.outline(sub, 3)
+	local pop = Instance.new("UIScale")
+	pop.Scale = if Ui.reducedMotion() then 1 else 0.4
+	pop.Parent = banner
+	Ui.tween(pop, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
+	Sfx.moment("levelUp")
+	task.delay(4, function()
+		gui:Destroy()
+	end)
+end
+
 function KingdomPrompts.start()
 	if not Config.Kingdom.enabled then
 		return
 	end
 	Remotes.Notify.OnClientEvent:Connect(function(kind: string, id: any)
 		local obstacle = if kind == "obstacleOpened" and type(id) == "string" then Config.Kingdom.obstacles[id] else nil
-		if obstacle then
+		if obstacle and obstacle.revealTitle then
+			reveal(obstacle.revealTitle, obstacle.revealText or "")
+		elseif obstacle then
 			State.toast(`The {obstacle.name} is open!`)
 		end
 	end)

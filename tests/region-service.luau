@@ -3,7 +3,8 @@ do
 	local regions = { [1] = true, [2] = true, [0] = true }
 	local zoneUnder = 1
 	local obstacleUnder = nil
-	local data = { campaign = { regions = { ["1"] = true } } }
+	local data = { campaign = { regions = { ["1"] = true }, discoveries = {} } }
+	local discoveryUnder = nil
 	local events, messages, placed, changed, published = {}, {}, {}, 0, 0
 	local service = loadRegionService({
 		Config = Config,
@@ -22,6 +23,9 @@ do
 			end,
 			markChanged = function()
 				changed += 1
+			end,
+			update = function(_, fn)
+				fn(data)
 			end,
 		},
 		Events = {
@@ -50,6 +54,9 @@ do
 			end,
 			requiredObstacleAt = function()
 				return obstacleUnder
+			end,
+			discoveryAt = function()
+				return discoveryUnder
 			end,
 			safePointNear = function(zoneId, _, _, given)
 				assert(given == data, "push-back avoids ground this player can't stand on")
@@ -120,6 +127,21 @@ do
 	zoneUnder = Config.HubZone
 	obstacleUnder = nil
 	assert(service.check(player, golem, 102) == "entered" and golem.zoneId == Config.HubZone)
+
+	-- First visit to the sanctuary approach: recorded once, from open ground.
+	golem.zoneId = 1
+	zoneUnder = 1
+	obstacleUnder = "quarryWall"
+	discoveryUnder = "sanctuary"
+	data.campaign.obstacles = {}
+	assert(service.check(player, golem, 200) == "blocked" and data.campaign.discoveries.sanctuary == nil)
+	data.campaign.obstacles = { quarryWall = true }
+	local eventsBefore = #events
+	assert(service.check(player, golem, 201) == "discovered" and data.campaign.discoveries.sanctuary == true)
+	assert(#events == eventsBefore + 1 and events[#events][1] == "discovered" and events[#events][2] == "sanctuary")
+	assert(messages[#messages][2] == Config.Kingdom.discoveries.sanctuary.message)
+	assert(service.check(player, golem, 202) == nil and #events == eventsBefore + 1, "only once")
+	discoveryUnder = nil
 
 	Config.Kingdom.enabled = wasEnabled
 	print("region-service: ok")
