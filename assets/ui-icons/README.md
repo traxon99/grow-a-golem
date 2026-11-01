@@ -1,9 +1,9 @@
 # Original illustrated UI icons — #179
 
-All artwork comes exclusively from the owner's uploaded `ChatGPT Image Oct 28,
+The original non-rarity artwork comes from the owner's uploaded `ChatGPT Image Oct 28,
 2026, 10_14_32 PM.png` (commit `9734bee`). Its bytes are preserved unchanged.
 `source.json` records its SHA-256 and 48 manually aligned crop rectangles;
-`crops/` preserves those original pixels. No icons are regenerated or redrawn.
+`crops/` preserves those original pixels. The original source and its 48 crops remain unchanged. #238 adds six generated rarity emblems; their source, exact prompts and crop provenance live in `rarity/`.
 
 `manifest.json` maps all 37 existing runtime IDs to these crops. `png/` contains
 128 × 128 exports with aspect ratio preserved and an 8 px transparent gutter.
@@ -19,8 +19,8 @@ necessary: copper uses clay, iron uses the gray golem, stormglass uses ice,
 abyssite uses obsidian, sunsteel uses gold, aether uses essence, quake uses
 lightning, mend uses potion, magnet and trade use the merging stones, party uses
 the moss golem, wardrobe uses the backpack, and alert uses the attention/tap hand.
-Rarity IDs use distinct gray, moss, ice, crystal, gold and lava golem silhouettes.
-These are visual aliases only; they do not add golem types, change rarity tiers,
+Rarity IDs use six distinct emblems: gray stone seal, green leaf-winged gem, blue compass star, purple crescent, gold crown and pink flame.
+These visual symbols do not add golem types, change rarity tiers,
 or alter odds. The manifest and preview show every mapping explicitly.
 All 48 source crops remain available, including the unused gardening/transport
 controls, without adding game features. Robux continues to use the existing
@@ -30,7 +30,7 @@ controls, without adding game features. Robux continues to use the existing
 
 The HUD, menus and status displays already use `Icons.create` and the stable
 registry in `Config.UiIcons`. The illustrated sheets were uploaded on
-2026-10-29 as color `132163688139815` and mono `111754038303125`. The older IDs
+2026-10-31 as color `138607122114991` and mono `117623169236758` (rarity emblems #238). Previous illustrated IDs are `132163688139815` / `111754038303125`. The older IDs
 `130214142096922` / `96019795815429` hold the previous drawn artwork. A GitHub
 merge cannot replace hosted image pixels, so any rebuild needs a fresh upload.
 
@@ -58,7 +58,7 @@ python3 scripts/check_ui_icons.py
 
 The builder crops the original, trims transparent margins, resizes and packs.
 It uses SVG only to render preview captions, never to create icon artwork.
-Verification checks original bytes, all 48 pixel-exact crops, all 37 aliases,
+Verification checks both selected source hashes, all 48 original and six rarity pixel-exact crops, all 37 mappings,
 both packed atlases, registry coordinates, inventory coverage and alpha gutters.
-Edit crop rectangles or aliases in the JSON files, then rebuild; do not edit
+Edit crop rectangles or mappings in the corresponding JSON files, then rebuild; do not edit
 exported icons or replace the original source. Old SVG icon sources are removed.

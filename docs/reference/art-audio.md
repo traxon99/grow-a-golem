@@ -42,9 +42,12 @@ Button scale-bounce about 1.05-1.1x over 0.1 s; click SFX on every button; pop s
 
 ## Grow A Golem today
 
+- **Rarity emblems (#238):** Common stone seal, Uncommon leaf-winged gem, Rare compass star, Epic crescent, Legendary crown and Mythic flame match the illustrated UI. Six different silhouettes retain the existing gray/green/blue/purple/gold/pink palette and adjacent rarity names. The color and grayscale atlases keep their 1024 x 640 layout and 128 px cells. Source images, prompts and crop hashes are preserved in `assets/ui-icons/rarity/`; the [128/32 px proof](images/ui-icons.png) includes grayscale checks. No tier assignment, odds or animation changes.
+
+
 - #109: The existing HUD and menus now consume `Icons.create`: XP/minerals/spells, all 13 tabs, the current window header, close, travel guide/locks, quests and event points/reward status. Icons retain adjacent words and zero-ID text fallbacks. No new animation, remote, rarity assignment or purchase behavior is added. Approved sprite uploads still require the owner (#83); broader menu restyles remain separate.
 
-- #179 replaces the #83 flat artwork exclusively with crops from the owner’s original illustrated 48-icon PNG. `assets/ui-icons/source.json` records provenance; 37 runtime aliases retain the existing sheet layout and renderer. The [128/32 px preview](images/ui-icons.png) shows the exact mappings. Existing Roblox image IDs still reference the old sheets: the owner must upload both replacements and update `Config.UiIcons`. No UI surface colors, gameplay semantics or odds change.
+- #179 replaces the #83 flat artwork exclusively with crops from the owner’s original illustrated 48-icon PNG. `assets/ui-icons/source.json` records provenance; The non-rarity aliases retain the existing sheet layout and renderer; #238 replaces the six rarity portraits with emblems. The [128/32 px preview](images/ui-icons.png) shows the exact mappings. Hosted atlas IDs are tracked in `assets/ui-icons/README.md` and `Config.UiIcons`. No UI surface colors, gameplay semantics or odds change.
 
 - Original low-poly templates in `assets/models/Assets.rbxmx` now cover eight golem tiers, six bosses and three prop types. `Build.attachAsset` prefers these under `ReplicatedStorage.Assets`, retains gameplay roots and Motor6D animation, strips imported scripts/physics, and falls back to procedural art when absent. Regular enemies and remaining props use procedural models. Studio appearance remains unverified.
 - Server-side lighting setup in `WorldService`; the client blends per-zone color grading and sky haze (`Config.Visuals.zoneTints`, `zoneAtmosphere`, both need `controlLighting`). Technology choice not set in code (check in Studio).

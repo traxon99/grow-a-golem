@@ -85,9 +85,12 @@ Original wireframes drawn for Grow A Golem, stored in `docs/reference/images/`. 
 
 ## Grow A Golem today
 
+- **Rarity emblems (#238):** Common stone seal, Uncommon leaf-winged gem, Rare compass star, Epic crescent, Legendary crown and Mythic flame match the illustrated UI. Six different silhouettes retain the existing gray/green/blue/purple/gold/pink palette and adjacent rarity names. The color and grayscale atlases keep their 1024 x 640 layout and 128 px cells. Source images, prompts and crop hashes are preserved in `assets/ui-icons/rarity/`; the [128/32 px proof](images/ui-icons.png) includes grayscale checks. No tier assignment, odds or animation changes.
+
+
 - #109: The existing HUD and menus now consume `Icons.create`: XP/minerals/spells, all 13 tabs, the current window header, close, travel guide/locks, quests and event points/reward status. Icons retain adjacent words and zero-ID text fallbacks. No new animation, remote, rarity assignment or purchase behavior is added. Approved sprite uploads still require the owner (#83); broader menu restyles remain separate.
 
-- [Original illustrated icon proof](images/ui-icons.png): 37 runtime mappings at 128 px and 32 px, with grayscale checks (#179). All artwork comes from the owner’s uploaded 48-icon sheet; `assets/ui-icons/source.json` records exact crop rectangles and the source hash. Rebuild with `assets/ui-icons/build.cjs`. Existing UI wiring is preserved; replacement Roblox uploads are still needed.
+- [Original illustrated icon proof](images/ui-icons.png): 37 runtime mappings at 128 px and 32 px, with grayscale checks (#179). Non-rarity artwork comes from the owner’s uploaded 48-icon sheet; generated rarity artwork is documented in `assets/ui-icons/rarity/`; `assets/ui-icons/source.json` records exact crop rectangles and the source hash. Rebuild with `assets/ui-icons/build.cjs`. Existing UI wiring is preserved; hosted versions are recorded in `assets/ui-icons/README.md`.
 
 ## Sources
 

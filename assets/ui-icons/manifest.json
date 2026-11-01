@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "sourceIssue": 179,
   "sheet": "mystical.png",
   "tintableSheet": "mystical-mono.png",
@@ -528,9 +528,11 @@
       "issues": [
         83,
         82,
-        88
+        88,
+        238
       ],
-      "sourceCrop": "golem-stone"
+      "sourceCrop": "common",
+      "sourceFamily": "rarity"
     },
     {
       "id": "uncommon",
@@ -548,9 +550,11 @@
       "issues": [
         83,
         82,
-        88
+        88,
+        238
       ],
-      "sourceCrop": "golem-moss"
+      "sourceCrop": "uncommon",
+      "sourceFamily": "rarity"
     },
     {
       "id": "rare",
@@ -568,9 +572,11 @@
       "issues": [
         83,
         82,
-        88
+        88,
+        238
       ],
-      "sourceCrop": "golem-ice"
+      "sourceCrop": "rare",
+      "sourceFamily": "rarity"
     },
     {
       "id": "epic",
@@ -588,9 +594,11 @@
       "issues": [
         83,
         82,
-        88
+        88,
+        238
       ],
-      "sourceCrop": "golem-crystal"
+      "sourceCrop": "epic",
+      "sourceFamily": "rarity"
     },
     {
       "id": "legendary",
@@ -608,9 +616,11 @@
       "issues": [
         83,
         82,
-        88
+        88,
+        238
       ],
-      "sourceCrop": "golem-gold"
+      "sourceCrop": "legendary",
+      "sourceFamily": "rarity"
     },
     {
       "id": "mythic",
@@ -628,9 +638,11 @@
       "issues": [
         83,
         82,
-        88
+        88,
+        238
       ],
-      "sourceCrop": "golem-lava"
+      "sourceCrop": "mythic",
+      "sourceFamily": "rarity"
     },
     {
       "id": "tick",
