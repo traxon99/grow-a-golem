@@ -8,6 +8,7 @@ do
 		end
 		return {
 			golem = { xp = 0, parts = {} },
+			campaign = { abilities = {} },
 			minerals = minerals,
 			bossesDefeated = {},
 			skills = {},
