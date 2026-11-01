@@ -1079,17 +1079,22 @@ function GolemService.setZone(golem: Golem, zoneId: number)
 	publishHealth(golem)
 end
 
--- Moves the golem to a zone's spawn point.
-function GolemService.sendToZone(golem: Golem, zoneId: number)
+-- Moves the golem to a point in a zone, bringing a walking rider along.
+function GolemService.travelTo(golem: Golem, zoneId: number, ground: Vector3)
 	golem.zoneId = zoneId
-	local spread = if zoneId == Config.HubZone then Config.Hub.spread else 10
-	local spawn = WorldService.getSpawnPoint(zoneId)
-		+ Vector3.new(math.random(-spread, spread), 0, math.random(-spread, spread))
-	GolemService.placeAt(golem, spawn)
+	GolemService.placeAt(golem, ground)
 	if not golem.mounted then
 		placeRiderBeside(golem) -- a walking rider travels with their golem
 	end
 	publishHealth(golem)
+end
+
+-- Moves the golem to a zone's spawn point.
+function GolemService.sendToZone(golem: Golem, zoneId: number)
+	local spread = if zoneId == Config.HubZone then Config.Hub.spread else 10
+	local spawn = WorldService.getSpawnPoint(zoneId)
+		+ Vector3.new(math.random(-spread, spread), 0, math.random(-spread, spread))
+	GolemService.travelTo(golem, zoneId, spawn)
 end
 
 function GolemService.heal(golem: Golem, amount: number)

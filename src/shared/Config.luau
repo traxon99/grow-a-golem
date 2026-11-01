@@ -136,6 +136,28 @@ Config.Kingdom = {
 	-- A far-off titan seen over the sanctuary from the first breakout (#217).
 	-- Decoration only: it never collides, blocks rays or casts a shadow.
 	titanSilhouette = { position = Vector3.new(-1100, 72, -1500), height = 180 },
+	-- One personal sanctuary plot per player on the Sanctuary Approach (#218).
+	-- Plots are runtime-only: a save keeps its restoration, not a plot number.
+	-- When every plot is taken, newcomers queue and keep their saved work.
+	sanctuary = {
+		plots = {
+			Vector3.new(-530, 72, -1550),
+			Vector3.new(-480, 72, -1550),
+			Vector3.new(-430, 72, -1550),
+			Vector3.new(-530, 72, -1500),
+			Vector3.new(-530, 72, -1450),
+			Vector3.new(-480, 72, -1450),
+			Vector3.new(-430, 72, -1450),
+			Vector3.new(-480, 72, -1500),
+		},
+		hearth = {
+			name = "Hearth",
+			cost = { stone = 120, copper = 30 }, -- shown on the prompt before you restore
+			reachRadius = 22, -- studs from the hearth, plus the golem's own reach at its size
+		},
+		returnOffset = Vector3.new(0, 0, 14), -- where Return Home stands the golem, from the hearth
+		fullText = "Every sanctuary plot is in use. Your hearth is saved and will appear when one frees up.",
+	},
 	obstacleOrder = { "quarryWall" },
 	obstacles = {
 		quarryWall = {

@@ -11,6 +11,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local KingdomRules = require(Shared:WaitForChild("KingdomRules"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
+local Stats = require(Shared:WaitForChild("Stats"))
 
 local Sfx = require(script.Parent:WaitForChild("Sfx"))
 local State = require(script.Parent:WaitForChild("State"))
@@ -48,6 +49,35 @@ local function attach(part: BasePart, id: string)
 		end
 	end)
 	State.Changed:Connect(refresh)
+	refresh()
+end
+
+-- The hearth prompt on this player's own sanctuary plot (#218). It shows
+-- the full cost up front; visitors' plots get no prompt. The server checks
+-- ownership, distance and funds again.
+local function attachHearth(model: Instance)
+	local hearth = model:WaitForChild("Hearth", 10)
+	if not hearth or not hearth:IsA("BasePart") then
+		return
+	end
+	local config = Config.Kingdom.sanctuary.hearth
+	local player = game:GetService("Players").LocalPlayer
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "HearthPrompt"
+	prompt.ObjectText = config.name
+	prompt.ActionText = `Restore ({Stats.costText(config.cost)})`
+	prompt.MaxActivationDistance = config.reachRadius + 16
+	prompt.RequiresLineOfSight = false
+	prompt.HoldDuration = 0.5
+	prompt.Parent = hearth
+	local function refresh()
+		prompt.Enabled = model:GetAttribute("OwnerId") == player.UserId and model:GetAttribute("Restored") ~= true
+	end
+	model:GetAttributeChangedSignal("OwnerId"):Connect(refresh)
+	model:GetAttributeChangedSignal("Restored"):Connect(refresh)
+	prompt.Triggered:Connect(function()
+		State.request("restoreHearth")
+	end)
 	refresh()
 end
 
@@ -114,6 +144,13 @@ function KingdomPrompts.start()
 				attach(part, id)
 			end
 		end
+	end)
+	task.spawn(function()
+		local plots = workspace:WaitForChild("Kingdom"):WaitForChild("Plots")
+		for _, model in plots:GetChildren() do
+			task.spawn(attachHearth, model)
+		end
+		plots.ChildAdded:Connect(attachHearth)
 	end)
 end
 

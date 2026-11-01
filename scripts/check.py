@@ -318,6 +318,14 @@ bundle += 'local game = { GetService = function() return { WaitForChild = functi
 bundle += 'local script = { Parent = {} }\nlocal os = { clock = osClock }\nlocal task = { delay = delay }\n'
 bundle += kingdom_service + "\nend\n"
 bundle += (ROOT / "tests/kingdom-service.luau").read_text()
+# The real SanctuaryService (#218) with mocked services and plot models;
+# PlayerRemoving is exposed so the test can drive a player leaving.
+sanctuary_service = (ROOT / "src/server/Services/SanctuaryService.luau").read_text()
+sanctuary_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', sanctuary_service)
+bundle += "\nlocal function loadSanctuaryService(dependencies, game)\n"
+bundle += 'local script = { Parent = {} }\n'
+bundle += sanctuary_service + "\nend\n"
+bundle += (ROOT / "tests/sanctuary-service.luau").read_text()
 # The real RuneService with mocked Remotes/GolemService; os.clock and
 # workspace:GetServerTimeNow are injected so the test controls elapsed time
 # for cooldowns and challenge expiry.

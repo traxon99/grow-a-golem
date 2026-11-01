@@ -98,6 +98,93 @@ function Kingdom.titan(parent: Instance, config: any)
 	model.Parent = parent
 end
 
+-- One plot per entry in sanctuary.plots: a ruined stone ring around a cold
+-- hearth, inside workspace.Kingdom.Plots. Returns the plot models by index.
+-- Decoration only; ownership and restoration are attributes set by
+-- SanctuaryService, which every viewer sees.
+function Kingdom.buildPlots(sanctuary: any): { Model }
+	local kingdom = workspace:FindFirstChild("Kingdom")
+	local holder = Instance.new("Folder")
+	holder.Name = "Plots"
+	local models = {}
+	for index, position in sanctuary.plots do
+		local model = Instance.new("Model")
+		model.Name = `Plot{index}`
+		local hearth = slab(model, "Hearth", Color3.fromRGB(70, 66, 62))
+		hearth.CanCollide = false
+		hearth.Size = Vector3.new(6, 3, 6)
+		hearth.Position = position + Vector3.new(0, 1.5, 0)
+		local fire = Instance.new("PointLight")
+		fire.Name = "Fire"
+		fire.Color = Color3.fromRGB(255, 170, 90)
+		fire.Range = 18
+		fire.Brightness = 2
+		fire.Enabled = false
+		fire.Parent = hearth
+		for side = 0, 3 do
+			local angle = side * math.pi / 2
+			local wall = slab(model, "Stonework", Color3.fromRGB(110, 104, 96))
+			wall.CanCollide = false
+			wall.Size = Vector3.new(10, 2, 1.5)
+			wall.CFrame = CFrame.new(position + Vector3.new(math.cos(angle) * 9, 1, math.sin(angle) * 9))
+				* CFrame.Angles(0, -angle + math.pi / 2, 0)
+		end
+		local signHolder = Instance.new("Part")
+		signHolder.Name = "OwnerSign"
+		signHolder.Anchored = true
+		signHolder.CanCollide = false
+		signHolder.CanQuery = false
+		signHolder.Transparency = 1
+		signHolder.Size = Vector3.new(1, 1, 1)
+		signHolder.Position = position + Vector3.new(0, 9, 0)
+		local billboard = Instance.new("BillboardGui")
+		billboard.Size = UDim2.fromOffset(220, 40)
+		billboard.MaxDistance = 120
+		local label = Instance.new("TextLabel")
+		label.Name = "Owner"
+		label.Size = UDim2.fromScale(1, 1)
+		label.BackgroundTransparency = 1
+		label.Text = ""
+		label.TextScaled = true
+		label.Font = Enum.Font.GothamBold
+		label.TextColor3 = Color3.new(1, 1, 1)
+		label.TextStrokeTransparency = 0.3
+		label.Parent = billboard
+		billboard.Parent = signHolder
+		signHolder.Parent = model
+		model.PrimaryPart = hearth
+		model.Parent = holder
+		models[index] = model
+	end
+	holder.Parent = kingdom or workspace
+	return models
+end
+
+-- Shows a plot's owner and whether its hearth is lit and stonework repaired.
+function Kingdom.showHearth(model: Instance, restored: boolean, ownerName: string?)
+	local hearth = model:FindFirstChild("Hearth")
+	local fire = hearth and hearth:FindFirstChild("Fire")
+	if hearth and hearth:IsA("BasePart") then
+		hearth.Color = if restored then Color3.fromRGB(255, 140, 70) else Color3.fromRGB(70, 66, 62)
+		hearth.Material = if restored then Enum.Material.Neon else Enum.Material.Slate
+	end
+	if fire and fire:IsA("PointLight") then
+		fire.Enabled = restored
+	end
+	for _, child in model:GetChildren() do
+		if child.Name == "Stonework" and child:IsA("BasePart") then
+			local height = if restored then 5 else 2
+			child.CFrame += Vector3.new(0, (height - child.Size.Y) / 2, 0)
+			child.Size = Vector3.new(10, height, 1.5)
+		end
+	end
+	local sign = model:FindFirstChild("OwnerSign")
+	local label = sign and sign:FindFirstChild("Owner", true)
+	if label and label:IsA("TextLabel") then
+		label.Text = if ownerName then `{ownerName}'s Sanctuary` else "Empty plot"
+	end
+end
+
 -- Returns the folder holding the route. Building it twice reuses the first.
 -- Obstacles are walk-through for everyone: the server's region check is the
 -- lock, and each client shows its own player's opened or closed state.
