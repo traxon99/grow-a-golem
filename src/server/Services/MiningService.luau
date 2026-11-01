@@ -322,7 +322,7 @@ local function spawnDrops(node: Node, owner: Player)
 			math.sin(angle) * horizontal
 		)
 
-		table.insert(drops, {
+		local chunk: Chunk = {
 			part = part,
 			owner = owner,
 			mineral = node.mineral,
@@ -332,17 +332,18 @@ local function spawnDrops(node: Node, owner: Player)
 			groundY = groundY,
 			resting = false,
 			spawnedAt = os.clock(),
-		})
+		}
+		table.insert(drops, chunk)
 	end
 end
 
 -- The pickup radius the given player's golem currently sucks chunks in from:
 -- its base range (scaled with size, like the other golem ranges), widened
 -- 3x for a second right after a Magnet cast (see CombatService.onCastSpell).
-local function pickupRadius(player: Player): number?
+local function pickupRadius(player: Player): (number?, GolemService.Golem?)
 	local golem = GolemService.get(player)
 	if not golem or not GolemService.isActive(golem) then
-		return nil
+		return nil, nil
 	end
 	local burstUntil = magnetBurstUntil[player]
 	local multiplier = if burstUntil and os.clock() < burstUntil then Config.Spells.magnet.burstMultiplier else 1
