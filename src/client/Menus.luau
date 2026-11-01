@@ -1651,21 +1651,6 @@ local function renderHub(list: ScrollingFrame, snap: any)
 			end,
 		},
 	})
-	local musicLevel = data.social and data.social.musicVolume or 1
-	local steps = Config.Music.volumeSteps
-	local musicIndex = table.find(steps, musicLevel) or 1
-	local musicLabel = if musicLevel == 0 then "Off" elseif musicLevel < 1 then "Low" else "Normal"
-	Ui.item(list, nextOrder(), {
-		title = `Music: {musicLabel}`,
-		subtitle = "Background music only. Sound effects stay on.",
-		action = {
-			text = "Change",
-			style = "secondary",
-			onClick = function()
-				State.request("setMusicVolume", steps[musicIndex % #steps + 1])
-			end,
-		},
-	})
 	local inviteMode = if snap.data and snap.data.social then snap.data.social.partyInvites or "friends" else "friends"
 	local inviteLabel = if inviteMode == "everyone"
 		then "Everyone"
