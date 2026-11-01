@@ -482,6 +482,7 @@ end
 type DropVisual = {
 	part: BasePart,
 	size: Vector3,
+	aura: BasePart, -- a soft neon shell, parented to `part` so it goes with it
 	trail: Trail?,
 	light: PointLight?,
 	origin: Vector3,
@@ -605,9 +606,26 @@ local function watchDrop(chunk: Instance)
 	part.CFrame = CFrame.new(origin)
 	part.Parent = folder
 
+	-- A glowing aura in the mineral's colour, so chunks pop against grass.
+	local aura = Instance.new("Part")
+	aura.Name = "Aura"
+	aura.Shape = Enum.PartType.Ball
+	aura.Anchored = true
+	aura.CanCollide = false
+	aura.CanQuery = false
+	aura.CanTouch = false
+	aura.CastShadow = false
+	aura.Material = Enum.Material.Neon
+	aura.Color = color:Lerp(Color3.new(1, 1, 1), 0.25)
+	aura.Transparency = cfg.auraTransparency
+	aura.Size = chunk.Size * cfg.auraScale
+	aura.CFrame = CFrame.new(origin)
+	aura.Parent = part
+
 	local visual: DropVisual = {
 		part = part,
 		size = chunk.Size,
+		aura = aura,
 		trail = nil,
 		light = nil,
 		origin = origin,
@@ -711,6 +729,8 @@ local function stepDrops()
 			local goal = if target and target.Parent then target.Position else visual.suckFrom
 			visual.part.CFrame = CFrame.new(visual.suckFrom:Lerp(goal, eased)) * CFrame.Angles(0, os.clock() * 12, 0)
 			visual.part.Size = visual.size * (1 - 0.65 * eased)
+			visual.aura.CFrame = CFrame.new(visual.part.Position)
+			visual.aura.Size = visual.part.Size * cfg.auraScale
 			if p >= 1 then
 				burst(goal, visual.part.Color, Enum.Material.Neon, 4, 0.35, 3)
 				chime(visual.ownerId)
@@ -743,6 +763,10 @@ local function stepDrops()
 		end
 		if near(visual.rest) then
 			visual.part.CFrame = dropPose(visual, t)
+			visual.aura.CFrame = CFrame.new(visual.part.Position)
+			if not Ui.reducedMotion() then
+				visual.aura.Transparency = cfg.auraTransparency + math.sin(t * 3) * 0.15
+			end
 		end
 	end
 end

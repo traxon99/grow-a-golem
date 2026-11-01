@@ -199,6 +199,8 @@ Config.OreDrops = {
 	suckTime = 0.3, -- seconds a collected chunk takes to fly into its golem
 	suckReach = 40, -- studs; a golem farther than this gets a sparkle in place instead (covers Magnet's 36)
 	restLights = 24, -- at most this many resting chunks keep a small glow, per client
+	auraScale = 2.2, -- the glowing shell around each chunk, as a multiple of its size
+	auraTransparency = 0.55, -- the shell pulses about this (+-0.15), so chunks stand out from the grass
 	comboWindow = 2, -- seconds after a pickup in which the next one adds to the same on-screen total
 }
 
