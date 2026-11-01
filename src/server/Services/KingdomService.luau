@@ -57,8 +57,16 @@ function KingdomService.finish(player: Player, token: number): boolean
 	pending[player] = nil
 	local obstacle = Config.Kingdom.obstacles[job.id]
 	local data = DataService.get(player)
-	if not data or not reachable(player, obstacle) or KingdomRules.obstacleStatus(data, job.id) ~= "ready" then
-		return false -- interrupted; nothing was spent, so the player can try again
+	local golem = reachable(player, obstacle)
+	-- Steering, a knock-out or walking away clears the hold (CombatService).
+	local held = golem ~= nil and golem.busyUntil > 0
+	if golem then
+		golem.busyUntil = 0
+	end
+	if not data or not held or KingdomRules.obstacleStatus(data, job.id) ~= "ready" then
+		-- Nothing was spent, so the player can simply try again.
+		Remotes.Notify:FireClient(player, "message", "Your golem was interrupted. Try again.")
+		return false
 	end
 	DataService.update(player, function(d)
 		d.campaign.obstacles[job.id] = true
@@ -101,6 +109,7 @@ local function useObstacle(player: Player, id: any): (boolean, string?)
 	tokens += 1
 	local token = tokens
 	pending[player] = { id = id, token = token }
+	golem.busyUntil = now + obstacle.actionSeconds + 1 -- a little slack past the finish
 	golem.model:SetAttribute("AttackKind", "mine")
 	golem.model:SetAttribute("Attack", ((golem.model:GetAttribute("Attack") :: number?) or 0) + 1)
 	task.delay(obstacle.actionSeconds, KingdomService.finish, player, token)

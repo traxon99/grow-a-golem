@@ -14,6 +14,7 @@ do
 			zoneId = 1,
 			active = true,
 			stats = { scale = 1 },
+			busyUntil = 0,
 			root = { Position = wall.position + Vector3.new(10, 0, 0) },
 			model = {
 				GetAttribute = function(_, key)
@@ -115,10 +116,12 @@ do
 	ok, message = use(alice, "quarryWall")
 	assert(ok and message == "Smash!" and #delayed == 1)
 	assert(alice.golem.attributes.Attack == 1, "the golem visibly swings")
+	assert(alice.golem.busyUntil > clock, "the golem is held while it smashes")
 	ok, message = use(alice, "quarryWall")
 	assert(not ok and message == "Your golem is already on it.", "no second action while one is running")
 	local results = runDelayed()
 	assert(results[1] == true and alice.data.campaign.obstacles.quarryWall == true and updates == 1)
+	assert(alice.golem.busyUntil == 0, "and free again afterwards")
 	assert(#events == 1 and events[1][1] == "obstacleOpened" and events[1][3] == "quarryWall")
 	assert(#notes == 1 and notes[1][1] == alice and notes[1][2] == "obstacleOpened")
 	ok, message = use(alice, "quarryWall")
@@ -138,9 +141,17 @@ do
 	bob.golem.root.Position = wall.position + Vector3.new(300, 0, 0)
 	results = runDelayed()
 	assert(results[1] == false and bob.data.campaign.obstacles.quarryWall == nil and updates == 1)
+	local last = notes[#notes]
+	assert(last[1] == bob and last[2] == "message", "an interrupted smash says so")
 	bob.golem.root.Position = wall.position + Vector3.new(5, 0, 0)
 	ok, message = use(bob, "quarryWall")
 	assert(not ok and message == "Give your golem a moment.", "cooldown")
+	clock += wall.cooldownSeconds
+	assert(use(bob, "quarryWall"))
+	-- Steering away cancels the hold (CombatService clears it): nothing.
+	bob.golem.busyUntil = 0
+	results = runDelayed()
+	assert(results[1] == false and bob.data.campaign.obstacles.quarryWall == nil)
 	clock += wall.cooldownSeconds
 	assert(use(bob, "quarryWall"))
 	-- Knocked out before it lands: also nothing.

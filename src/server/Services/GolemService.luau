@@ -53,6 +53,7 @@ export type Golem = {
 	nextMine: number,
 	spellReadyAt: { [string]: number },
 	magnetUntil: number,
+	busyUntil: number, -- a kingdom obstacle action holds the golem until then (0 when free)
 	steer: Vector3,
 	lastSteerAt: number,
 	steerWindowStart: number,
@@ -774,6 +775,7 @@ local function spawnGolem(player: Player)
 		nextMine = 0,
 		spellReadyAt = {},
 		magnetUntil = 0,
+		busyUntil = 0,
 		steer = Vector3.zero,
 		lastSteerAt = 0,
 		steerWindowStart = 0,
@@ -997,6 +999,14 @@ function GolemService.followRider(golem: Golem, now: number): boolean
 	if not center then
 		golem.following = false
 		return false
+	end
+	-- The rider walked onto kingdom ground this player hasn't opened: hold
+	-- here rather than walk after them and be returned again and again.
+	local data = DataService.get(golem.player)
+	if data and not WorldService.routeOpen(data, center) then
+		golem.following = false
+		golem.humanoid:Move(Vector3.zero)
+		return true
 	end
 	local scale = golem.stats.scale
 	local radius = GolemService.leashRadius(golem)

@@ -21,7 +21,7 @@ local function attach(part: BasePart, id: string)
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "ObstaclePrompt"
 	prompt.ObjectText = obstacle.name
-	prompt.MaxActivationDistance = obstacle.approachRadius + 16
+	prompt.MaxActivationDistance = obstacle.approachRadius + obstacle.promptSlack
 	prompt.RequiresLineOfSight = false
 	prompt.HoldDuration = 0
 	prompt.Parent = part

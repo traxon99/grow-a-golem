@@ -138,6 +138,7 @@ Config.Kingdom = {
 			position = Vector3.new(-156, 60, -1500), -- foot of the wall, on the quarry side
 			size = Vector3.new(6, 28, 64),
 			approachRadius = 24, -- studs from the wall, plus the golem's own reach at its size
+			promptSlack = 16, -- the prompt shows this much farther out than the golem can act
 			actionSeconds = 1.5, -- how long the golem's smash takes
 			cooldownSeconds = 2,
 			gate = {},
