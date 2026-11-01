@@ -470,6 +470,20 @@ local function renderTravel(list: ScrollingFrame, snap: any)
 			end,
 		},
 	})
+	-- The restored hearth's free trip back to the player's own plot (#218).
+	if Config.Kingdom.enabled and data.campaign and data.campaign.projects.hearth == true then
+		Ui.item(list, nextOrder(), {
+			title = "Return Home",
+			subtitle = "Go back to your sanctuary hearth. Always free.",
+			icon = "hub",
+			action = {
+				text = "Go",
+				onClick = function()
+					State.request("returnHome")
+				end,
+			},
+		})
+	end
 	Ui.heading(list, nextOrder(), "Islands", "travel")
 	for _, zoneId in Config.ZoneOrder do
 		local zone = Config.Zones[zoneId] :: any
