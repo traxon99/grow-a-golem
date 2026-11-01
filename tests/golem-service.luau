@@ -88,6 +88,14 @@ local service = loadGolemService(
 			groundedPath = function()
 				return true
 			end,
+			routeOpen = function()
+				return true
+			end,
+		},
+		DataService = {
+			get = function()
+				return {}
+			end,
 		},
 	},
 	game,

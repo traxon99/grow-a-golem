@@ -91,6 +91,7 @@ do
 		Config = Config,
 		Islands = {},
 		KingdomLayout = KingdomLayout,
+		KingdomRules = KingdomRules,
 		Kingdom = {
 			build = function()
 				built += 1
@@ -134,5 +135,16 @@ do
 	assert(world.groundedPath(Vector3.new(0, 60, -1500), Vector3.new(-480, 72, -1500)))
 	assert(not world.groundedPath(Vector3.new(0, 60, -1420), Vector3.new(-480, 72, -1450)))
 	assert(world.groundedPath(Vector3.new(0, 60, 1200), Vector3.new(10, 60, 1210)), "arena walks are not checked")
+	-- Ground past the wall waits on this player's own wall.
+	local fresh = { campaign = { obstacles = {} } }
+	local opened = { campaign = { obstacles = { quarryWall = true } } }
+	local road = Vector3.new(-330, 72, -1500)
+	assert(world.requiredObstacleAt(road) == "quarryWall" and world.requiredObstacleAt(spawn) == nil)
+	assert(not world.routeOpen(fresh, road) and world.routeOpen(opened, road) and world.routeOpen(fresh, spawn))
+	assert(world.routeOpen(fresh, Vector3.new(0, 60, 1200)), "arenas wait on nothing")
+	local held = world.safePointNear(1, road, 12, fresh)
+	assert(held.X == -148 and held.Y == 60, "a blocked golem goes back to the quarry, not the road")
+	local roadBack = world.safePointNear(1, road, 12, opened)
+	assert(roadBack.X == -330 and roadBack.Y == 72, "with the wall open the road is fine")
 	print("world-service kingdom: ok")
 end

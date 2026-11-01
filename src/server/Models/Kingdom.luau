@@ -48,7 +48,9 @@ local function slab(parent: Instance, name: string, color: Color3): Part
 end
 
 -- Returns the folder holding the route. Building it twice reuses the first.
-function Kingdom.build(layout: any): Folder
+-- Obstacles are walk-through for everyone: the server's region check is the
+-- lock, and each client shows its own player's opened or closed state.
+function Kingdom.build(layout: any, obstacles: any?): Folder
 	local existing = workspace:FindFirstChild("Kingdom")
 	if existing and existing:IsA("Folder") then
 		return existing
@@ -71,6 +73,17 @@ function Kingdom.build(layout: any): Folder
 		part.Size = Vector3.new(r.width, THICKNESS, length)
 		-- The slab's top face runs along the lane from `from` to `to`.
 		part.CFrame = CFrame.lookAt(middle, middle + rise) * CFrame.new(0, -THICKNESS / 2, 0)
+	end
+	local obstacleFolder = Instance.new("Folder")
+	obstacleFolder.Name = "Obstacles"
+	obstacleFolder.Parent = folder
+	for id, obstacle in obstacles or {} do
+		local part = slab(obstacleFolder, id, Color3.fromRGB(92, 84, 76))
+		part.Material = Enum.Material.Cobblestone
+		part.CanCollide = false
+		part.Size = obstacle.size
+		part.Position = obstacle.position + Vector3.new(0, obstacle.size.Y / 2, 0)
+		part:SetAttribute("ObstacleId", id)
 	end
 	folder.Parent = workspace
 	return folder

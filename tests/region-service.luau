@@ -2,6 +2,7 @@
 do
 	local regions = { [1] = true, [2] = true, [0] = true }
 	local zoneUnder = 1
+	local obstacleUnder = nil
 	local data = { campaign = { regions = { ["1"] = true } } }
 	local events, messages, placed, changed, published = {}, {}, {}, 0, 0
 	local service = loadRegionService({
@@ -14,6 +15,7 @@ do
 			},
 		},
 		Stats = Stats,
+		KingdomRules = KingdomRules,
 		DataService = {
 			get = function()
 				return data
@@ -46,7 +48,11 @@ do
 			zoneAt = function()
 				return zoneUnder
 			end,
-			safePointNear = function(zoneId)
+			requiredObstacleAt = function()
+				return obstacleUnder
+			end,
+			safePointNear = function(zoneId, _, _, given)
+				assert(given == data, "push-back avoids ground this player can't stand on")
 				return Vector3.new(zoneId, 0, 0)
 			end,
 		},
@@ -100,6 +106,20 @@ do
 	)
 	zoneUnder = nil
 	assert(service.check(player, golem, 40) == nil, "the void between pieces is no region")
+
+	-- Ground behind an unopened obstacle, even inside the current region.
+	golem.zoneId = 1
+	zoneUnder = 1
+	obstacleUnder = "quarryWall"
+	local before = #messages
+	assert(service.check(player, golem, 100) == "blocked" and golem.zoneId == 1)
+	assert(messages[before + 1][2] == "The Cracked Wall blocks the way.")
+	data.campaign.obstacles = { quarryWall = true }
+	assert(service.check(player, golem, 101) == nil, "once opened, the road is walkable")
+	-- Into the hub over open ground.
+	zoneUnder = Config.HubZone
+	obstacleUnder = nil
+	assert(service.check(player, golem, 102) == "entered" and golem.zoneId == Config.HubZone)
 
 	Config.Kingdom.enabled = wasEnabled
 	print("region-service: ok")

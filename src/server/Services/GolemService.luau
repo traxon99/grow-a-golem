@@ -924,9 +924,13 @@ end
 -- Whether a golem may puff to its rider in `zoneId`: its own zone, or (on the
 -- connected kingdom route) a neighbouring region the player can already
 -- enter. RegionService then switches the zone from the golem's new position.
-local function canPuffInto(golem: Golem, zoneId: number?): boolean
+local function canPuffInto(golem: Golem, zoneId: number?, center: Vector3): boolean
 	if zoneId == nil then
 		return false
+	end
+	local data = DataService.get(golem.player)
+	if not data or not WorldService.routeOpen(data, center) then
+		return false -- the rider is past an obstacle this player hasn't opened
 	end
 	if zoneId == golem.zoneId then
 		return true
@@ -937,8 +941,7 @@ local function canPuffInto(golem: Golem, zoneId: number?): boolean
 	if zoneId == Config.HubZone then
 		return true
 	end
-	local data = DataService.get(golem.player)
-	return data ~= nil and (Stats.travelUnlocked(data, zoneId))
+	return (Stats.travelUnlocked(data, zoneId))
 end
 
 -- Puffs the golem back beside its rider (clients play the puff, see Fx).
@@ -946,7 +949,11 @@ end
 local function puffToRider(golem: Golem, center: Vector3): boolean
 	local character = golem.player.Character
 	local riderRoot = character and character:FindFirstChild("HumanoidRootPart")
-	if not riderRoot or not riderRoot:IsA("BasePart") or not canPuffInto(golem, WorldService.zoneAt(center)) then
+	if
+		not riderRoot
+		or not riderRoot:IsA("BasePart")
+		or not canPuffInto(golem, WorldService.zoneAt(center), center)
+	then
 		return false
 	end
 	local floor = workspace:Raycast(center, Vector3.new(0, -12, 0), groundParams())

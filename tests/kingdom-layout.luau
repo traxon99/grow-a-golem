@@ -95,6 +95,17 @@ do
 	local qx, _, qz = KingdomLayout.safePointNear(pieces, 1, 500, -1500, 12)
 	assert(qx == 148 and qz == -1500)
 	assert(KingdomLayout.safePointNear(pieces, 5, 0, 0, 12) == nil)
+	local closedRoad = function(piece)
+		return piece.requires == nil
+	end
+	local cx, cy = KingdomLayout.safePointNear(pieces, 1, -480, -1500, 12, closedRoad)
+	assert(cx == 148 or cx == -148, "with the wall closed, only the quarry is a safe point")
+	assert(cy == 60)
+	for _, piece in pieces do
+		if piece.name == "Quarry Ramp" or piece.name == "Quarry Road" or piece.name == "Sanctuary Approach" then
+			assert(piece.requires == "quarryWall", piece.name)
+		end
+	end
 
 	-- Roads and ramps fit the largest golem with room to turn: twice its
 	-- dismount reach (about its width) at max size, with half again spare.
