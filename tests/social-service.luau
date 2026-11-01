@@ -111,9 +111,8 @@ do
 	social.start()
 	local setTitle = handlers.setTitle
 	local setAnnounce = handlers.setAnnounce
-	local setMusicVolume = handlers.setMusicVolume
 	local announce = eventHandlers.artifactFound
-	assert(setTitle and setAnnounce and setMusicVolume, "all three actions are registered")
+	assert(setTitle and setAnnounce, "social actions are registered")
 	assert(announce ~= nil, "SocialService connects to the artifactFound event")
 	assert(providers.hub ~= nil, "SocialService registers the hub DataService provider")
 
@@ -222,21 +221,6 @@ do
 		local okOff, msgOff = setAnnounce(player, false)
 		assert(okOff == true and msgOff == "Rare-find messages are off.")
 		assert(datas[player].social.announce == false)
-	end
-
-	--------------------------------------------------------------------- setMusicVolume
-	do
-		assert(setMusicVolume(join(), 1) == false, "no data means not ready")
-
-		local player = join(freshData())
-		assert(setMusicVolume(player, "loud" :: any) == false, "a non-number is refused")
-		assert(setMusicVolume(player, 0.7) == false, "a level outside Config.Music.volumeSteps is refused")
-		assert(datas[player].social.musicVolume == nil, "a refused level changes nothing")
-
-		local okLow = setMusicVolume(player, 0.5)
-		assert(okLow == true and datas[player].social.musicVolume == 0.5)
-		local okOff, msgOff = setMusicVolume(player, 0)
-		assert(okOff == true and msgOff == "Music is off." and datas[player].social.musicVolume == 0)
 	end
 
 	--------------------------------------------------------------------- announce
