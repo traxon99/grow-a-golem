@@ -55,9 +55,10 @@ local now = 100
 local kingdomZones = {}
 local zoneHere = 1
 local safeCalls = {}
+local surfaces = {} -- per-zone surface heights; 50 when unset
 local world = {
-	getSurfaceY = function()
-		return 50
+	getSurfaceY = function(zoneId)
+		return surfaces[zoneId] or 50
 	end,
 	getSpawnPoint = function()
 		return Vector3.new(0, 50, 0)
@@ -427,7 +428,7 @@ service.setCrossingHandler(function(_, _, zoneId)
 	end
 	return false, "Discover this region first"
 end)
-local walker = fixture(8)
+local walker, walkerAttributes = fixture(8)
 walker.zoneId = 1
 walker.root.Position = Vector3.new(0, 58, 0)
 service.update(walker, 0)
@@ -440,6 +441,7 @@ zoneHere = 0
 walker.root.Position = Vector3.new(-330, 58, 0)
 service.update(walker, 0)
 assert(walker.zoneId == 0 and #crossings == 1 and crossings[1] == 0, "an allowed crossing switches zones")
+assert(walkerAttributes.GolemZone == 0, "the client hears about a walking crossing")
 service.update(walker, 0)
 service.update(walker, 0)
 assert(#crossings == 1, "staying in the new zone asks only once")
@@ -475,4 +477,35 @@ service.sendToZone(walker, 1)
 local last = safeCalls[#safeCalls]
 assert(last.zoneId == 1 and last.margin == 12 and walker.zoneId == 1 and walker.lastSafe == nil)
 assert(walker.root.Position.X == 7 and walker.root.Position.Y == 58)
+
+-- A walking rider ahead of their golem, down the ramp from the hub (zone 0,
+-- higher) into the quarry (zone 1, lower), is judged by the quarry's plane.
+surfaces[0], surfaces[1] = 68, 60
+local hubGolem = fixture(8)
+hubGolem.zoneId = 0
+hubGolem.mounted = false
+hubGolem.root.Position = Vector3.new(-325, 76, 0)
+local walkingHumanoid = { Health = 100, HipHeight = 2 }
+local walkingRoot = {
+	Position = Vector3.new(-280, 65, 0), -- feet at 62: under the hub's plane, above the quarry's
+	Size = Vector3.new(2, 2, 1),
+	IsA = function(_, class)
+		return class == "BasePart"
+	end,
+}
+hubGolem.player.Character = {
+	FindFirstChildOfClass = function()
+		return walkingHumanoid
+	end,
+	FindFirstChild = function()
+		return walkingRoot
+	end,
+}
+zoneHere = 1
+service.update(hubGolem, 0)
+assert(walkingHumanoid.Health == 100, "walking down the ramp isn't a fall")
+zoneHere = nil -- off the ramp's side, over the void
+service.update(hubGolem, 0)
+assert(walkingHumanoid.Health == 0, "the void still kills")
+surfaces[0], surfaces[1] = nil, nil
 print("GolemService kingdom boundary checks passed")

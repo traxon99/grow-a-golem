@@ -1097,6 +1097,7 @@ local function checkBoundary(golem: Golem, now: number)
 	if allowed then
 		golem.zoneId = here
 		golem.lastSafe = golem.root.Position
+		publishHealth(golem) -- GolemZone and the hub's Inspect prompt follow the zone
 		return
 	end
 	local back = golem.lastSafe or WorldService.getSpawnPoint(golem.zoneId) + Vector3.new(0, golem.groundOffset, 0)
@@ -1111,6 +1112,20 @@ local function checkBoundary(golem: Golem, now: number)
 	end
 end
 
+-- The fall plane for a walking rider. On kingdom ground they can stand in a
+-- lower zone than their golem (walking down the ramp from the hub ahead of
+-- it), so use the lower of the two zones' planes.
+local function riderPlane(golem: Golem, position: Vector3, surface: number): number
+	if golem.mounted or not WorldService.isKingdomZone(golem.zoneId) then
+		return surface
+	end
+	local zoneId = WorldService.zoneAt(position)
+	if zoneId == nil or zoneId == golem.zoneId or not WorldService.isKingdomZone(zoneId) then
+		return surface
+	end
+	return math.min(surface, WorldService.getSurfaceY(zoneId) - Config.Golem.fallDepth)
+end
+
 -- Called every server tick by CombatService.
 function GolemService.update(golem: Golem, dt: number)
 	local now = os.clock()
@@ -1118,12 +1133,16 @@ function GolemService.update(golem: Golem, dt: number)
 	local character = golem.player.Character
 	local rider = character and character:FindFirstChildOfClass("Humanoid")
 	local riderRoot = character and character:FindFirstChild("HumanoidRootPart")
+	local riderSurface = surface
+	if riderRoot and riderRoot:IsA("BasePart") then
+		riderSurface = riderPlane(golem, riderRoot.Position, surface)
+	end
 	local riderFell = rider ~= nil
 		and now >= golem.riderGraceUntil
 		and rider.Health > 0
 		and riderRoot ~= nil
 		and riderRoot:IsA("BasePart")
-		and riderRoot.Position.Y - rider.HipHeight - riderRoot.Size.Y / 2 < surface
+		and riderRoot.Position.Y - rider.HipHeight - riderRoot.Size.Y / 2 < riderSurface
 	if riderFell and rider then
 		-- A detached character can fall while its golem is still on land.
 		-- Kill that character immediately too; Roblox will respawn the rider.
