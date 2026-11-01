@@ -219,19 +219,22 @@ assert(Stats.towerBossFraction(5) == 0.6)
 assert(Stats.towerBossFraction(1) == nil, "only waves 5 and 10 carry a boss")
 do
 	local reward = Stats.towerWaveReward(1, 1)
-	assert(reward.minerals.stone == 15 and reward.xp == 37, "wave 1 pays the island's own enemy, scaled by rewardRate")
+	assert(
+		reward.minerals.stone == 18 and reward.xp == 46,
+		"wave 1 pays a weighted mix of zone 1's enemies, scaled by rewardRate"
+	)
 end
 do
 	local reward = Stats.towerWaveReward(1, 5)
 	assert(
-		reward.minerals.stone == 147 and reward.minerals.copper == 30 and reward.xp == 200,
+		reward.minerals.stone == 156 and reward.minerals.copper == 30 and reward.xp == 221,
 		"the boss wave adds the island boss's drops at its health fraction"
 	)
 end
 do
 	local reward = Stats.towerRunReward(1)
 	assert(
-		reward.minerals.stone == 674 and reward.minerals.copper == 80 and reward.xp == 1235,
+		reward.minerals.stone == 765 and reward.minerals.copper == 80 and reward.xp == 1467,
 		"a full clear sums every one of the route's 10 waves"
 	)
 end
