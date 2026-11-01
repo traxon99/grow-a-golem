@@ -1628,8 +1628,8 @@ Config.Tower = {
 -- Original #83 sprite sheets; upload instructions: assets/ui-icons/README.md.
 -- Reset an ID to zero to fall back to the text labels if an upload is rejected.
 Config.UiIcons = {
-	color = 138607122114991, -- mystical.png, rarity emblems #238
-	mono = 117623169236758, -- mystical-mono.png, rarity emblems #238
+	color = 122206587767413, -- mystical.png, rarity emblems #238 (image, not decal)
+	mono = 108158462681187, -- mystical-mono.png, rarity emblems #238 (image, not decal)
 	robux = 0, -- Official Roblox artwork only; never a custom logo.
 	cellSize = 128,
 	entries = {
