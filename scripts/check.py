@@ -290,6 +290,15 @@ bundle += 'local UDim2 = { fromOffset = function() return {} end, fromScale = fu
 bundle += 'local Color3 = { fromRGB = Color3.fromRGB, new = function(r, g, b) return { R = r, G = g, B = b } end }\n'
 bundle += world_service + "\nend\n"
 bundle += (ROOT / "tests/world-service.luau").read_text()
+# The real RuneService with mocked Remotes/GolemService; os.clock and
+# workspace:GetServerTimeNow are injected so the test controls elapsed time
+# for cooldowns and challenge expiry.
+rune_service = (ROOT / "src/server/Services/RuneService.luau").read_text()
+rune_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', rune_service)
+bundle += "\nlocal function loadRuneService(dependencies, game, osClock, workspaceNow)\n"
+bundle += 'local os = { clock = osClock }\nlocal workspace = { GetServerTimeNow = workspaceNow }\n'
+bundle += rune_service + "\nend\n"
+bundle += (ROOT / "tests/rune-service.luau").read_text()
 with tempfile.TemporaryDirectory(prefix="golem-check-") as folder:
     path = Path(folder) / "regression.luau"
     path.write_text(bundle)
