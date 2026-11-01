@@ -485,6 +485,7 @@ local hubGolem = fixture(8)
 hubGolem.zoneId = 0
 hubGolem.mounted = false
 hubGolem.root.Position = Vector3.new(-325, 76, 0)
+hubGolem.lastSafe = hubGolem.root.Position -- zoneAt below says quarry; a refused crossing returns here
 local walkingHumanoid = { Health = 100, HipHeight = 2 }
 local walkingRoot = {
 	Position = Vector3.new(-280, 65, 0), -- feet at 62: under the hub's plane, above the quarry's
