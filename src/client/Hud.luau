@@ -531,6 +531,120 @@ function Hud.start()
 	end
 	State.setToastHandler(showToast)
 
+	---------------------------------------------------------------- ore counter
+
+	-- Each collected ore chunk ("oreChunk") pops up its own "+5" just under a
+	-- running total at the bottom centre. The piece slides up into the total
+	-- and fades as it merges, then the total ticks up with a small punch, like
+	-- damage numbers adding up. A pickup more than Config.OreDrops.comboWindow
+	-- after the last one, or of another mineral, starts a new total. It's
+	-- display only: each chunk was already granted by the server.
+	local oreCounter = Instance.new("Frame")
+	oreCounter.Name = "OreCounter"
+	oreCounter.AnchorPoint = Vector2.new(0.5, 1)
+	oreCounter.Size = UDim2.fromOffset(320, 76)
+	oreCounter.Position = UDim2.new(0.5, 0, 1, -112) -- above the toast and the golem health bar
+	oreCounter.BackgroundTransparency = 1
+	oreCounter.Parent = gui
+	local oreTotal = Ui.label(oreCounter, "", UDim2.new(1, 0, 0, 36), UDim2.new(), {
+		Title = true,
+		TextSize = Ui.TextSize.heading,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextWrapped = false,
+		RichText = true,
+		TextTransparency = 1,
+	})
+	local oreTotalStroke = oreTotal:FindFirstChildOfClass("UIStroke")
+	if oreTotalStroke then
+		oreTotalStroke.Transparency = 1
+	end
+	local orePunch = Instance.new("UIScale")
+	orePunch.Parent = oreTotal
+	local oreMineral: string? = nil
+	local oreSum = 0
+	local oreLastAt = -math.huge
+	local oreCombo = 0 -- bumps on every new total, so a piece still in flight from the last one is dropped
+	local oreToken = 0
+	local oreFades: { Tween } = {}
+
+	local function showOreTotal()
+		local mineral = oreMineral
+		if not mineral then
+			return
+		end
+		oreToken += 1
+		local myToken = oreToken
+		for _, fade in oreFades do
+			fade:Cancel()
+		end
+		table.clear(oreFades)
+		local def = Config.Minerals[mineral]
+		local color = if def then def.color:Lerp(Color3.new(1, 1, 1), 0.35) else Ui.Colors.text
+		oreTotal.Text =
+			`+{Ui.short(oreSum)} <font color="#{color:ToHex()}">{if def then def.displayName else mineral}</font>`
+		oreTotal.TextTransparency = 0
+		if oreTotalStroke then
+			oreTotalStroke.Transparency = 0
+		end
+		if not Ui.reducedMotion() then
+			orePunch.Scale = 1.25
+			Ui.tween(orePunch, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
+		end
+		-- Hold a little past the combo window, then fade out.
+		task.delay(Config.OreDrops.comboWindow + 0.5, function()
+			if oreToken ~= myToken then
+				return
+			end
+			local info = TweenInfo.new(0.4)
+			table.insert(oreFades, Ui.tween(oreTotal, info, { TextTransparency = 1 }))
+			if oreTotalStroke then
+				table.insert(oreFades, Ui.tween(oreTotalStroke, info, { Transparency = 1 }))
+			end
+		end)
+	end
+
+	local function addOre(mineral: string, amount: number)
+		if amount <= 0 then
+			return
+		end
+		local now = os.clock()
+		local continuing = oreMineral == mineral and now - oreLastAt <= Config.OreDrops.comboWindow
+		oreLastAt = now
+		if not continuing then
+			oreCombo += 1
+			oreMineral = mineral
+			oreSum = amount
+			showOreTotal()
+			return
+		end
+		if Ui.reducedMotion() then
+			oreSum += amount
+			showOreTotal()
+			return
+		end
+		local combo = oreCombo
+		local piece = Ui.label(oreCounter, `+{Ui.short(amount)}`, UDim2.new(1, 0, 0, 28), UDim2.fromOffset(0, 44), {
+			Title = true,
+			TextSize = Ui.TextSize.big,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			TextWrapped = false,
+			TextColor3 = Ui.Colors.gold,
+		})
+		local pieceStroke = piece:FindFirstChildOfClass("UIStroke")
+		local slide = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		Ui.tween(piece, slide, { Position = UDim2.fromOffset(0, 6), TextTransparency = 1 })
+		if pieceStroke then
+			Ui.tween(pieceStroke, slide, { Transparency = 1 })
+		end
+		task.delay(slide.Time, function()
+			piece:Destroy()
+			if oreCombo == combo then
+				oreSum += amount
+				showOreTotal()
+			end
+		end)
+	end
+
 	---------------------------------------------------------------- state
 
 	local hintShown = false
@@ -564,8 +678,10 @@ function Hud.start()
 
 	Remotes.Notify.OnClientEvent:Connect(function(kind: string, ...)
 		local args = { ... }
-		if kind == "mined" then
-			showToast(`+{args[2]} {Config.Minerals[args[1]].displayName}`)
+		if kind == "oreChunk" or kind == "mined" then
+			-- "mined" is a weakspot rush bonus or the instant grant past
+			-- Config.OreDrops.maxConcurrent: the same counter, as one number.
+			addOre(args[1], args[2])
 		elseif kind == "defeated" then
 			showToast(`Beat {args[1]}! +{args[2]} XP`)
 		elseif kind == "boss" then

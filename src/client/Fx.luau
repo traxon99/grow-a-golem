@@ -10,6 +10,7 @@ local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local GuiService = game:GetService("GuiService")
+local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
@@ -472,29 +473,265 @@ local function watchNode(node: Instance)
 	end)
 end
 
--- A flying/settled ore chunk (see MiningService) gets a short trail so it
--- reads as something to chase, skipped with Reduced Motion like every other
--- purely-cosmetic effect here. There's nothing to clean up on our end when
--- it lands -- the Trail just rides along with the part until the server
--- destroys it on pickup, which `watchDrop`'s ChildRemoved handles below.
-local function watchDrop(chunk: Instance)
-	if not chunk:IsA("BasePart") or GuiService.ReducedMotionEnabled then
+-- Ore chunks (see MiningService.spawnDrops). The server's part sits invisible
+-- where the chunk will come to rest, with its launch in attributes; each
+-- client draws its own copy every frame: out of the node on a bright trail,
+-- a short slide to a stop, then a slow spin and bob like a dropped item, and
+-- finally a quick suck into its golem when the server collects it. With
+-- Reduced Motion the copy just sits still at its resting spot.
+type DropVisual = {
+	part: BasePart,
+	size: Vector3,
+	trail: Trail?,
+	light: PointLight?,
+	origin: Vector3,
+	land: Vector3, -- where it touches down and starts sliding
+	rest: Vector3,
+	launchedAt: number, -- server time
+	flight: number,
+	tumble: Vector3, -- radians/sec around each axis while flying
+	settled: boolean,
+	restLight: boolean, -- counts toward Config.OreDrops.restLights
+	sucking: boolean,
+	suckFrom: Vector3,
+	suckStart: number,
+	target: BasePart?,
+	ownerId: number,
+}
+
+local drops: { [Instance]: DropVisual } = {}
+local restLightCount = 0
+local lastChime = 0
+local TILT = CFrame.Angles(math.rad(25), 0, math.rad(25))
+
+local function idleRotation(t: number): CFrame
+	return CFrame.Angles(0, t * Config.OreDrops.spinSpeed, 0) * TILT
+end
+
+-- Where the copy is `t` seconds after launch.
+local function dropPose(visual: DropVisual, t: number): CFrame
+	local cfg = Config.OreDrops
+	if Ui.reducedMotion() then
+		return CFrame.new(visual.rest) * TILT
+	end
+	local tumble = visual.tumble
+	if t < visual.flight then
+		local p = math.max(t, 0) / visual.flight
+		local position = visual.origin:Lerp(visual.land, p) + Vector3.new(0, cfg.arcHeight * 4 * p * (1 - p), 0)
+		return CFrame.new(position) * CFrame.Angles(tumble.X * t, tumble.Y * t, tumble.Z * t)
+	end
+	local slide = t - visual.flight
+	if slide < cfg.slideTime then
+		-- Eases out along the ground with a tiny hop, turning from its
+		-- tumble into the idle spin so nothing snaps.
+		local s = slide / cfg.slideTime
+		local eased = 1 - (1 - s) ^ 2
+		local hop = math.sin(s * math.pi) * (1 - s) * 0.4
+		local landed = CFrame.Angles(tumble.X * visual.flight, tumble.Y * visual.flight, tumble.Z * visual.flight)
+		return CFrame.new(visual.land:Lerp(visual.rest, eased) + Vector3.new(0, hop, 0))
+			* landed:Lerp(idleRotation(t), eased)
+	end
+	local idle = slide - cfg.slideTime
+	local bob = (1 - math.cos(idle * 2.5)) * 0.5 * cfg.bobHeight
+	return CFrame.new(visual.rest + Vector3.new(0, bob, 0)) * idleRotation(t)
+end
+
+local function golemRootFor(userId: number): BasePart?
+	local golems = workspace:FindFirstChild("Golems")
+	if not golems then
+		return nil
+	end
+	for _, model in golems:GetChildren() do
+		if model:IsA("Model") and model:GetAttribute("OwnerId") == userId and model.PrimaryPart then
+			return model.PrimaryPart
+		end
+	end
+	return nil
+end
+
+local function removeDrop(key: Instance)
+	local visual = drops[key]
+	if not visual then
 		return
 	end
-	local attachment0 = Instance.new("Attachment")
-	attachment0.Position = Vector3.new(0, chunk.Size.Y / 2, 0)
-	attachment0.Parent = chunk
-	local attachment1 = Instance.new("Attachment")
-	attachment1.Position = Vector3.new(0, -chunk.Size.Y / 2, 0)
-	attachment1.Parent = chunk
-	local trail = Instance.new("Trail")
-	trail.Attachment0 = attachment0
-	trail.Attachment1 = attachment1
-	trail.Color = ColorSequence.new(chunk.Color)
-	trail.Lifetime = 0.35
-	trail.MinLength = 0
-	trail.WidthScale = NumberSequence.new(1, 0)
-	trail.Parent = chunk
+	if visual.restLight then
+		restLightCount -= 1
+	end
+	visual.part:Destroy()
+	drops[key] = nil
+end
+
+-- The collect chime is for the chunk's owner only, and rate-limited so a
+-- Magnet burst reads as a quick run of notes rather than one loud stack.
+local function chime(ownerId: number)
+	local now = os.clock()
+	if ownerId == player.UserId and now - lastChime >= 0.06 then
+		lastChime = now
+		Sfx.play("oreCollect")
+	end
+end
+
+local function watchDrop(chunk: Instance)
+	if not chunk:IsA("BasePart") then
+		return
+	end
+	local origin = chunk:GetAttribute("Origin")
+	local flight = chunk:GetAttribute("Flight")
+	local launchedAt = chunk:GetAttribute("LaunchedAt")
+	local ownerId = chunk:GetAttribute("OwnerId")
+	if
+		typeof(origin) ~= "Vector3"
+		or type(flight) ~= "number"
+		or type(launchedAt) ~= "number"
+		or type(ownerId) ~= "number"
+	then
+		return
+	end
+	local cfg = Config.OreDrops
+	local rest = chunk.Position
+	local touchdown = origin:Lerp(rest, 1 - cfg.slideFraction)
+	local color = chunk.Color
+
+	local part = Instance.new("Part")
+	part.Name = "OreChunkFx"
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.CastShadow = false
+	part.Size = chunk.Size
+	part.Color = color
+	part.Material = chunk.Material
+	part.CFrame = CFrame.new(origin)
+	part.Parent = folder
+
+	local visual: DropVisual = {
+		part = part,
+		size = chunk.Size,
+		trail = nil,
+		light = nil,
+		origin = origin,
+		land = Vector3.new(touchdown.X, rest.Y, touchdown.Z),
+		rest = rest,
+		launchedAt = launchedAt,
+		flight = flight,
+		tumble = Vector3.new(math.random() * 16 - 8, math.random() * 16 - 8, math.random() * 16 - 8),
+		settled = false,
+		restLight = false,
+		sucking = false,
+		suckFrom = rest,
+		suckStart = 0,
+		target = nil,
+		ownerId = ownerId,
+	}
+
+	if not Ui.reducedMotion() then
+		-- A wide, bright streak so a break visibly sprays light out of the rock.
+		local top = Instance.new("Attachment")
+		top.Position = Vector3.new(0, 0.7, 0)
+		top.Parent = part
+		local bottom = Instance.new("Attachment")
+		bottom.Position = Vector3.new(0, -0.7, 0)
+		bottom.Parent = part
+		local trail = Instance.new("Trail")
+		trail.Attachment0 = top
+		trail.Attachment1 = bottom
+		trail.FaceCamera = true
+		trail.LightEmission = 1
+		trail.LightInfluence = 0
+		trail.Lifetime = 0.55
+		trail.MinLength = 0
+		trail.Color = ColorSequence.new(color:Lerp(Color3.new(1, 1, 1), 0.55), color)
+		trail.Transparency = NumberSequence.new(0.05, 1)
+		trail.WidthScale = NumberSequence.new(1, 0.15)
+		trail.Parent = part
+		visual.trail = trail
+
+		local light = Instance.new("PointLight")
+		light.Color = color:Lerp(Color3.new(1, 1, 1), 0.3)
+		light.Brightness = 2.5
+		light.Range = 8
+		light.Shadows = false
+		light.Parent = part
+		visual.light = light
+	end
+
+	drops[chunk] = visual
+	part.CFrame = dropPose(visual, workspace:GetServerTimeNow() - launchedAt)
+end
+
+-- The server destroyed the chunk: it was collected (or expired and paid
+-- out), so fly the copy into its golem. A forfeited one (owner left) just
+-- disappears, so bystanders never see a pickup that rewarded nobody.
+local function dropRemoved(chunk: Instance)
+	local visual = drops[chunk]
+	if not visual then
+		return
+	end
+	if chunk:GetAttribute("Forfeited") then
+		removeDrop(chunk)
+		return
+	end
+	local target = golemRootFor(visual.ownerId)
+	if Ui.reducedMotion() or not target or not near(visual.part.Position) then
+		chime(visual.ownerId)
+		removeDrop(chunk)
+		return
+	end
+	visual.sucking = true
+	visual.target = target
+	visual.suckFrom = visual.part.Position
+	visual.suckStart = os.clock()
+	if visual.trail then
+		visual.trail.Enabled = true
+	end
+end
+
+local function stepDrops()
+	local cfg = Config.OreDrops
+	local now = workspace:GetServerTimeNow()
+	for key, visual in drops do
+		if visual.sucking then
+			local p = math.min((os.clock() - visual.suckStart) / cfg.suckTime, 1)
+			local eased = p * p
+			local target = visual.target
+			local goal = if target and target.Parent then target.Position else visual.suckFrom
+			visual.part.CFrame = CFrame.new(visual.suckFrom:Lerp(goal, eased)) * CFrame.Angles(0, os.clock() * 12, 0)
+			visual.part.Size = visual.size * (1 - 0.65 * eased)
+			if p >= 1 then
+				burst(goal, visual.part.Color, Enum.Material.Neon, 4, 0.35, 3)
+				chime(visual.ownerId)
+				removeDrop(key)
+			end
+			continue
+		end
+		local t = now - visual.launchedAt
+		if not visual.settled and t >= visual.flight + cfg.slideTime then
+			-- Landed for good: stop the streak and keep a small glow so it
+			-- reads against the ground, up to a per-client cap.
+			visual.settled = true
+			if visual.trail then
+				visual.trail.Enabled = false
+			end
+			if restLightCount < cfg.restLights then
+				restLightCount += 1
+				visual.restLight = true
+				local light = visual.light or Instance.new("PointLight")
+				light.Color = visual.part.Color:Lerp(Color3.new(1, 1, 1), 0.3)
+				light.Brightness = 0.9
+				light.Range = 5
+				light.Shadows = false
+				light.Parent = visual.part
+				visual.light = light
+			elseif visual.light then
+				visual.light:Destroy()
+				visual.light = nil
+			end
+		end
+		if near(visual.rest) then
+			visual.part.CFrame = dropPose(visual, t)
+		end
+	end
 end
 
 local function each(folderName: string, callback: (Instance) -> ())
@@ -551,22 +788,9 @@ function Fx.start()
 	task.spawn(each, "Golems", watchGolem)
 	task.spawn(function()
 		local dropsFolder = each("Drops", watchDrop)
-		-- Picked up (or expired) server-side: a little sparkle and a chime
-		-- where it was, same near()/ReducedMotion gating as every other burst.
-		dropsFolder.ChildRemoved:Connect(function(child)
-			-- The server tags a chunk "Forfeited" (its owner left before
-			-- collecting it) rather than paying it out; no fx for that one,
-			-- so a bystander never sees a "pickup" that rewarded nobody.
-			if child:IsA("BasePart") and not child:GetAttribute("Forfeited") then
-				-- Position is still readable on a just-removed part, but it's
-				-- about to be destroyed server-side -- play the chime
-				-- untethered (like the existing "mined" sound) rather than
-				-- risk parenting a Sound to it.
-				burst(child.Position, child.Color, Enum.Material.Neon, 4, 0.35, 3)
-				Sfx.play("oreCollect")
-			end
-		end)
+		dropsFolder.ChildRemoved:Connect(dropRemoved)
 	end)
+	RunService.RenderStepped:Connect(stepDrops)
 	task.spawn(function()
 		local nodes = each("Nodes", watchNode)
 		nodes.ChildRemoved:Connect(function(child)

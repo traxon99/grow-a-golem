@@ -210,7 +210,10 @@ function Sfx.start()
 			if args[3] == player.UserId then
 				Sfx.play("quake", myGolemRoot())
 			end
-		elseif kind == "mined" then
+		elseif kind == "mined" or kind == "oreBurst" then
+			-- "oreBurst" is a node breaking into chunks; "mined" is a
+			-- weakspot rush bonus or the instant grant past
+			-- Config.OreDrops.maxConcurrent.
 			Sfx.play("mineBreak", myGolemRoot())
 		elseif kind == "defeated" then
 			Sfx.play("defeat")

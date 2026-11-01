@@ -105,6 +105,9 @@ local shared = {
 	WaitForChild = function(self)
 		return self
 	end,
+	GetServerTimeNow = function()
+		return os.clock()
+	end,
 }
 local Players = {
 	PlayerRemoving = {
@@ -158,12 +161,14 @@ local Config = {
 		minChunks = 1,
 		maxChunks = 1,
 		chunkSize = 0.9,
-		scatterSpeed = 0,
-		scatterHeight = 0,
-		gravity = 0,
-		-- Nodes sit 2 studs up (half their 4-stud size), so a 2-stud settle
-		-- height lands every chunk on its first update; with no pickup delay
-		-- it is collected on that same flush.
+		-- No scatter, flight or slide: every chunk rests where its node stood
+		-- (nodes sit 2 studs up, half their 4-stud size, so a 2-stud settle
+		-- height keeps it there) and, with no pickup delay, is collected on
+		-- the next update.
+		scatterRadius = 0,
+		minScatterFraction = 0.3,
+		flightTime = 0,
+		slideTime = 0,
 		settleHeight = 2,
 		pickupDelay = 0,
 		lifetime = 1e9,
@@ -203,7 +208,11 @@ local mining = loadMiningService({
 	},
 	Remotes = {
 		Notify = {
-			FireClient = function(_, player)
+			-- Counts payout notices only; "oreBurst" is just the break sound.
+			FireClient = function(_, player, kind)
+				if kind ~= "oreChunk" and kind ~= "mined" then
+					return
+				end
 				notices[player] = (notices[player] or 0) + 1
 			end,
 		},
@@ -353,17 +362,45 @@ mining.update(0)
 assert(paid[a] == 45, "once pickupDelay has passed, a landed chunk in range is collected")
 Config.OreDrops.pickupDelay = 0
 
--- A chunk still in the air is never collected, however close it is.
-Config.OreDrops.scatterHeight = 10
+-- A chunk still flying or sliding is never collected, however close it is.
+Config.OreDrops.flightTime = 0.03
+Config.OreDrops.slideTime = 0.03
 node = spawnNode()
 mining.damage(node, 100, a)
-mining.update(0.01)
+mining.update(0)
 assert(paid[a] == 45, "a chunk still flying must not be collected")
-Config.OreDrops.gravity = 1e4
-mining.update(0.1)
-assert(paid[a] == 55, "the chunk is collected once it lands")
-Config.OreDrops.scatterHeight = 0
-Config.OreDrops.gravity = 0
+waitStart = os.clock()
+repeat
+until os.clock() - waitStart >= 0.075
+mining.update(0)
+assert(paid[a] == 55, "the chunk is collected once it has landed and slid to rest")
+Config.OreDrops.flightTime = 0
+Config.OreDrops.slideTime = 0
+
+-- Chunks rest at 0.3-1.0 of the scatter radius from their node, and each
+-- one pays (and announces) its own share of the node's yield.
+Config.OreDrops.scatterRadius = 15
+Config.OreDrops.minChunks = 4
+Config.OreDrops.maxChunks = 4
+Config.Golem.pickupRadius = 1e9
+local before = #createdChunks
+local noticesBefore = notices[a]
+node = spawnNode()
+local origin = node.part.Position
+mining.damage(node, 100, a)
+for index = before + 1, #createdChunks do
+	local rest = createdChunks[index].Position
+	local distance = math.sqrt((rest.X - origin.X) ^ 2 + (rest.Z - origin.Z) ^ 2)
+	assert(distance >= 15 * 0.3 - 1e-6 and distance <= 15 + 1e-6, "a chunk rests 0.3-1.0 of scatterRadius out")
+end
+assert(#createdChunks - before == 4)
+mining.update(0)
+assert(paid[a] == 65, "four chunks of a 10-yield node still pay 10 in total")
+assert(notices[a] - noticesBefore == 4, "each chunk announces its own share")
+Config.OreDrops.scatterRadius = 0
+Config.OreDrops.minChunks = 1
+Config.OreDrops.maxChunks = 1
+Config.Golem.pickupRadius = 5
 
 -- A winner who disconnects before collecting forfeits the reward rather
 -- than being paid late (matches damage()'s own "a departed player cannot
