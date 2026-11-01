@@ -149,7 +149,7 @@ Config.Golem = {
 	miningDamage = 10,
 	miningCooldown = 0.8,
 	miningRange = 10,
-	pickupRadius = 16, -- ore chunks this close to the golem are auto-collected
+	pickupRadius = 12, -- landed ore chunks this close to the golem are auto-collected; the farthest-flung wait for a step or a Magnet cast
 	seekRange = 150, -- when idle, golem walks to nodes this far away
 	respawnTime = 5,
 	mountCooldown = 1, -- seconds between mount/dismount requests
@@ -185,6 +185,7 @@ Config.OreDrops = {
 	scatterHeight = 11, -- studs/sec upward fling
 	gravity = 28,
 	settleHeight = 1.2, -- studs above ground the chunk rests at once it lands
+	pickupDelay = 0.6, -- seconds a chunk must exist (and have landed) before it can be collected, so players always see it pop out
 	lifetime = 14, -- auto-collected after this long even if never reached, so a reward is never lost
 	maxConcurrent = 150, -- server-wide cap; a node breaking past it grants instantly instead (see art-audio.md's juice note on pooling/capping debris)
 }

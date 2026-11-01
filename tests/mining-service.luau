@@ -161,7 +161,11 @@ local Config = {
 		scatterSpeed = 0,
 		scatterHeight = 0,
 		gravity = 0,
-		settleHeight = 0,
+		-- Nodes sit 2 studs up (half their 4-stud size), so a 2-stud settle
+		-- height lands every chunk on its first update; with no pickup delay
+		-- it is collected on that same flush.
+		settleHeight = 2,
+		pickupDelay = 0,
 		lifetime = 1e9,
 		maxConcurrent = 1e9,
 	},
@@ -333,6 +337,33 @@ assert(paid[a] == 25, "a chunk 12 studs out, with only a 5-stud base radius, sho
 mining.triggerMagnetBurst(a)
 mining.update(0)
 assert(paid[a] == 35, "Magnet's 3x burst (radius 15) should reach a chunk sitting 12 studs out")
+
+-- The golem mines from inside its own pickup radius, so a chunk must not be
+-- collected the tick it spawns (#250): it waits until it has landed and
+-- pickupDelay has passed, which is what lets players see it at all.
+Config.OreDrops.pickupDelay = 0.05
+node = spawnNode() -- within a stud or two of the golem
+mining.damage(node, 100, a)
+mining.update(0)
+assert(paid[a] == 35, "a chunk inside the pickup radius must wait out pickupDelay")
+local waitStart = os.clock()
+repeat
+until os.clock() - waitStart >= 0.06
+mining.update(0)
+assert(paid[a] == 45, "once pickupDelay has passed, a landed chunk in range is collected")
+Config.OreDrops.pickupDelay = 0
+
+-- A chunk still in the air is never collected, however close it is.
+Config.OreDrops.scatterHeight = 10
+node = spawnNode()
+mining.damage(node, 100, a)
+mining.update(0.01)
+assert(paid[a] == 45, "a chunk still flying must not be collected")
+Config.OreDrops.gravity = 1e4
+mining.update(0.1)
+assert(paid[a] == 55, "the chunk is collected once it lands")
+Config.OreDrops.scatterHeight = 0
+Config.OreDrops.gravity = 0
 
 -- A winner who disconnects before collecting forfeits the reward rather
 -- than being paid late (matches damage()'s own "a departed player cannot
