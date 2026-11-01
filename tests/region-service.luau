@@ -3,7 +3,7 @@ do
 	local regions = { [1] = true, [2] = true, [0] = true }
 	local zoneUnder = 1
 	local data = { campaign = { regions = { ["1"] = true } } }
-	local events, messages, placed, changed = {}, {}, {}, 0
+	local events, messages, placed, changed, published = {}, {}, {}, 0, 0
 	local service = loadRegionService({
 		Config = Config,
 		Remotes = {
@@ -34,6 +34,10 @@ do
 			placeAt = function(_, position)
 				table.insert(placed, position)
 			end,
+			setZone = function(golem, zoneId)
+				golem.zoneId = zoneId
+				published += 1
+			end,
 		},
 		WorldService = {
 			isKingdomZone = function(zoneId)
@@ -58,7 +62,7 @@ do
 	-- Into the hub: always open, no zoneEntered (travel doesn't fire one either).
 	zoneUnder = Config.HubZone
 	assert(service.check(player, golem, 0) == "entered" and golem.zoneId == Config.HubZone)
-	assert(#events == 0 and changed == 1)
+	assert(#events == 0 and changed == 1 and published == 1, "clients learn the new zone")
 	-- Back into the quarry: entered once, and not again while standing there.
 	zoneUnder = 1
 	assert(service.check(player, golem, 0) == "entered" and golem.zoneId == 1)

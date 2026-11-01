@@ -44,7 +44,7 @@ function RegionService.check(player: Player, golem: any, now: number): string?
 		allowed, reason = Stats.travelUnlocked(data, zoneId)
 	end
 	if allowed then
-		golem.zoneId = zoneId
+		GolemService.setZone(golem, zoneId)
 		DataService.markChanged(player)
 		if zoneId ~= Config.HubZone then
 			Events.fire("zoneEntered", player, zoneId)

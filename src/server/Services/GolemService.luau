@@ -921,12 +921,32 @@ function GolemService.inLeash(golem: Golem, position: Vector3): boolean
 	return center == nil or ((position - center) * FLAT).Magnitude <= GolemService.leashRadius(golem)
 end
 
+-- Whether a golem may puff to its rider in `zoneId`: its own zone, or (on the
+-- connected kingdom route) a neighbouring region the player can already
+-- enter. RegionService then switches the zone from the golem's new position.
+local function canPuffInto(golem: Golem, zoneId: number?): boolean
+	if zoneId == nil then
+		return false
+	end
+	if zoneId == golem.zoneId then
+		return true
+	end
+	if not WorldService.isKingdomZone(zoneId) or not WorldService.isKingdomZone(golem.zoneId) then
+		return false
+	end
+	if zoneId == Config.HubZone then
+		return true
+	end
+	local data = DataService.get(golem.player)
+	return data ~= nil and (Stats.travelUnlocked(data, zoneId))
+end
+
 -- Puffs the golem back beside its rider (clients play the puff, see Fx).
 -- Waits, returning false, while the rider is in the air or there's no room.
 local function puffToRider(golem: Golem, center: Vector3): boolean
 	local character = golem.player.Character
 	local riderRoot = character and character:FindFirstChild("HumanoidRootPart")
-	if not riderRoot or not riderRoot:IsA("BasePart") or WorldService.zoneAt(center) ~= golem.zoneId then
+	if not riderRoot or not riderRoot:IsA("BasePart") or not canPuffInto(golem, WorldService.zoneAt(center)) then
 		return false
 	end
 	local floor = workspace:Raycast(center, Vector3.new(0, -12, 0), groundParams())
@@ -1001,7 +1021,17 @@ function GolemService.followRider(golem: Golem, now: number): boolean
 		end
 		golem.followProgressAt = now -- no room to puff yet; try again later
 	end
-	golem.humanoid:MoveTo(center + offset.Unit * radius * 0.3)
+	local target = center + offset.Unit * radius * 0.3
+	-- On the kingdom route a straight walk can cross the void between
+	-- pieces; puff over instead, or wait if there's no room yet.
+	if not WorldService.groundedPath(golem.root.Position, target) then
+		if puffToRider(golem, center) then
+			return false
+		end
+		golem.humanoid:Move(Vector3.zero)
+		return true
+	end
+	golem.humanoid:MoveTo(target)
 	return true
 end
 
@@ -1023,6 +1053,13 @@ function GolemService.placeAt(golem: Golem, ground: Vector3)
 	-- so a fall can't carry the golem straight through its recovery spawn.
 	golem.root.AssemblyLinearVelocity = Vector3.zero
 	golem.root.AssemblyAngularVelocity = Vector3.zero
+end
+
+-- Switches the golem's zone where it stands (walking between kingdom
+-- regions) and tells clients, like travel does.
+function GolemService.setZone(golem: Golem, zoneId: number)
+	golem.zoneId = zoneId
+	publishHealth(golem)
 end
 
 -- Moves the golem to a zone's spawn point.

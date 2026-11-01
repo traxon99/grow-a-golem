@@ -129,5 +129,10 @@ do
 	assert(back.X == -480 and back.Z == -1432 and back.Y == 72)
 	local arenaBack = world.safePointNear(150, Vector3.new(999, 0, 999), 12)
 	assert(arenaBack.X == 0 and arenaBack.Z == 1200, "outside the kingdom, the safe point is the spawn")
+	-- Straight walks: along the road is grounded, cutting the corner from the
+	-- quarry spawn to the approach crosses the void.
+	assert(world.groundedPath(Vector3.new(0, 60, -1500), Vector3.new(-480, 72, -1500)))
+	assert(not world.groundedPath(Vector3.new(0, 60, -1420), Vector3.new(-480, 72, -1450)))
+	assert(world.groundedPath(Vector3.new(0, 60, 1200), Vector3.new(10, 60, 1210)), "arena walks are not checked")
 	print("world-service kingdom: ok")
 end

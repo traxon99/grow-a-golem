@@ -261,6 +261,29 @@ function WorldService.safePointNear(zoneId: number, position: Vector3, margin: n
 	return WorldService.getSpawnPoint(zoneId)
 end
 
+-- Whether walking straight from `from` to `to` stays on kingdom ground.
+-- Always true off the kingdom route, where islands are single flat parts.
+function WorldService.groundedPath(from: Vector3, to: Vector3): boolean
+	if not next(kingdomZones) then
+		return true
+	end
+	if
+		not KingdomLayout.zoneAt(kingdomPieces, from.X, from.Z)
+		and not KingdomLayout.zoneAt(kingdomPieces, to.X, to.Z)
+	then
+		return true
+	end
+	local dx, dz = to.X - from.X, to.Z - from.Z
+	local steps = math.max(1, math.ceil(math.sqrt(dx * dx + dz * dz) / 4))
+	for step = 0, steps do
+		local t = step / steps
+		if not KingdomLayout.groundAt(kingdomPieces, from.X + dx * t, from.Z + dz * t) then
+			return false
+		end
+	end
+	return true
+end
+
 -- Builds (once) a flat arena ground that works like any island: spawn points,
 -- random points and surface height all answer for its zone id. Used by the
 -- co-op tower; arenas have no scenery, nodes or regular spawns.
