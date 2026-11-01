@@ -1187,6 +1187,43 @@ Config.SoundEffects = {
 	wind = { id = WIND, speed = 0.45, volume = 0.07, loop = true },
 }
 
+-- Background music. Every id is from Roblox's licensed music library (APM,
+-- Cezame and Epic Score tracks uploaded by Roblox), so it plays in any
+-- experience with no upload or permission step. Picks and sources:
+-- https://claude.ai/artifact/81eqPisWGq9k42JjDFxA3E
+-- `areas` maps where the player is to a track: "hub", "tower", "boss" (the
+-- boss bar is showing) or an island's zone id. 0 = silent. The client fades
+-- between tracks over `fadeSeconds`, and the player's music setting
+-- (social.musicVolume, one of `volumeSteps`) scales `volume`.
+Config.Music = {
+	volume = 0.35,
+	fadeSeconds = 2.5,
+	bossRange = 110, -- studs; matches the boss bar
+	volumeSteps = { 1, 0.5, 0 }, -- Normal, Low, Off; the Settings button cycles them
+	tracks = {
+		rainbow = { id = 9038244687, title = "The Other Side of the Rainbow", artist = "Cezame Carte Blanche" },
+		mysticalFlow = { id = 9038245031, title = "Mystical Flow", artist = "Cezame Carte Blanche" },
+		farAway = { id = 9038240431, title = "Nostalgia for a Far-Away Country", artist = "Cezame Carte Blanche" },
+		karisutaru = { id = 9038245639, title = "Karisutaru", artist = "Cezame Carte Blanche" },
+		climbing = { id = 1843329754, title = "Climbing Mountains", artist = "Michael Werner Maas" },
+		spheres = { id = 9038245388, title = "Circles of Spheres", artist = "Cezame Carte Blanche" },
+		sarasvati = { id = 9038244726, title = "Sarasvati", artist = "Cezame Carte Blanche" },
+		riseAndFight = { id = 1837838984, title = "Rise and Fight (A)", artist = "Epic Score", volume = 0.8 },
+		saveThisWorld = { id = 9040072460, title = "Fight To Save This World (A)", artist = "Epic Score", volume = 0.8 },
+	},
+	areas = {
+		hub = "rainbow",
+		tower = "riseAndFight",
+		boss = "saveThisWorld",
+		[1] = "mysticalFlow", -- Mossy Quarry
+		[2] = "farAway", -- Ember Flats
+		[3] = "karisutaru", -- Glasswood
+		[4] = "climbing", -- Storm Peak
+		[5] = "spheres", -- Sunken Ruins
+		[6] = "sarasvati", -- Sky Forge
+	},
+}
+
 ---------------------------------------------------------------- tutorial
 
 -- The first-time tutorial. One action per step; the server advances it from
