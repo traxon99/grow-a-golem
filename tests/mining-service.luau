@@ -45,6 +45,11 @@ local CFrame = {
 	end,
 }
 
+-- Every OreChunk part spawnDrops creates gets recorded here, so tests below
+-- can inspect what happened to it (destroyed? forfeited?) without the real
+-- module needing to expose its private `drops` list.
+local createdChunks = {}
+
 local partMeta = {}
 partMeta.__index = function(self, key)
 	if key == "CFrame" then
@@ -58,6 +63,9 @@ partMeta.__newindex = function(self, key, value)
 		rawset(self, "Position", value.Position)
 	else
 		rawset(self, key, value)
+		if key == "Name" and value == "OreChunk" then
+			table.insert(createdChunks, self)
+		end
 	end
 end
 local Instance = {
@@ -98,8 +106,18 @@ local shared = {
 		return self
 	end,
 }
+local Players = {
+	PlayerRemoving = {
+		Connect = function(_, callback)
+			return callback
+		end,
+	},
+}
 local game = {
-	GetService = function()
+	GetService = function(_, name)
+		if name == "Players" then
+			return Players
+		end
 		return shared
 	end,
 }
@@ -315,5 +333,21 @@ assert(paid[a] == 25, "a chunk 12 studs out, with only a 5-stud base radius, sho
 mining.triggerMagnetBurst(a)
 mining.update(0)
 assert(paid[a] == 35, "Magnet's 3x burst (radius 15) should reach a chunk sitting 12 studs out")
+
+-- A winner who disconnects before collecting forfeits the reward rather
+-- than being paid late (matches damage()'s own "a departed player cannot
+-- claim a reward" rule) -- and the server tags the chunk instead of just
+-- silently dropping it, so the client knows not to play a pickup fx for it.
+node = spawnNode()
+mining.damage(node, 100, b)
+b.Parent = nil
+mining.update(0)
+b.Parent = true
+assert(paid[b] == 30, "a forfeited chunk must not pay out")
+local forfeited = createdChunks[#createdChunks]
+assert(
+	forfeited.destroyed and forfeited:GetAttribute("Forfeited") == true,
+	"a forfeited chunk should be destroyed and tagged for the client"
+)
 
 print("MiningService ownership, two-tap weakspot rush and pickup-radius checks passed")

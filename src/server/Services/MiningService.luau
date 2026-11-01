@@ -2,6 +2,7 @@
 -- Places mineral nodes around each zone. Golems chip them down; when a node
 -- breaks, the player gets its yield and a new node appears somewhere else later.
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -261,6 +262,12 @@ end
 local function spawnDrops(node: Node, owner: Player)
 	local cfg = Config.OreDrops
 	local total = node.def.yield
+	if total <= 0 then
+		-- Nothing to pay out; stop here so a zero-yield node can never leave
+		-- a DropGroup with chunks removed by the `amount <= 0` guard below
+		-- but `remaining` never reaching 0, which would strand its payout.
+		return
+	end
 	if #drops >= cfg.maxConcurrent then
 		-- Hit the server-wide cap: grant instantly rather than drop a chunk
 		-- nobody has room to track (see performance-mobile.md's note on
@@ -371,7 +378,14 @@ function MiningService.update(dt: number)
 	for i = #drops, 1, -1 do
 		local chunk = drops[i]
 		if not chunk.owner.Parent then
-			-- Owner left; nobody can collect it, so just clean it up.
+			-- Owner left before collecting: matches `damage`'s own rule that
+			-- a departed player can't claim a reward, so this one is
+			-- forfeited rather than paid out late. Logged (not silent) since
+			-- it's the one path here that destroys a reward instead of
+			-- granting it. "Forfeited" tells the client not to play the
+			-- pickup fx for it (see Fx.luau's watch on this folder).
+			warn(`[MiningService] {chunk.owner.Name} left before collecting {chunk.amount} {chunk.mineral}; forfeited`)
+			chunk.part:SetAttribute("Forfeited", true)
 			chunk.part:Destroy()
 			table.remove(drops, i)
 			continue
@@ -479,6 +493,11 @@ function MiningService.start()
 			placeNode(zoneId)
 		end
 	end
+	-- Matches every other per-player table in this codebase: don't hold onto
+	-- a stale entry forever just because the burst it timestamps has expired.
+	Players.PlayerRemoving:Connect(function(player: Player)
+		magnetBurstUntil[player] = nil
+	end)
 end
 
 return MiningService

@@ -554,7 +554,10 @@ function Fx.start()
 		-- Picked up (or expired) server-side: a little sparkle and a chime
 		-- where it was, same near()/ReducedMotion gating as every other burst.
 		dropsFolder.ChildRemoved:Connect(function(child)
-			if child:IsA("BasePart") then
+			-- The server tags a chunk "Forfeited" (its owner left before
+			-- collecting it) rather than paying it out; no fx for that one,
+			-- so a bystander never sees a "pickup" that rewarded nobody.
+			if child:IsA("BasePart") and not child:GetAttribute("Forfeited") then
 				-- Position is still readable on a just-removed part, but it's
 				-- about to be destroyed server-side -- play the chime
 				-- untethered (like the existing "mined" sound) rather than
