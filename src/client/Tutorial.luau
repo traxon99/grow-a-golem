@@ -385,7 +385,7 @@ function Tutorial.start()
 			if Menus.isOpen("forge") then
 				hint.Visible = false
 				ring.Visible = false
-				text.Text = "Press Forge on any part!"
+				text.Text = step.menuText or "Press Forge on any part!"
 			else
 				pointAtButton(Menus.getTabButton("forge"), t, "right")
 				text.Text = stepText(step)

@@ -57,6 +57,19 @@ local function enterStep(player: Player, index: number)
 			EconomyService.grantFlat(player, { minerals = { stone = missing } }, "tutorial")
 		end
 	end
+	if step.topUpPart then
+		-- Guarantee a specific first part (the kingdom's copper arm).
+		local needed = {}
+		for mineral, amount in Stats.partCost(step.topUpPart.slot, step.topUpPart.tier) do
+			local missing = amount - (data.minerals[mineral] or 0)
+			if missing > 0 then
+				needed[mineral] = missing
+			end
+		end
+		if next(needed) then
+			EconomyService.grantFlat(player, { minerals = needed }, "tutorial")
+		end
+	end
 end
 
 local function finish(player: Player, skipped: boolean)
@@ -124,6 +137,17 @@ local function onLoaded(player: Player)
 			d.tutorial.step = 1
 		end)
 		logStep(player, 1, Stats.tutorial().steps[1].id)
+	end
+	-- A save mid-way through the other tutorial (the kingdom flag changed)
+	-- goes back to the first kingdom step it hasn't actually done.
+	local steps = Stats.tutorial().steps
+	for index = 1, math.min(data.tutorial.step - 1, #steps) do
+		if steps[index].completeOn and not Stats.tutorialStepMet(data, steps[index]) then
+			DataService.update(player, function(d)
+				d.tutorial.step = index
+			end)
+			break
+		end
 	end
 	enterStep(player, data.tutorial.step)
 	TutorialService.check(player)

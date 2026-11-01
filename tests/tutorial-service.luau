@@ -249,8 +249,13 @@ do
 		local rider = join(kingdomData())
 		loaded:Fire(rider)
 		datas[rider].tutorial.step = 2
+		local grantsBefore = #grants
 		eventHandlers.nodeMined(rider)
 		assert(datas[rider].tutorial.step == 3, "mine, then forge an arm")
+		local armCost = Stats.partCost("armL", "copper")
+		local topUp = grants[#grants]
+		assert(#grants == grantsBefore + 1 and topUp.player == rider, "the copper arm is guaranteed")
+		assert(topUp.amounts.minerals.copper == armCost.copper and topUp.amounts.minerals.stone == armCost.stone)
 		eventHandlers.partCrafted(rider)
 		assert(datas[rider].tutorial.step == 3, "any part isn't enough; it waits for Smash")
 		eventHandlers.abilityLearned(rider, "lift")
@@ -271,6 +276,12 @@ do
 		datas[returning].tutorial.step = 3
 		loaded:Fire(returning)
 		assert(datas[returning].tutorial.step == 5, "an already-open wall isn't asked for again")
+
+		-- A save on a later step of the old tutorial goes back to forging.
+		local switched = join(kingdomData())
+		datas[switched].tutorial.step = 5
+		loaded:Fire(switched)
+		assert(datas[switched].tutorial.step == 3, "steps it hasn't done come back")
 
 		-- Skipping still works.
 		local skipper = join(kingdomData())

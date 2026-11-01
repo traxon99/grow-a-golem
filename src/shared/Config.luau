@@ -1383,7 +1383,10 @@ Config.Kingdom.tutorial = {
 		{
 			id = "forgeArm",
 			text = "Open Forge. Build a copper arm!",
+			menuText = "Forge a copper arm!",
 			pointer = "forge",
+			-- Guarantee the first useful forge: top minerals up to this part's cost.
+			topUpPart = { slot = "armL", tier = "copper" },
 			touchKey = "Tap",
 			completeOn = { event = "abilityLearned", value = "smash" },
 		},

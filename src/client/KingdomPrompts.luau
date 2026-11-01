@@ -12,6 +12,7 @@ local Config = require(Shared:WaitForChild("Config"))
 local KingdomRules = require(Shared:WaitForChild("KingdomRules"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 
+local Sfx = require(script.Parent:WaitForChild("Sfx"))
 local State = require(script.Parent:WaitForChild("State"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
 
@@ -79,12 +80,14 @@ local function reveal(title: string, text: string)
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Title = true,
 		TextSize = 26,
+		AutomaticSize = Enum.AutomaticSize.Y, -- wraps to two lines on a phone
 	})
 	Ui.outline(sub, 3)
 	local pop = Instance.new("UIScale")
 	pop.Scale = if Ui.reducedMotion() then 1 else 0.4
 	pop.Parent = banner
 	Ui.tween(pop, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
+	Sfx.moment("levelUp")
 	task.delay(4, function()
 		gui:Destroy()
 	end)
