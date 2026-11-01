@@ -206,6 +206,11 @@ do
 	local trip = travels[#travels]
 	assert(trip[2] == 1 and (trip[3] - (plot + sanctuary.returnOffset)).Magnitude < 1e-6, "lands by the hearth")
 	assert(changed == 1)
+	local entered = events[#events]
+	assert(entered[1] == "zoneEntered" and entered[3] == 1, "arrival counted like any travel")
+	local eventCount = #events
+	ok = home(alice)
+	assert(ok and #events == eventCount, "no arrival event when already in the kingdom")
 	alice.data.campaign.obstacles = {}
 	ok, message = home(alice)
 	assert(not ok and message == "Open the quarry road first.")
@@ -215,6 +220,7 @@ do
 	removing(alice)
 	assert(service.plotOf(alice) == nil)
 	assert(service.plotOf(late) == 1 and not service.queued(late), "the waiting player gets the freed plot")
+	assert(notes[#notes][1] == late and notes[#notes][3] == sanctuary.freedText, "and is told")
 	assert(alice.data.campaign.projects.hearth == true, "restoration lives in the save")
 	removing(late)
 	assert(service.plotOf(late) == nil)
@@ -231,10 +237,15 @@ do
 	end
 	assert(litCount == 1, "only alice's plot is lit")
 
-	-- A queued player who leaves drops out of the queue.
+	-- A queued player who leaves drops out of the queue. A queued player with
+	-- a lit hearth can't Return Home onto someone else's plot.
 	local waiting = makePlayer("waiting")
+	waiting.data.campaign.projects.hearth = true
 	loaded(waiting)
 	assert(service.queued(waiting))
+	local trips = #travels
+	ok, message = home(waiting)
+	assert(not ok and message == sanctuary.fullText and #travels == trips, "no trip while queued")
 	removing(waiting)
 	assert(not service.queued(waiting))
 

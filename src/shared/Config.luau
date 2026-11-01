@@ -157,6 +157,7 @@ Config.Kingdom = {
 		},
 		returnOffset = Vector3.new(0, 0, 14), -- where Return Home stands the golem, from the hearth
 		fullText = "Every sanctuary plot is in use. Your hearth is saved and will appear when one frees up.",
+		freedText = "A sanctuary plot is free! Your hearth is waiting there.",
 	},
 	obstacleOrder = { "quarryWall" },
 	obstacles = {

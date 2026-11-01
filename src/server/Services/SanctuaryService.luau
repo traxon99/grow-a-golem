@@ -101,7 +101,9 @@ function SanctuaryService.release(player: Player)
 	show(index)
 	while #queue > 0 and owners[index] == nil do
 		local nextPlayer = table.remove(queue, 1) :: Player
-		SanctuaryService.assign(nextPlayer)
+		if SanctuaryService.assign(nextPlayer) then
+			Remotes.Notify:FireClient(nextPlayer, "message", Config.Kingdom.sanctuary.freedText)
+		end
 	end
 end
 
@@ -160,9 +162,16 @@ local function returnHome(player: Player): (boolean, string?)
 		return false, "Wait for your golem to rebuild."
 	end
 	local index = plotOf[player] or SanctuaryService.assign(player)
-	local base = if index then hearthPosition(index) else Config.Kingdom.sanctuary.plots[1]
-	GolemService.travelTo(golem, 1, base + Config.Kingdom.sanctuary.returnOffset)
+	if not index then
+		-- Never land on someone else's hearth while waiting for a plot.
+		return false, Config.Kingdom.sanctuary.fullText
+	end
+	local arriving = golem.zoneId ~= 1
+	GolemService.travelTo(golem, 1, hearthPosition(index) + Config.Kingdom.sanctuary.returnOffset)
 	DataService.markChanged(player)
+	if arriving then
+		Events.fire("zoneEntered", player, 1)
+	end
 	return true, "Welcome home!"
 end
 
