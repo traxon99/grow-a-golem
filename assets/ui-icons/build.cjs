@@ -1,4 +1,4 @@
-// Mechanical crops only: all artwork comes from the owner's unmodified PNG.
+// Mechanical packing of preserved original and generated source artwork.
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
@@ -7,6 +7,10 @@ const sharp = require('sharp');
 const root = __dirname;
 const source = require('./source.json');
 const manifest = require('./manifest.json');
+const rarity = require('./rarity/source.json');
+function cropPath(icon) {
+  return path.join(root, icon.sourceFamily === 'rarity' ? 'rarity/crops' : 'crops', icon.sourceCrop + '.png');
+}
 async function normalized(file) {
   // Trim transparent margins, preserving the complete painted silhouette.
   const { data, info } = await sharp(file).ensureAlpha().raw().toBuffer({resolveWithObject:true});
@@ -23,9 +27,13 @@ async function build() {
   assert.equal(crypto.createHash('sha256').update(input).digest('hex'),source.sha256,'Original source changed');
   for(const dir of ['crops','png']) fs.mkdirSync(path.join(root,dir),{recursive:true});
   for(const crop of source.crops) await sharp(input).extract(crop.rect).png().toFile(path.join(root,'crops',crop.id+'.png'));
+  const rarityInput=fs.readFileSync(path.join(root,'rarity',rarity.source));
+  assert.equal(crypto.createHash('sha256').update(rarityInput).digest('hex'),rarity.sha256,'Rarity source changed');
+  fs.mkdirSync(path.join(root,'rarity/crops'),{recursive:true});
+  for(const crop of rarity.crops) await sharp(rarityInput).extract(crop.rect).png().toFile(path.join(root,'rarity/crops',crop.id+'.png'));
   const color=[],mono=[],preview=[];
   for(const icon of manifest.icons) {
-    const png=await normalized(path.join(root,'crops',icon.sourceCrop+'.png'));
+    const png=await normalized(cropPath(icon));
     fs.writeFileSync(path.join(root,'png',icon.id+'.png'),png);
     const gray=await sharp(png).greyscale().toColourspace('srgb').png().toBuffer();
     const [left,top]=icon.offset;
@@ -48,4 +56,4 @@ async function build() {
   fs.copyFileSync(path.join(root,'preview.png'),path.join(root,'../../docs/reference/images/ui-icons.png'));
 }
 if(require.main===module) build().catch(e=>{console.error(e);process.exitCode=1;});
-module.exports={normalized};
+module.exports={normalized,cropPath};

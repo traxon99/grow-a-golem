@@ -1,0 +1,64 @@
+{
+  "source": "clean-source.png",
+  "sha256": "39fbae5c55c3cef3120f6f75502ce88b2d32af755079f2749d817d2b259e3b0f",
+  "generator": "Built-in image_gen",
+  "date": "2026-10-31",
+  "issue": 238,
+  "styleReference": "../preview.png at d5d15e7",
+  "crops": [
+    {
+      "id": "common",
+      "rect": {
+        "left": 0,
+        "top": 0,
+        "width": 512,
+        "height": 496
+      }
+    },
+    {
+      "id": "uncommon",
+      "rect": {
+        "left": 512,
+        "top": 0,
+        "width": 512,
+        "height": 496
+      }
+    },
+    {
+      "id": "rare",
+      "rect": {
+        "left": 1024,
+        "top": 0,
+        "width": 512,
+        "height": 496
+      }
+    },
+    {
+      "id": "epic",
+      "rect": {
+        "left": 0,
+        "top": 496,
+        "width": 512,
+        "height": 528
+      }
+    },
+    {
+      "id": "legendary",
+      "rect": {
+        "left": 512,
+        "top": 496,
+        "width": 512,
+        "height": 528
+      }
+    },
+    {
+      "id": "mythic",
+      "rect": {
+        "left": 1024,
+        "top": 496,
+        "width": 512,
+        "height": 528
+      }
+    }
+  ]
+}

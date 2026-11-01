@@ -26,10 +26,19 @@ for(const id of [...minerals,...order('SpellOrder'),...tabs]) assert(ids.has(id)
   const actual = await sharp(path.join(root,'crops',crop.id+'.png')).raw().toBuffer();
   assert(expected.equals(actual),`${crop.id}: crop differs from original pixels`);
  }
- const {normalized} = require('./build.cjs');
+ const {normalized,cropPath} = require('./build.cjs');
+ const rarity = require('./rarity/source.json');
+ const rarityInput = fs.readFileSync(path.join(root,'rarity',rarity.source));
+ assert.equal(crypto.createHash('sha256').update(rarityInput).digest('hex'),rarity.sha256);
+ assert.deepEqual(rarity.crops.map(c=>c.id),order('RarityOrder'));
+ for(const crop of rarity.crops) {
+  const expected=await sharp(rarityInput).extract(crop.rect).raw().toBuffer();
+  const actual=await sharp(path.join(root,'rarity/crops',crop.id+'.png')).raw().toBuffer();
+  assert(expected.equals(actual),`${crop.id}: generated source crop differs`);
+ }
  for(const icon of m.icons) {
-  assert(provenance.crops.some(c=>c.id===icon.sourceCrop),`${icon.id}: unknown source crop`);
-  const expected = await normalized(path.join(root,'crops',icon.sourceCrop+'.png'));
+  assert((icon.sourceFamily === 'rarity' ? rarity : provenance).crops.some(c=>c.id===icon.sourceCrop),`${icon.id}: unknown source crop`);
+  const expected = await normalized(cropPath(icon));
   const actual = fs.readFileSync(path.join(root,'png',icon.id+'.png'));
   assert(expected.equals(actual),`${icon.id}: does not match original crop`);
   for(const sheet of [m.sheet,m.tintableSheet]) {
