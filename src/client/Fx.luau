@@ -16,6 +16,7 @@ local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 
 local Ui = require(script.Parent:WaitForChild("Ui"))
+local Sfx = require(script.Parent:WaitForChild("Sfx"))
 
 local Fx = {}
 
@@ -471,6 +472,31 @@ local function watchNode(node: Instance)
 	end)
 end
 
+-- A flying/settled ore chunk (see MiningService) gets a short trail so it
+-- reads as something to chase, skipped with Reduced Motion like every other
+-- purely-cosmetic effect here. There's nothing to clean up on our end when
+-- it lands -- the Trail just rides along with the part until the server
+-- destroys it on pickup, which `watchDrop`'s ChildRemoved handles below.
+local function watchDrop(chunk: Instance)
+	if not chunk:IsA("BasePart") or GuiService.ReducedMotionEnabled then
+		return
+	end
+	local attachment0 = Instance.new("Attachment")
+	attachment0.Position = Vector3.new(0, chunk.Size.Y / 2, 0)
+	attachment0.Parent = chunk
+	local attachment1 = Instance.new("Attachment")
+	attachment1.Position = Vector3.new(0, -chunk.Size.Y / 2, 0)
+	attachment1.Parent = chunk
+	local trail = Instance.new("Trail")
+	trail.Attachment0 = attachment0
+	trail.Attachment1 = attachment1
+	trail.Color = ColorSequence.new(chunk.Color)
+	trail.Lifetime = 0.35
+	trail.MinLength = 0
+	trail.WidthScale = NumberSequence.new(1, 0)
+	trail.Parent = chunk
+end
+
 local function each(folderName: string, callback: (Instance) -> ())
 	local container = workspace:WaitForChild(folderName)
 	for _, child in container:GetChildren() do
@@ -523,6 +549,24 @@ function Fx.start()
 		end)
 	end)
 	task.spawn(each, "Golems", watchGolem)
+	task.spawn(function()
+		local dropsFolder = each("Drops", watchDrop)
+		-- Picked up (or expired) server-side: a little sparkle and a chime
+		-- where it was, same near()/ReducedMotion gating as every other burst.
+		dropsFolder.ChildRemoved:Connect(function(child)
+			-- The server tags a chunk "Forfeited" (its owner left before
+			-- collecting it) rather than paying it out; no fx for that one,
+			-- so a bystander never sees a "pickup" that rewarded nobody.
+			if child:IsA("BasePart") and not child:GetAttribute("Forfeited") then
+				-- Position is still readable on a just-removed part, but it's
+				-- about to be destroyed server-side -- play the chime
+				-- untethered (like the existing "mined" sound) rather than
+				-- risk parenting a Sound to it.
+				burst(child.Position, child.Color, Enum.Material.Neon, 4, 0.35, 3)
+				Sfx.play("oreCollect")
+			end
+		end)
+	end)
 	task.spawn(function()
 		local nodes = each("Nodes", watchNode)
 		nodes.ChildRemoved:Connect(function(child)

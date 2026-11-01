@@ -40,6 +40,7 @@ Last updated: 2026-10-27. See also [ui-ux.md](ui-ux.md) for touch layout and saf
 - Optional original part-based templates in `ReplicatedStorage.Assets` supplement procedural fallbacks (not MeshParts); procedural Motor6D animation; low-poly; built-in materials (e.g. DiamondPlate on iron tier). Part count per golem and per enemy not measured.
 - Hit flashes, damage numbers and debris: pooling and caps not confirmed.
 - Fall disintegration and reformation reuse the client-only debris budget (120 chunks total), skip distant cameras, and create no full-model clones or new remotes. Burst motion is skipped when `ReducedMotionEnabled` is on.
+- #242: broken-node ore chunks get their own server-side pool, capped by `Config.OreDrops.maxConcurrent` (150); a node breaking past the cap grants its reward instantly instead of spawning an untracked chunk. The client-side Trail on each chunk reuses the existing `ReducedMotionEnabled` gate and is skipped entirely under it, with no separate debris-count cap of its own (chunks are server-owned and server-capped, unlike the client-only burst/fall debris above).
 - `StreamingEnabled` not found in `default.project.json` (check the place file in Studio).
 - Lighting set from `WorldService`; Technology not set in code.
 - The eight-tier/six-boss/prop library replicates from ReplicatedStorage as required by #16. Its phone memory/instance cost still needs measurement; prune unused art or move server-only templates if this budget proves too high.

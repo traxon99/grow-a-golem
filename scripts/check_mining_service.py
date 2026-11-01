@@ -11,6 +11,10 @@ source = (ROOT / "src/server/Services/MiningService.luau").read_text()
 source = re.sub(r"local (\w+) = require\([^\n]+\)", r"local \1 = dependencies.\1", source)
 bundle = (
     "local function loadMiningService(dependencies, game, Instance, Vector3, CFrame, Enum, Color3, task)\n"
+    # warn() isn't a standard Luau global (it's Roblox-engine-only); every
+    # other loader here that embeds a service calling warn() shims it the
+    # same way (see loadDataService, loadTradeService, loadPassService...).
+    + "local warn = function() end\n"
     + "local script = { Parent = {} }\n"
     + source
     + "\nend\n"

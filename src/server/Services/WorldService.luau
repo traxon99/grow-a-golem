@@ -212,7 +212,7 @@ function WorldService.start()
 		grounds[id] = ground :: BasePart
 	end
 
-	for _, name in { "Golems", "Enemies", "Nodes", "Effects", "Relics" } do
+	for _, name in { "Golems", "Enemies", "Nodes", "Effects", "Relics", "Drops" } do
 		folders[name] = getOrMakeFolder(name)
 	end
 	placeSpawns()

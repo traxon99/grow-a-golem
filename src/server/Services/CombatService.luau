@@ -158,6 +158,7 @@ local function onCastSpell(player: Player, spellId: any)
 		ringEffect(ground, 10 * golem.stats.scale, Color3.fromRGB(110, 230, 120))
 	elseif spellId == "magnet" then
 		golem.magnetUntil = now + spell.duration
+		MiningService.triggerMagnetBurst(player)
 		ringEffect(ground, 14 * golem.stats.scale, Color3.fromRGB(255, 200, 80))
 	end
 
@@ -259,6 +260,13 @@ function CombatService.start()
 			end)
 			if not ok then
 				warn(`[CombatService] enemy update failed: {err}`)
+			end
+			local miningOk, miningErr = pcall(function(): any
+				MiningService.update(dt)
+				return nil
+			end)
+			if not miningOk then
+				warn(`[CombatService] mining drop update failed: {miningErr}`)
 			end
 		end
 	end)
