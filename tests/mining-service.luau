@@ -127,6 +127,26 @@ local Config = {
 		range = 14,
 		bonusFraction = 0.5,
 	},
+	-- Huge by default so every mining.damage() below is still collected the
+	-- instant the test flushes it with mining.update(0), matching the old
+	-- synchronous grant these assertions were written against. The dedicated
+	-- pickup-radius block near the end shrinks this back down to something
+	-- testable.
+	Golem = { pickupRadius = 1e9 },
+	Spells = { magnet = { burstMultiplier = 3, burstDuration = 10 } },
+	-- One chunk per node, for the whole node's yield, keeps every assertion
+	-- below arithmetically identical to the pre-drop instant-grant behavior.
+	OreDrops = {
+		minChunks = 1,
+		maxChunks = 1,
+		chunkSize = 0.9,
+		scatterSpeed = 0,
+		scatterHeight = 0,
+		gravity = 0,
+		settleHeight = 0,
+		lifetime = 1e9,
+		maxConcurrent = 1e9,
+	},
 }
 local a = { UserId = 1, Parent = true }
 local b = { UserId = 2, Parent = true }
@@ -180,6 +200,17 @@ local mining = loadMiningService({
 		end,
 	},
 	Events = { fire = function() end },
+	-- A single golem, parked at the origin, active for whichever player
+	-- asks: enough for the pickup-radius math, which only cares about the
+	-- distance from this point to a chunk's.
+	GolemService = {
+		get = function()
+			return { root = { Position = v(0, 2, 0) }, stats = { scale = 1 } }
+		end,
+		isActive = function()
+			return true
+		end,
+	},
 	WorldService = {
 		-- Every node this test places ends up at a distinct point, each
 		-- one strictly closer to (0, 2, 0) than the last. Nodes from
@@ -210,6 +241,7 @@ end
 local node = spawnNode()
 mining.damage(node, 90, a)
 mining.damage(node, 10, b)
+mining.update(0) -- flushes the winner's ore chunk into a grant (see spawnDrops/collect)
 assert(node.part.destroyed and paid[a] == 10 and paid[b] == nil)
 assert(mined[a].totals.nodes == 1 and notices[a] == 1)
 
@@ -217,6 +249,7 @@ assert(mined[a].totals.nodes == 1 and notices[a] == 1)
 node = spawnNode()
 mining.damage(node, 50, b)
 mining.damage(node, 50, a)
+mining.update(0)
 assert(paid[a] == 20 and paid[b] == nil)
 
 -- Departed contributors cannot claim a node after disconnecting.
@@ -224,12 +257,14 @@ node = spawnNode()
 mining.damage(node, 80, a)
 a.Parent = nil
 mining.damage(node, 20, b)
+mining.update(0)
 assert(paid[a] == 20 and paid[b] == 10)
 a.Parent = true
 
 node = spawnNode()
 mining.damage(node, 0, a)
 mining.damage(node, 1000, b)
+mining.update(0)
 assert(paid[a] == 20 and paid[b] == 20)
 assert(mined[b].totals.nodes == 2 and notices[b] == 2)
 
@@ -262,7 +297,23 @@ assert(node.weakspotStage == 0 and not node.weakspotPrompt.Enabled)
 scheduled[#scheduled].callback() -- retry after cooldown
 assert(node.weakspotStage == 1)
 mining.damage(node, 100, b)
+mining.update(0) -- flush b's chunk now, before the pickup-radius block below shrinks the radius
 node.weakspotPrompt.onTriggered(a)
 assert(paid[a] == 25, "a destroyed node cannot pay")
 
-print("MiningService ownership and two-tap weakspot rush checks passed")
+-- Pickup radius: a chunk within Config.Golem.pickupRadius of the golem is
+-- auto-collected; farther out, it waits -- until a Magnet burst (see
+-- CombatService.onCastSpell -> MiningService.triggerMagnetBurst) widens
+-- that radius by Config.Spells.magnet.burstMultiplier.
+Config.Golem.pickupRadius = 5
+node = spawnNode()
+node.part.Position = v(12, 2, 0) -- 12 studs from the golem at the origin
+mining.damage(node, 100, a)
+mining.update(0)
+assert(paid[a] == 25, "a chunk 12 studs out, with only a 5-stud base radius, should still be waiting")
+
+mining.triggerMagnetBurst(a)
+mining.update(0)
+assert(paid[a] == 35, "Magnet's 3x burst (radius 15) should reach a chunk sitting 12 studs out")
+
+print("MiningService ownership, two-tap weakspot rush and pickup-radius checks passed")

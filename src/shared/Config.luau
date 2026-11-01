@@ -110,6 +110,7 @@ Config.Golem = {
 	miningDamage = 10,
 	miningCooldown = 0.8,
 	miningRange = 10,
+	pickupRadius = 16, -- ore chunks this close to the golem are auto-collected
 	seekRange = 150, -- when idle, golem walks to nodes this far away
 	respawnTime = 5,
 	mountCooldown = 1, -- seconds between mount/dismount requests
@@ -134,6 +135,20 @@ Config.Golem = {
 }
 
 Config.FallEffects = { chunks = 18, chunkSize = 0.8, spread = 10 }
+
+-- A broken node's yield is split across a few physical chunks that pop out,
+-- land nearby and wait to be auto-collected (see MiningService and Fx).
+Config.OreDrops = {
+	minChunks = 3,
+	maxChunks = 5,
+	chunkSize = 0.9,
+	scatterSpeed = 9, -- studs/sec horizontal fling away from the node
+	scatterHeight = 11, -- studs/sec upward fling
+	gravity = 28,
+	settleHeight = 1.2, -- studs above ground the chunk rests at once it lands
+	lifetime = 14, -- auto-collected after this long even if never reached, so a reward is never lost
+	maxConcurrent = 150, -- server-wide cap; a node breaking past it grants instantly instead (see art-audio.md's juice note on pooling/capping debris)
+}
 
 -- Total XP needed to reach a level: 25 * (level - 1) ^ 1.6
 Config.LevelCurve = { base = 25, exponent = 1.6 }
@@ -248,7 +263,15 @@ Config.Spells = {
 		perfectMultiplier = 1.5, -- fixed +50% damage, never a random roll
 	},
 	mend = { displayName = "Mend", key = Enum.KeyCode.E, cooldown = 20, healFraction = 0.35 },
-	magnet = { displayName = "Magnet", key = Enum.KeyCode.R, cooldown = 30, duration = 10, mineralBonus = 1.0 },
+	magnet = {
+		displayName = "Magnet",
+		key = Enum.KeyCode.R,
+		cooldown = 30,
+		duration = 10,
+		mineralBonus = 1.0,
+		burstMultiplier = 3, -- pickup radius is multiplied by this for burstDuration on cast
+		burstDuration = 1, -- seconds the widened pickup radius lasts
+	},
 }
 
 ---------------------------------------------------------------- enemies
@@ -1148,6 +1171,7 @@ Config.SoundEffects = {
 	punch = { id = THUD, speed = 0.85, volume = 0.5, distortion = 0.35 },
 	mine = { id = THUD, speed = 1.7, volume = 0.4, distortion = 0.2 },
 	mineBreak = { id = THUD, speed = 1.2, volume = 0.6, distortion = 0.5 },
+	oreCollect = { id = BUBBLE, speed = 2.3, volume = 0.3 },
 	enemyAttack = { id = WHOOSH, speed = 1.3, volume = 0.3 },
 	defeat = { id = WHOOSH, speed = 0.8, volume = 0.45 },
 	quake = { id = THUD, speed = 0.32, volume = 1, distortion = 0.6, reverb = true },
