@@ -197,6 +197,7 @@ Config.OreDrops = {
 	spinSpeed = 2, -- radians/sec a resting chunk turns, like a dropped item
 	bobHeight = 0.3, -- studs a resting chunk bobs up and down
 	suckTime = 0.3, -- seconds a collected chunk takes to fly into its golem
+	suckReach = 40, -- studs; a golem farther than this gets a sparkle in place instead (covers Magnet's 36)
 	restLights = 24, -- at most this many resting chunks keep a small glow, per client
 	comboWindow = 2, -- seconds after a pickup in which the next one adds to the same on-screen total
 }

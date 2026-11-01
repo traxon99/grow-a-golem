@@ -660,9 +660,11 @@ local function watchDrop(chunk: Instance)
 	part.CFrame = dropPose(visual, workspace:GetServerTimeNow() - launchedAt)
 end
 
--- The server destroyed the chunk: it was collected (or expired and paid
--- out), so fly the copy into its golem. A forfeited one (owner left) just
--- disappears, so bystanders never see a pickup that rewarded nobody.
+-- The server destroyed the chunk: it was collected, so fly the copy into
+-- its golem. One that expired (paid out unreached), or whose golem is out of
+-- suck reach, sparkles where it lies instead of streaking across the map. A
+-- forfeited one (owner left) just disappears, so bystanders never see a
+-- pickup that rewarded nobody.
 local function dropRemoved(chunk: Instance)
 	local visual = drops[chunk]
 	if not visual then
@@ -672,8 +674,19 @@ local function dropRemoved(chunk: Instance)
 		removeDrop(chunk)
 		return
 	end
+	local position = visual.part.Position
 	local target = golemRootFor(visual.ownerId)
-	if Ui.reducedMotion() or not target or not near(visual.part.Position) then
+	if
+		chunk:GetAttribute("Expired")
+		or not target
+		or (target.Position - position).Magnitude > Config.OreDrops.suckReach
+	then
+		burst(position, visual.part.Color, Enum.Material.Neon, 4, 0.35, 3)
+		chime(visual.ownerId)
+		removeDrop(chunk)
+		return
+	end
+	if Ui.reducedMotion() or not near(position) then
 		chime(visual.ownerId)
 		removeDrop(chunk)
 		return

@@ -420,7 +420,10 @@ function MiningService.update(_dt: number)
 		end
 		if not collected and now - chunk.spawnedAt >= cfg.lifetime then
 			-- Safety net: an unreachable or forgotten chunk still pays out,
-			-- it just never got the collection flourish.
+			-- it just never got the collection flourish. "Expired" tells
+			-- clients to sparkle it where it lies instead of flying it to a
+			-- golem that may be across the map (see Fx.dropRemoved).
+			chunk.part:SetAttribute("Expired", true)
 			collected = true
 		end
 		if collected then

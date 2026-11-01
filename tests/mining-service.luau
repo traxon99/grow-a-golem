@@ -402,6 +402,18 @@ Config.OreDrops.minChunks = 1
 Config.OreDrops.maxChunks = 1
 Config.Golem.pickupRadius = 5
 
+-- A chunk nobody reaches still pays out after its lifetime, tagged "Expired"
+-- so clients sparkle it in place instead of flying it to a distant golem.
+Config.OreDrops.lifetime = 0
+node = spawnNode()
+node.part.Position = v(50, 2, 0) -- beyond even the Magnet burst's radius
+mining.damage(node, 100, a)
+mining.update(0)
+local expired = createdChunks[#createdChunks]
+assert(paid[a] == 75, "an expired chunk still pays out")
+assert(expired.destroyed and expired:GetAttribute("Expired") == true, "an expired chunk is tagged for the client")
+Config.OreDrops.lifetime = 1e9
+
 -- A winner who disconnects before collecting forfeits the reward rather
 -- than being paid late (matches damage()'s own "a departed player cannot
 -- claim a reward" rule) -- and the server tags the chunk instead of just
