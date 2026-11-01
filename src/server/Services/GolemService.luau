@@ -1013,18 +1013,25 @@ function GolemService.getSteer(golem: Golem): Vector3
 	return golem.steer
 end
 
--- Moves the golem to a zone's spawn point.
-function GolemService.sendToZone(golem: Golem, zoneId: number)
-	golem.zoneId = zoneId
+-- Stands the golem on `ground` (a point on the walkable surface), keeping a
+-- mounted rider on its shoulder. Used for travel and for returning a golem
+-- that walked into a region it can't enter yet.
+function GolemService.placeAt(golem: Golem, ground: Vector3)
 	golem.humanoid:Move(Vector3.zero)
-	local spread = if zoneId == Config.HubZone then Config.Hub.spread else 10
-	local spawn = WorldService.getSpawnPoint(zoneId)
-		+ Vector3.new(math.random(-spread, spread), 0, math.random(-spread, spread))
-	golem.model:PivotTo(CFrame.new(spawn + Vector3.new(0, golem.groundOffset, 0)))
+	golem.model:PivotTo(CFrame.new(ground + Vector3.new(0, golem.groundOffset, 0)))
 	-- Teleporting doesn't discard falling momentum. Stop the whole assembly
 	-- so a fall can't carry the golem straight through its recovery spawn.
 	golem.root.AssemblyLinearVelocity = Vector3.zero
 	golem.root.AssemblyAngularVelocity = Vector3.zero
+end
+
+-- Moves the golem to a zone's spawn point.
+function GolemService.sendToZone(golem: Golem, zoneId: number)
+	golem.zoneId = zoneId
+	local spread = if zoneId == Config.HubZone then Config.Hub.spread else 10
+	local spawn = WorldService.getSpawnPoint(zoneId)
+		+ Vector3.new(math.random(-spread, spread), 0, math.random(-spread, spread))
+	GolemService.placeAt(golem, spawn)
 	if not golem.mounted then
 		placeRiderBeside(golem) -- a walking rider travels with their golem
 	end

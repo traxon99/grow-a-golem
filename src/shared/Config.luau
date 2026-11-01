@@ -58,6 +58,63 @@ Config.Kingdom = {
 			hint = "The flooded city's currents push you back.",
 		},
 	},
+	-- Graybox first route (#214): the quarry, a road, the sanctuary approach
+	-- and the public hub on one continuous ground, away from the legacy
+	-- islands. Terraces are flat rectangles (top height `y`); ramps join them
+	-- along a straight lane. Membership, ground height and safe points come
+	-- from this table (see KingdomLayout), never from a part's bounding box.
+	-- Pieces may share edges; the higher surface wins, then list order.
+	-- `spawns = false` keeps enemies, nodes and relics off a piece.
+	layout = {
+		minLaneWidth = 64, -- every road and ramp; fits the largest golem turning
+		terraces = {
+			{
+				name = "Mossy Quarry",
+				zoneId = 1,
+				center = Vector3.new(0, 0, -1500),
+				size = Vector3.new(320, 0, 320),
+				y = 60,
+			},
+			{
+				name = "Quarry Road",
+				zoneId = 1,
+				center = Vector3.new(-330, 0, -1500),
+				size = Vector3.new(140, 0, 64),
+				y = 72,
+				spawns = false,
+			},
+			{
+				name = "Sanctuary Approach",
+				zoneId = 1,
+				center = Vector3.new(-480, 0, -1500),
+				size = Vector3.new(160, 0, 160),
+				y = 72,
+				spawns = false,
+			},
+			{
+				name = "Golem Hub",
+				zoneId = 0,
+				center = Vector3.new(-480, 0, -1330),
+				size = Vector3.new(180, 0, 180),
+				y = 72,
+			},
+		},
+		ramps = {
+			{
+				name = "Quarry Ramp",
+				zoneId = 1,
+				from = Vector3.new(-160, 60, -1500),
+				to = Vector3.new(-260, 72, -1500),
+				width = 64,
+			},
+		},
+		anchors = {
+			[0] = { spawn = Vector3.new(-480, 0, -1300) },
+			[1] = { spawn = Vector3.new(0, 0, -1420), boss = Vector3.new(100, 0, -1600) },
+		},
+		pushBackMargin = 12, -- studs inside the current region a blocked golem is returned to
+		lockedMessageSeconds = 4, -- at most one "locked" message this often
+	},
 }
 
 Config.TickRate = 10 -- server game-logic updates per second

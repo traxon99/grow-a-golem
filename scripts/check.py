@@ -282,6 +282,9 @@ bundle += (ROOT / "tests/analytics-service.luau").read_text()
 # addArena (every field it sets is a plain write, so a bare Instance.new
 # and a workspace stand-in are enough); .start()'s island building,
 # lighting and Islands.decorate scenery are out of scope.
+kingdom_layout = (ROOT / "src/shared/KingdomLayout.luau").read_text()
+bundle += 'local KingdomLayout = (function()\n' + kingdom_layout + '\nend)()\n'
+bundle += (ROOT / "tests/kingdom-layout.luau").read_text()
 world_service = (ROOT / "src/server/Services/WorldService.luau").read_text()
 world_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', world_service)
 bundle += "\nlocal function loadWorldService(dependencies, game)\n"
@@ -292,6 +295,15 @@ bundle += 'local UDim2 = { fromOffset = function() return {} end, fromScale = fu
 bundle += 'local Color3 = { fromRGB = Color3.fromRGB, new = function(r, g, b) return { R = r, G = g, B = b } end }\n'
 bundle += world_service + "\nend\n"
 bundle += (ROOT / "tests/world-service.luau").read_text()
+# The real RegionService with mocked World/Golem/Data services; the
+# periodic loop is never started (Config.Kingdom.enabled is off at start).
+region_service = (ROOT / "src/server/Services/RegionService.luau").read_text()
+region_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', region_service)
+bundle += "\nlocal function loadRegionService(dependencies)\n"
+bundle += 'local game = { GetService = function() return { WaitForChild = function() return {} end } end }\n'
+bundle += 'local script = { Parent = {} }\n'
+bundle += region_service + "\nend\n"
+bundle += (ROOT / "tests/region-service.luau").read_text()
 # The real RuneService with mocked Remotes/GolemService; os.clock and
 # workspace:GetServerTimeNow are injected so the test controls elapsed time
 # for cooldowns and challenge expiry.
