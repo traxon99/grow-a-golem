@@ -109,6 +109,7 @@ do
 				end,
 			},
 			GolemService = {
+				setCrossingHandler = function() end,
 				get = function()
 					return {}
 				end,

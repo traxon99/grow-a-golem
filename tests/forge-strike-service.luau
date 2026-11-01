@@ -47,7 +47,7 @@ do
 			end,
 		},
 		Events = { fire = function() end },
-		GolemService = {},
+		GolemService = { setCrossingHandler = function() end },
 		PassService = {},
 	})
 	service.start()

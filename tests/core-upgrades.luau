@@ -51,6 +51,7 @@ do
 		},
 		Events = { fire = function() end },
 		GolemService = {
+			setCrossingHandler = function() end,
 			get = function()
 				return golem
 			end,
