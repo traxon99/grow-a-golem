@@ -14,6 +14,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local KingdomLayout = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KingdomLayout"))
+local KingdomRules = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KingdomRules"))
 local Islands = require(script.Parent.Parent.Models.Islands)
 local Kingdom = require(script.Parent.Parent.Models.Kingdom)
 
@@ -241,7 +242,7 @@ function WorldService.useKingdom(layout: any)
 	kingdomLayout = layout
 	kingdomPieces = KingdomLayout.pieces(layout)
 	kingdomZones = KingdomLayout.zones(kingdomPieces)
-	Kingdom.build(layout)
+	Kingdom.build(layout, Config.Kingdom.obstacles)
 end
 
 -- Whether a zone is part of the connected kingdom route right now.
@@ -249,11 +250,32 @@ function WorldService.isKingdomZone(zoneId: number): boolean
 	return kingdomZones[zoneId] == true
 end
 
+-- The obstacle id the kingdom ground at `position` waits on, if any.
+function WorldService.requiredObstacleAt(position: Vector3): string?
+	if not next(kingdomZones) then
+		return nil
+	end
+	local _, piece = KingdomLayout.groundAt(kingdomPieces, position.X, position.Z)
+	return if piece then piece.requires else nil
+end
+
+-- Whether this player may stand at `position`: true off the kingdom route,
+-- and on it unless the ground there waits on an obstacle they haven't opened.
+function WorldService.routeOpen(data: any, position: Vector3): boolean
+	return KingdomRules.pieceOpen(data, WorldService.requiredObstacleAt(position))
+end
+
 -- Where a golem blocked at `position` should go back to: the nearest point
--- of its current region, `margin` from the edge. Islands use their spawn.
-function WorldService.safePointNear(zoneId: number, position: Vector3, margin: number): Vector3
+-- of its current region, `margin` from the edge, on ground this player may
+-- stand on (`data`, when given). Islands use their spawn.
+function WorldService.safePointNear(zoneId: number, position: Vector3, margin: number, data: any?): Vector3
 	if kingdomZones[zoneId] then
-		local x, y, z = KingdomLayout.safePointNear(kingdomPieces, zoneId, position.X, position.Z, margin)
+		local allow = if data
+			then function(piece: KingdomLayout.Piece): boolean
+				return KingdomRules.pieceOpen(data, piece.requires)
+			end
+			else nil
+		local x, y, z = KingdomLayout.safePointNear(kingdomPieces, zoneId, position.X, position.Z, margin, allow)
 		if x and y and z then
 			return Vector3.new(x, y, z)
 		end

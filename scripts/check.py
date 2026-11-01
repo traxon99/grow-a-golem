@@ -285,6 +285,11 @@ bundle += (ROOT / "tests/analytics-service.luau").read_text()
 kingdom_layout = (ROOT / "src/shared/KingdomLayout.luau").read_text()
 bundle += 'local KingdomLayout = (function()\n' + kingdom_layout + '\nend)()\n'
 bundle += (ROOT / "tests/kingdom-layout.luau").read_text()
+kingdom_rules = (ROOT / "src/shared/KingdomRules.luau").read_text().replace(
+    'local Config = require(script.Parent:WaitForChild("Config"))', '').replace(
+    'local Stats = require(script.Parent:WaitForChild("Stats"))', '')
+bundle += 'local KingdomRules = (function()\n' + kingdom_rules + '\nend)()\n'
+bundle += (ROOT / "tests/kingdom-rules.luau").read_text()
 world_service = (ROOT / "src/server/Services/WorldService.luau").read_text()
 world_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', world_service)
 bundle += "\nlocal function loadWorldService(dependencies, game)\n"
@@ -304,6 +309,15 @@ bundle += 'local game = { GetService = function() return { WaitForChild = functi
 bundle += 'local script = { Parent = {} }\n'
 bundle += region_service + "\nend\n"
 bundle += (ROOT / "tests/region-service.luau").read_text()
+# The real KingdomService with mocked services; os.clock and task.delay are
+# injected so the test controls the cooldown and runs the action's finish.
+kingdom_service = (ROOT / "src/server/Services/KingdomService.luau").read_text()
+kingdom_service = re.sub(r'local (\w+) = require\([^\n]+\)', r'local \1 = dependencies.\1', kingdom_service)
+bundle += "\nlocal function loadKingdomService(dependencies, osClock, delay)\n"
+bundle += 'local game = { GetService = function() return { WaitForChild = function() return {} end, PlayerRemoving = { Connect = function() end } } end }\n'
+bundle += 'local script = { Parent = {} }\nlocal os = { clock = osClock }\nlocal task = { delay = delay }\n'
+bundle += kingdom_service + "\nend\n"
+bundle += (ROOT / "tests/kingdom-service.luau").read_text()
 # The real RuneService with mocked Remotes/GolemService; os.clock and
 # workspace:GetServerTimeNow are injected so the test controls elapsed time
 # for cooldowns and challenge expiry.

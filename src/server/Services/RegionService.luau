@@ -11,6 +11,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
+local KingdomRules = require(Shared:WaitForChild("KingdomRules"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Stats = require(Shared:WaitForChild("Stats"))
 
@@ -36,11 +37,18 @@ function RegionService.check(player: Player, golem: any, now: number): string?
 	end
 	local position = golem.root.Position
 	local zoneId = WorldService.zoneAt(position)
-	if zoneId == nil or zoneId == golem.zoneId or not WorldService.isKingdomZone(zoneId) then
+	if zoneId == nil or not WorldService.isKingdomZone(zoneId) then
 		return nil
 	end
-	local allowed, reason = true, nil
-	if zoneId ~= Config.HubZone then
+	-- Ground behind an obstacle stays closed until this player opened it,
+	-- whatever anyone else broke or the route looks like on screen.
+	local requires = WorldService.requiredObstacleAt(position)
+	local allowed: boolean, reason: string? = true, nil
+	if not KingdomRules.pieceOpen(data, requires) then
+		allowed, reason = false, KingdomRules.blockedText(requires :: string)
+	elseif zoneId == golem.zoneId then
+		return nil
+	elseif zoneId ~= Config.HubZone then
 		allowed, reason = Stats.travelUnlocked(data, zoneId)
 	end
 	if allowed then
@@ -52,7 +60,7 @@ function RegionService.check(player: Player, golem: any, now: number): string?
 		return "entered"
 	end
 	local layout = Config.Kingdom.layout
-	GolemService.placeAt(golem, WorldService.safePointNear(golem.zoneId, position, layout.pushBackMargin))
+	GolemService.placeAt(golem, WorldService.safePointNear(golem.zoneId, position, layout.pushBackMargin, data))
 	local last = lastLockedMessage[player]
 	if not last or now - last >= layout.lockedMessageSeconds then
 		lastLockedMessage[player] = now

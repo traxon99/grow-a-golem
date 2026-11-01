@@ -12,6 +12,7 @@ export type Piece = {
 	zoneId: number,
 	kind: "terrace" | "ramp",
 	spawns: boolean,
+	requires: string?, -- obstacle id that must be open before it is walkable
 	-- terrace
 	minX: number,
 	maxX: number,
@@ -39,6 +40,7 @@ function KingdomLayout.pieces(layout: any): { Piece }
 			zoneId = t.zoneId,
 			kind = "terrace",
 			spawns = t.spawns ~= false,
+			requires = t.requires,
 			minX = t.center.X - t.size.X / 2,
 			maxX = t.center.X + t.size.X / 2,
 			minZ = t.center.Z - t.size.Z / 2,
@@ -59,6 +61,7 @@ function KingdomLayout.pieces(layout: any): { Piece }
 			zoneId = r.zoneId,
 			kind = "ramp",
 			spawns = false, -- nothing spawns on a slope
+			requires = r.requires,
 			minX = math.min(r.from.X, r.to.X),
 			maxX = math.max(r.from.X, r.to.X),
 			minZ = math.min(r.from.Z, r.to.Z),
@@ -153,16 +156,18 @@ end
 
 -- The nearest point on one of a region's terraces to (x, z), `margin` in
 -- from the edge. Returns x, y, z, or nil if the region has no terrace.
+-- `allow`, when given, skips pieces it rejects (routes still locked).
 function KingdomLayout.safePointNear(
 	pieces: { Piece },
 	zoneId: number,
 	x: number,
 	z: number,
-	margin: number
+	margin: number,
+	allow: ((Piece) -> boolean)?
 ): (number?, number?, number?)
 	local bestDistance, bx, by, bz = math.huge, nil, nil, nil
 	for _, piece in pieces do
-		if piece.zoneId == zoneId and piece.kind == "terrace" then
+		if piece.zoneId == zoneId and piece.kind == "terrace" and (allow == nil or allow(piece)) then
 			local px, pz = clampOnto(piece, x, z, margin)
 			local distance = (px - x) ^ 2 + (pz - z) ^ 2
 			if distance < bestDistance then
@@ -198,7 +203,7 @@ function KingdomLayout.randomPoint(
 ): (number?, number?, number?)
 	local choices, total = {}, 0
 	for _, piece in pieces do
-		if piece.zoneId == zoneId and piece.kind == "terrace" and piece.spawns then
+		if piece.zoneId == zoneId and piece.kind == "terrace" and piece.spawns and piece.requires == nil then
 			local w = math.max(piece.maxX - piece.minX - margin * 2, 0)
 			local d = math.max(piece.maxZ - piece.minZ - margin * 2, 0)
 			local area = math.max(w * d, EPSILON)

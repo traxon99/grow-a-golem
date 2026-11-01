@@ -24,6 +24,7 @@ Config.Kingdom = {
 			description = "Break cracked walls.",
 			region = 1,
 			hint = "A cracked wall blocks the quarry road.",
+			forgeHint = "Forge a copper arm.",
 		},
 		lift = {
 			tier = "iron",
@@ -32,6 +33,7 @@ Config.Kingdom = {
 			description = "Raise fallen gates.",
 			region = 2,
 			hint = "A fallen gate waits at the end of the Ember road.",
+			forgeHint = "Forge an iron arm.",
 		},
 		reveal = {
 			tier = "crystal",
@@ -40,6 +42,7 @@ Config.Kingdom = {
 			description = "Uncover hidden paths.",
 			region = 3,
 			hint = "Glasswood hides a road among its trees.",
+			forgeHint = "Forge a crystal core.",
 		},
 		conduit = {
 			tier = "stormglass",
@@ -48,6 +51,7 @@ Config.Kingdom = {
 			description = "Channel storms into old machines.",
 			region = 4,
 			hint = "Storm Peak's machinery needs a spark.",
+			forgeHint = "Forge a stormglass body.",
 		},
 		anchor = {
 			tier = "abyssite",
@@ -56,6 +60,7 @@ Config.Kingdom = {
 			description = "Hold steady in deep water.",
 			region = 5,
 			hint = "The flooded city's currents push you back.",
+			forgeHint = "Forge abyssite legs.",
 		},
 	},
 	-- Graybox first route (#214): the quarry, a road, the sanctuary approach
@@ -82,6 +87,7 @@ Config.Kingdom = {
 				size = Vector3.new(140, 0, 64),
 				y = 72,
 				spawns = false,
+				requires = "quarryWall", -- walkable once this player broke the wall
 			},
 			{
 				name = "Sanctuary Approach",
@@ -90,6 +96,7 @@ Config.Kingdom = {
 				size = Vector3.new(160, 0, 160),
 				y = 72,
 				spawns = false,
+				requires = "quarryWall", -- walkable once this player broke the wall
 			},
 			{
 				name = "Golem Hub",
@@ -106,6 +113,7 @@ Config.Kingdom = {
 				from = Vector3.new(-160, 60, -1500),
 				to = Vector3.new(-260, 72, -1500),
 				width = 64,
+				requires = "quarryWall",
 			},
 		},
 		anchors = {
@@ -114,6 +122,27 @@ Config.Kingdom = {
 		},
 		pushBackMargin = 12, -- studs inside the current region a blocked golem is returned to
 		lockedMessageSeconds = 4, -- at most one "locked" message this often
+	},
+	-- Obstacles a golem opens with a learned tool (#216). One contextual,
+	-- untimed command; the server checks everything. `requires` on a layout
+	-- piece names the obstacle that must be open before that piece is
+	-- walkable. `gate` holds extra first-time needs (size, boss) checked
+	-- after the tool. `opensRegion` (optional) grants that campaign region.
+	obstacleOrder = { "quarryWall" },
+	obstacles = {
+		quarryWall = {
+			name = "Cracked Wall",
+			ability = "smash",
+			verb = "Smash",
+			zoneId = 1,
+			position = Vector3.new(-156, 60, -1500), -- foot of the wall, on the quarry side
+			size = Vector3.new(6, 28, 64),
+			approachRadius = 24, -- studs from the wall, plus the golem's own reach at its size
+			promptSlack = 16, -- the prompt shows this much farther out than the golem can act
+			actionSeconds = 1.5, -- how long the golem's smash takes
+			cooldownSeconds = 2,
+			gate = {},
+		},
 	},
 }
 

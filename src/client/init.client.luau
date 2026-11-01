@@ -16,6 +16,7 @@ local QuakeTimingHud = require(script:WaitForChild("QuakeTimingHud"))
 local RuneCastingHud = require(script:WaitForChild("RuneCastingHud"))
 local ForgeTimingHud = require(script:WaitForChild("ForgeTimingHud"))
 local GauntletHud = require(script:WaitForChild("GauntletHud"))
+local KingdomPrompts = require(script:WaitForChild("KingdomPrompts"))
 
 -- ScreenGuis survive character respawns and can also outlive a LocalScript
 -- replaced by Rojo during a Studio playtest. Clear this client's old copies
@@ -57,3 +58,4 @@ Riding.start()
 Animator.start()
 Sfx.start()
 Fx.start()
+KingdomPrompts.start() -- obstacle prompts on the kingdom route; idle while the flag is off
