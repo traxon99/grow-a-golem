@@ -406,19 +406,27 @@ end
 -- A forged part taught a lasting exploration tool. Only the server's notify
 -- starts it, and it names the tool, what it does and where to try it.
 local function startAbilityLearned(gui: ScreenGui)
-	local banner = Ui.label(gui, "", UDim2.fromOffset(560, 64), UDim2.fromScale(0.5, 0.15), {
+	-- Scale widths so long tool names fit small phones; the title shrinks to fit.
+	local banner = Ui.label(gui, "", UDim2.new(0.9, 0, 0, 64), UDim2.fromScale(0.5, 0.15), {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		TextXAlignment = Enum.TextXAlignment.Center,
 		TextColor3 = Ui.Colors.gold,
 		Title = true,
 		TextSize = 48,
+		TextScaled = true,
 		TextWrapped = false,
 		Visible = false,
 	})
+	local bannerText = Instance.new("UITextSizeConstraint")
+	bannerText.MaxTextSize = 48
+	bannerText.Parent = banner
+	local bannerWidth = Instance.new("UISizeConstraint")
+	bannerWidth.MaxSize = Vector2.new(640, 64)
+	bannerWidth.Parent = banner
 	Ui.outline(banner, 4)
 	local pop = Instance.new("UIScale")
 	pop.Parent = banner
-	local sub = Ui.label(gui, "", UDim2.fromOffset(620, 64), UDim2.fromScale(0.5, 0.15), {
+	local sub = Ui.label(gui, "", UDim2.new(0.9, 0, 0, 64), UDim2.fromScale(0.5, 0.15), {
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0.15, 36),
 		TextXAlignment = Enum.TextXAlignment.Center,
@@ -429,6 +437,9 @@ local function startAbilityLearned(gui: ScreenGui)
 		Visible = false,
 	})
 	Ui.outline(sub, 3)
+	local subWidth = Instance.new("UISizeConstraint")
+	subWidth.MaxSize = Vector2.new(640, 64)
+	subWidth.Parent = sub
 
 	local queue: { string } = {}
 	local showing = false

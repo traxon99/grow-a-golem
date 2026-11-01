@@ -166,11 +166,20 @@ local function renderForge(list: ScrollingFrame, snap: any)
 		local nextTier = Config.TierOrder[tierRank(current) + 1]
 		local slotName = Config.Slots[slot].displayName
 		if not nextTier then
+			local maxChips = { { text = currentName, color = deep(currentColor) } }
+			if Config.Kingdom.enabled and current then
+				for _, id in Stats.abilitiesForPart(slot, current) do
+					if Stats.abilityLearned(data, id) then
+						local name = Config.Kingdom.abilities[id].name
+						table.insert(maxChips, { text = `{name} learned`, color = deep(currentColor) })
+					end
+				end
+			end
 			Ui.item(list, nextOrder(), {
 				title = slotName,
 				subtitle = "Best part built!",
 				accent = currentColor,
-				chips = { { text = currentName, color = deep(currentColor) } },
+				chips = maxChips,
 				action = { text = "Max", enabled = false },
 			})
 			continue

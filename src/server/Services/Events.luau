@@ -8,6 +8,7 @@
 --   nodeMined     (player, mineralId)
 --   spellCast     (player, spellId)
 --   partCrafted   (player, slot, tier)
+--   abilityLearned(player, abilityId)       forge taught an exploration tool
 --   artifactFound (player, artifactId)
 --   bossEngaged   (player, zoneId)         first hit on a boss
 --   zoneEntered   (player, zoneId)         travelled to an island
