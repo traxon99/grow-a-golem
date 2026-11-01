@@ -60,6 +60,7 @@ Let go of the controls and the golem plays itself: it fights enemies nearby, and
 | UI materials: wood, stone, metal, studs and crystal surfaces, tiling textures | `Ui.surface` in `src/client/Ui.luau`, `Config.UiTextures`, `assets/ui-textures/` |
 | Boss health bar, artifact reveal card, level-up banner | `src/client/Moments.luau` |
 | Island scenery, lighting | `WorldService`, `src/server/Models/Islands.luau` |
+| Connected kingdom route (behind `Config.Kingdom.enabled`): graybox quarry, road, sanctuary approach and hub; walking between regions | `WorldService`, `RegionService`, `src/shared/KingdomLayout.luau`, `src/server/Models/Kingdom.luau`, `Config.Kingdom.layout` |
 | Enemy and boss models | `src/server/Models/EnemyModels.luau` |
 | Walk, punch and slam animation | `src/client/Animator.luau` |
 | Sound effects | `src/client/Sfx.luau`, `Config.SoundEffects` |
