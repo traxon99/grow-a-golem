@@ -144,5 +144,12 @@ do
 	end
 	assert(not overlaps(Config.Gauntlet.center, Config.Gauntlet.arenaSize))
 
+	-- The sanctuary approach is the sanctuary discovery, behind the wall.
+	local _, approach = KingdomLayout.groundAt(pieces, -480, -1500)
+	assert(approach and approach.discovery == "sanctuary" and Config.Kingdom.discoveries.sanctuary)
+	-- The titan stands beyond the sanctuary, off every walkable piece.
+	local titan = Config.Kingdom.titanSilhouette
+	assert(KingdomLayout.groundAt(pieces, titan.position.X, titan.position.Z) == nil)
+	assert(titan.position.X < -560 and titan.height >= 100)
 	print("kingdom-layout: ok")
 end

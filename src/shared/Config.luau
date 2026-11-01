@@ -97,6 +97,7 @@ Config.Kingdom = {
 				y = 72,
 				spawns = false,
 				requires = "quarryWall", -- walkable once this player broke the wall
+				discovery = "sanctuary", -- first time this player stands here
 			},
 			{
 				name = "Golem Hub",
@@ -128,6 +129,13 @@ Config.Kingdom = {
 	-- piece names the obstacle that must be open before that piece is
 	-- walkable. `gate` holds extra first-time needs (size, boss) checked
 	-- after the tool. `opensRegion` (optional) grants that campaign region.
+	-- First visits recorded in campaign.discoveries (RegionService).
+	discoveries = {
+		sanctuary = { name = "Sanctuary", message = "You found the Sanctuary!" },
+	},
+	-- A far-off titan seen over the sanctuary from the first breakout (#217).
+	-- Decoration only: it never collides, blocks rays or casts a shadow.
+	titanSilhouette = { position = Vector3.new(-1100, 72, -1500), height = 180 },
 	obstacleOrder = { "quarryWall" },
 	obstacles = {
 		quarryWall = {
@@ -142,6 +150,8 @@ Config.Kingdom = {
 			actionSeconds = 1.5, -- how long the golem's smash takes
 			cooldownSeconds = 2,
 			gate = {},
+			revealTitle = "THE WAY IS OPEN!",
+			revealText = "Follow the road to the sanctuary.",
 		},
 	},
 }
@@ -1360,6 +1370,36 @@ local tutorial: { [any]: any } = {
 	doneText = "Ready! Follow your Goal to grow.",
 }
 Config.Tutorial = tutorial
+
+-- With Config.Kingdom.enabled, the first session follows the breakout (#217):
+-- mine, forge a copper arm, smash the wall, reach the sanctuary. A step with
+-- `completeOn` finishes on that event and value, or at once if the save
+-- already has it (an already-open wall, a learned tool).
+Config.Kingdom.tutorial = {
+	steerSeconds = tutorial.steerSeconds,
+	steps = {
+		tutorialSteps[1], -- steer
+		tutorialSteps[2], -- mine
+		{
+			id = "forgeArm",
+			text = "Open Forge. Build a copper arm!",
+			pointer = "forge",
+			touchKey = "Tap",
+			completeOn = { event = "abilityLearned", value = "smash" },
+		},
+		{
+			id = "breakWall",
+			text = "Ride to the cracked wall. Smash it!",
+			completeOn = { event = "obstacleOpened", value = "quarryWall" },
+		},
+		{
+			id = "reachSanctuary",
+			text = "Follow the road to the sanctuary.",
+			completeOn = { event = "discovered", value = "sanctuary" },
+		},
+	},
+	doneText = "Ready! Follow your Goal to grow.",
+}
 
 ---------------------------------------------------------------- analytics
 

@@ -13,6 +13,7 @@ export type Piece = {
 	kind: "terrace" | "ramp",
 	spawns: boolean,
 	requires: string?, -- obstacle id that must be open before it is walkable
+	discovery: string?, -- Config.Kingdom.discoveries id recorded on first visit
 	-- terrace
 	minX: number,
 	maxX: number,
@@ -41,6 +42,7 @@ function KingdomLayout.pieces(layout: any): { Piece }
 			kind = "terrace",
 			spawns = t.spawns ~= false,
 			requires = t.requires,
+			discovery = t.discovery,
 			minX = t.center.X - t.size.X / 2,
 			maxX = t.center.X + t.size.X / 2,
 			minZ = t.center.Z - t.size.Z / 2,
@@ -62,6 +64,7 @@ function KingdomLayout.pieces(layout: any): { Piece }
 			kind = "ramp",
 			spawns = false, -- nothing spawns on a slope
 			requires = r.requires,
+			discovery = r.discovery,
 			minX = math.min(r.from.X, r.to.X),
 			maxX = math.max(r.from.X, r.to.X),
 			minZ = math.min(r.from.Z, r.to.Z),

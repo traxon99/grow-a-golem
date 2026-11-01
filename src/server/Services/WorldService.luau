@@ -242,7 +242,7 @@ function WorldService.useKingdom(layout: any)
 	kingdomLayout = layout
 	kingdomPieces = KingdomLayout.pieces(layout)
 	kingdomZones = KingdomLayout.zones(kingdomPieces)
-	Kingdom.build(layout, Config.Kingdom.obstacles)
+	Kingdom.build(layout, Config.Kingdom.obstacles, Config.Kingdom.titanSilhouette)
 end
 
 -- Whether a zone is part of the connected kingdom route right now.
@@ -257,6 +257,15 @@ function WorldService.requiredObstacleAt(position: Vector3): string?
 	end
 	local _, piece = KingdomLayout.groundAt(kingdomPieces, position.X, position.Z)
 	return if piece then piece.requires else nil
+end
+
+-- The discovery the kingdom ground at `position` records on a first visit.
+function WorldService.discoveryAt(position: Vector3): string?
+	if not next(kingdomZones) then
+		return nil
+	end
+	local _, piece = KingdomLayout.groundAt(kingdomPieces, position.X, position.Z)
+	return if piece then piece.discovery else nil
 end
 
 -- Whether this player may stand at `position`: true off the kingdom route,

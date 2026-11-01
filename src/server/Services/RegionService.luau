@@ -26,7 +26,23 @@ local RegionService = {}
 
 local lastLockedMessage: { [Player]: number } = {}
 
--- One golem's boundary check. Returns "entered", "blocked" or nil.
+-- Records a first visit to discovery ground once, from the golem's own
+-- position on ground this player may stand on. Returns "discovered" or nil.
+function RegionService.discover(player: Player, data: any, position: Vector3): string?
+	local id = WorldService.discoveryAt(position)
+	local discovery = if id then Config.Kingdom.discoveries[id] else nil
+	if not id or not discovery or data.campaign.discoveries[id] == true then
+		return nil
+	end
+	DataService.update(player, function(d)
+		d.campaign.discoveries[id] = true
+	end)
+	Events.fire("discovered", player, id)
+	Remotes.Notify:FireClient(player, "message", discovery.message)
+	return "discovered"
+end
+
+-- One golem's boundary check. Returns "entered", "blocked", "discovered" or nil.
 function RegionService.check(player: Player, golem: any, now: number): string?
 	if not GolemService.isActive(golem) or not WorldService.isKingdomZone(golem.zoneId) then
 		return nil
@@ -47,7 +63,7 @@ function RegionService.check(player: Player, golem: any, now: number): string?
 	if not KingdomRules.pieceOpen(data, requires) then
 		allowed, reason = false, KingdomRules.blockedText(requires :: string)
 	elseif zoneId == golem.zoneId then
-		return nil
+		return RegionService.discover(player, data, position)
 	elseif zoneId ~= Config.HubZone then
 		allowed, reason = Stats.travelUnlocked(data, zoneId)
 	end
@@ -57,6 +73,7 @@ function RegionService.check(player: Player, golem: any, now: number): string?
 		if zoneId ~= Config.HubZone then
 			Events.fire("zoneEntered", player, zoneId)
 		end
+		RegionService.discover(player, data, position)
 		return "entered"
 	end
 	local layout = Config.Kingdom.layout

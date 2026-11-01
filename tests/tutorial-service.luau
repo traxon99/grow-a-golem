@@ -229,5 +229,56 @@ do
 		assert(okAgain == false, "skipping an already-finished tutorial is refused")
 	end
 
+	--------------------------------------------------------------------- kingdom breakout (#217)
+	do
+		local wasEnabled = Config.Kingdom.enabled
+		Config.Kingdom.enabled = true
+		assert(Stats.tutorial() == Config.Kingdom.tutorial)
+		local ids = {}
+		for _, step in Config.Kingdom.tutorial.steps do
+			table.insert(ids, step.id)
+		end
+		assert(table.concat(ids, ",") == "steer,mine,forgeArm,breakWall,reachSanctuary")
+		assert(eventHandlers.abilityLearned and eventHandlers.obstacleOpened and eventHandlers.discovered)
+
+		local function kingdomData()
+			local data = freshData()
+			data.campaign = { abilities = {}, obstacles = {}, discoveries = {} }
+			return data
+		end
+		local rider = join(kingdomData())
+		loaded:Fire(rider)
+		datas[rider].tutorial.step = 2
+		eventHandlers.nodeMined(rider)
+		assert(datas[rider].tutorial.step == 3, "mine, then forge an arm")
+		eventHandlers.partCrafted(rider)
+		assert(datas[rider].tutorial.step == 3, "any part isn't enough; it waits for Smash")
+		eventHandlers.abilityLearned(rider, "lift")
+		assert(datas[rider].tutorial.step == 3)
+		datas[rider].campaign.abilities.smash = true
+		eventHandlers.abilityLearned(rider, "smash")
+		assert(datas[rider].tutorial.step == 4, "learning Smash moves on to the wall")
+		eventHandlers.obstacleOpened(rider, "quarryWall")
+		assert(datas[rider].tutorial.step == 5)
+		eventHandlers.discovered(rider, "sanctuary")
+		assert(datas[rider].tutorial.done == true, "reaching the sanctuary finishes it")
+		assert(logged[#logged].name == "done")
+
+		-- A save that already broke the wall skips straight past those steps.
+		local returning = join(kingdomData())
+		datas[returning].campaign.abilities.smash = true
+		datas[returning].campaign.obstacles.quarryWall = true
+		datas[returning].tutorial.step = 3
+		loaded:Fire(returning)
+		assert(datas[returning].tutorial.step == 5, "an already-open wall isn't asked for again")
+
+		-- Skipping still works.
+		local skipper = join(kingdomData())
+		loaded:Fire(skipper)
+		assert(handlers.skipTutorial(skipper) and datas[skipper].tutorial.done)
+		Config.Kingdom.enabled = wasEnabled
+		assert(Stats.tutorial() == Config.Tutorial)
+	end
+
 	print("tutorial-service: ok")
 end

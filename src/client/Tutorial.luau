@@ -10,8 +10,8 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
+local Stats = require(Shared:WaitForChild("Stats"))
 
 local Hud = require(script.Parent:WaitForChild("Hud"))
 local Menus = require(script.Parent:WaitForChild("Menus"))
@@ -374,7 +374,7 @@ function Tutorial.start()
 	end
 
 	RunService.RenderStepped:Connect(function()
-		local step = Config.Tutorial.steps[stepIndex]
+		local step = Stats.tutorial().steps[stepIndex]
 		if not step then
 			return
 		end
@@ -403,15 +403,15 @@ function Tutorial.start()
 		end
 		stepIndex = index
 		hidePointers()
-		local step = Config.Tutorial.steps[index]
+		local step = Stats.tutorial().steps[index]
 		if not step then
 			return
 		end
 		panel.Visible = true
 		skip.Visible = true
-		counter.Text = `STEP {index} OF {#Config.Tutorial.steps}`
+		counter.Text = `STEP {index} OF {#Stats.tutorial().steps}`
 		stepBack.Visible = true
-		Ui.tween(stepFill, TweenInfo.new(0.3), { Size = UDim2.fromScale(index / #Config.Tutorial.steps, 1) })
+		Ui.tween(stepFill, TweenInfo.new(0.3), { Size = UDim2.fromScale(index / #Stats.tutorial().steps, 1) })
 		text.Text = stepText(step)
 		setKey(stepKey(step))
 		pop()
@@ -444,7 +444,7 @@ function Tutorial.start()
 			counter.Text = "ALL DONE!"
 			stepFill.Size = UDim2.fromScale(1, 1)
 			setKey(nil)
-			text.Text = Config.Tutorial.doneText
+			text.Text = Stats.tutorial().doneText
 			pop()
 			task.delay(6, function()
 				if stepIndex == 0 then

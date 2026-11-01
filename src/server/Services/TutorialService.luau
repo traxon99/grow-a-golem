@@ -36,12 +36,12 @@ local function currentStep(player: Player): (any?, number)
 	if not data or data.tutorial.done or data.tutorial.step < 1 then
 		return nil, 0
 	end
-	return Config.Tutorial.steps[data.tutorial.step], data.tutorial.step
+	return Stats.tutorial().steps[data.tutorial.step], data.tutorial.step
 end
 
 -- Runs when a step begins, to make sure it can always be finished.
 local function enterStep(player: Player, index: number)
-	local step = Config.Tutorial.steps[index]
+	local step = Stats.tutorial().steps[index]
 	local data = DataService.get(player)
 	if not step or not data then
 		return
@@ -65,7 +65,7 @@ local function finish(player: Player, skipped: boolean)
 	end)
 	steered[player] = nil
 	if not skipped then
-		logStep(player, #Config.Tutorial.steps + 1, "done")
+		logStep(player, #Stats.tutorial().steps + 1, "done")
 		Remotes.Notify:FireClient(player, "tutorialDone")
 	end
 end
@@ -80,24 +80,30 @@ local function complete(player: Player, id: string)
 		EconomyService.grantFlat(player, step.reward, "tutorial")
 	end
 	Remotes.Notify:FireClient(player, "tutorialStep", index)
-	if index >= #Config.Tutorial.steps then
+	if index >= #Stats.tutorial().steps then
 		finish(player, false)
 		return
 	end
 	DataService.update(player, function(data)
 		data.tutorial.step = index + 1
 	end)
-	logStep(player, index + 1, Config.Tutorial.steps[index + 1].id)
+	logStep(player, index + 1, Stats.tutorial().steps[index + 1].id)
 	enterStep(player, index + 1)
 	TutorialService.check(player)
 end
 
--- Steps that finish on a state rather than an event (reaching level 2).
+-- Steps that finish on a state rather than an event (reaching level 2, or a
+-- kingdom step the save already has, such as a wall opened earlier).
 function TutorialService.check(player: Player)
 	local step = currentStep(player)
 	local data = DataService.get(player)
-	if step and data and step.id == "level" and Stats.levelForXp(data.golem.xp) >= 2 then
+	if not step or not data then
+		return
+	end
+	if step.id == "level" and Stats.levelForXp(data.golem.xp) >= 2 then
 		complete(player, "level")
+	elseif Stats.tutorialStepMet(data, step) then
+		complete(player, step.id)
 	end
 end
 
@@ -117,7 +123,7 @@ local function onLoaded(player: Player)
 		DataService.update(player, function(d)
 			d.tutorial.step = 1
 		end)
-		logStep(player, 1, Config.Tutorial.steps[1].id)
+		logStep(player, 1, Stats.tutorial().steps[1].id)
 	end
 	enterStep(player, data.tutorial.step)
 	TutorialService.check(player)
@@ -133,6 +139,15 @@ function TutorialService.start()
 	Events.connect("partCrafted", function(player)
 		complete(player, "forge")
 	end)
+	for _, event in { "abilityLearned", "obstacleOpened", "discovered" } do
+		Events.connect(event, function(player, value)
+			local step = currentStep(player)
+			local on = step and step.completeOn
+			if on and on.event == event and on.value == value then
+				complete(player, step.id)
+			end
+		end)
+	end
 	Events.connect("spellCast", function(player, spellId)
 		local step = currentStep(player)
 		if step and step.spell == spellId then
@@ -157,7 +172,7 @@ function TutorialService.start()
 				local step = currentStep(player)
 				if step and step.id == "steer" and GolemService.getSteer(golem).Magnitude > 0 then
 					steered[player] = (steered[player] or 0) + POLL_INTERVAL
-					if steered[player] >= Config.Tutorial.steerSeconds then
+					if steered[player] >= Stats.tutorial().steerSeconds then
 						complete(player, "steer")
 					end
 				end

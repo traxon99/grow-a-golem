@@ -47,10 +47,61 @@ local function slab(parent: Instance, name: string, color: Color3): Part
 	return part
 end
 
+-- A placeholder titan far beyond the sanctuary (#217): a few dark blocks
+-- with glowing eyes, seen from the shoulder camera. Pure decoration.
+function Kingdom.titan(parent: Instance, config: any)
+	local model = Instance.new("Model")
+	model.Name = "DistantTitan"
+	local h = config.height
+	local base = config.position
+	local shapes: { { name: string, size: Vector3, offset: Vector3 } } = {
+		{
+			name = "LegL",
+			size = Vector3.new(h * 0.12, h * 0.42, h * 0.14),
+			offset = Vector3.new(-h * 0.1, h * 0.21, 0),
+		},
+		{ name = "LegR", size = Vector3.new(h * 0.12, h * 0.42, h * 0.14), offset = Vector3.new(h * 0.1, h * 0.21, 0) },
+		{ name = "Body", size = Vector3.new(h * 0.42, h * 0.36, h * 0.24), offset = Vector3.new(0, h * 0.6, 0) },
+		{ name = "ArmL", size = Vector3.new(h * 0.1, h * 0.4, h * 0.12), offset = Vector3.new(-h * 0.28, h * 0.52, 0) },
+		{ name = "ArmR", size = Vector3.new(h * 0.1, h * 0.4, h * 0.12), offset = Vector3.new(h * 0.28, h * 0.52, 0) },
+		{ name = "Head", size = Vector3.new(h * 0.18, h * 0.16, h * 0.18), offset = Vector3.new(0, h * 0.86, 0) },
+	}
+	for _, shape in shapes do
+		local part = Instance.new("Part")
+		part.Name = shape.name
+		part.Anchored = true
+		part.CanCollide = false
+		part.CanQuery = false
+		part.CanTouch = false
+		part.CastShadow = false
+		part.Material = Enum.Material.Slate
+		part.Color = Color3.fromRGB(46, 44, 58)
+		part.Size = shape.size
+		part.Position = base + shape.offset
+		part.Parent = model
+	end
+	for _, side in { -1, 1 } do
+		local eye = Instance.new("Part")
+		eye.Name = "Eye"
+		eye.Anchored = true
+		eye.CanCollide = false
+		eye.CanQuery = false
+		eye.CanTouch = false
+		eye.CastShadow = false
+		eye.Material = Enum.Material.Neon
+		eye.Color = Color3.fromRGB(150, 110, 255)
+		eye.Size = Vector3.new(h * 0.03, h * 0.02, h * 0.02)
+		-- On the face that looks back toward the quarry (+X).
+		eye.Position = base + Vector3.new(h * 0.091, h * 0.88, side * h * 0.04)
+		eye.Parent = model
+	end
+	model.Parent = parent
+end
+
 -- Returns the folder holding the route. Building it twice reuses the first.
 -- Obstacles are walk-through for everyone: the server's region check is the
 -- lock, and each client shows its own player's opened or closed state.
-function Kingdom.build(layout: any, obstacles: any?): Folder
+function Kingdom.build(layout: any, obstacles: any?, titan: any?): Folder
 	local existing = workspace:FindFirstChild("Kingdom")
 	if existing and existing:IsA("Folder") then
 		return existing
@@ -84,6 +135,9 @@ function Kingdom.build(layout: any, obstacles: any?): Folder
 		part.Size = obstacle.size
 		part.Position = obstacle.position + Vector3.new(0, obstacle.size.Y / 2, 0)
 		part:SetAttribute("ObstacleId", id)
+	end
+	if titan then
+		Kingdom.titan(folder, titan)
 	end
 	folder.Parent = workspace
 	return folder
