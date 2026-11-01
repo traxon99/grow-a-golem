@@ -111,6 +111,17 @@ local function setAnnounce(player: Player, on: any): (boolean, string?)
 	return true, if on then "You'll hear about rare finds" else "Rare-find messages are off."
 end
 
+-- The music volume setting: one of Config.Music.volumeSteps (1 = Normal).
+local function setMusicVolume(player: Player, level: any): (boolean, string?)
+	if type(level) ~= "number" or not table.find(Config.Music.volumeSteps, level) or not DataService.get(player) then
+		return false, "Not ready"
+	end
+	DataService.update(player, function(d)
+		d.social.musicVolume = level
+	end)
+	return true, if level == 0 then "Music is off." else "Music volume set."
+end
+
 -- Tells everyone who hasn't opted out that someone found something rare.
 local function announce(finder: Player, artifactId: string)
 	local artifact = Config.Artifacts[artifactId]
@@ -144,6 +155,7 @@ function SocialService.start()
 	DataService.addProvider("hub", snapshot, Config.Hub.refreshSeconds)
 	ActionService.register("setTitle", setTitle)
 	ActionService.register("setAnnounce", setAnnounce)
+	ActionService.register("setMusicVolume", setMusicVolume)
 	Events.connect("artifactFound", announce)
 
 	local golems = WorldService.getFolder("Golems")
