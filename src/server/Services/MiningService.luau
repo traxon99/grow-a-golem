@@ -340,6 +340,7 @@ end
 -- The pickup radius the given player's golem currently sucks chunks in from:
 -- its base range (scaled with size, like the other golem ranges), widened
 -- 3x for a second right after a Magnet cast (see CombatService.onCastSpell).
+-- `update` also waits for each chunk to land and be pickupDelay old.
 local function pickupRadius(player: Player): (number?, GolemService.Golem?)
 	local golem = GolemService.get(player)
 	if not golem or not GolemService.isActive(golem) then
@@ -402,9 +403,19 @@ function MiningService.update(dt: number)
 			chunk.part.Position = nextPosition
 		end
 
+		-- Only a landed chunk that has been out for pickupDelay can be picked
+		-- up. The golem mines from inside its pickup radius, so without this
+		-- every chunk was collected on the tick it spawned and never reached
+		-- a client (#250).
 		local collected = false
 		local radius, golem = pickupRadius(chunk.owner)
-		if radius and golem and (golem.root.Position - chunk.part.Position).Magnitude <= radius then
+		if
+			radius
+			and golem
+			and chunk.resting
+			and now - chunk.spawnedAt >= cfg.pickupDelay
+			and (golem.root.Position - chunk.part.Position).Magnitude <= radius
+		then
 			collected = true
 		end
 		if not collected and now - chunk.spawnedAt >= cfg.lifetime then
