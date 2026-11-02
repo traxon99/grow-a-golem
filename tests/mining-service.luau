@@ -105,6 +105,9 @@ local shared = {
 	WaitForChild = function(self)
 		return self
 	end,
+	GetServerTimeNow = function()
+		return os.clock()
+	end,
 }
 local Players = {
 	PlayerRemoving = {
@@ -151,22 +154,23 @@ local Config = {
 	-- pickup-radius block near the end shrinks this back down to something
 	-- testable.
 	Golem = { pickupRadius = 1e9 },
-	Spells = { magnet = { burstMultiplier = 3, burstDuration = 10 } },
+	Spells = { magnet = { burstDuration = 10 } },
 	-- One chunk per node, for the whole node's yield, keeps every assertion
 	-- below arithmetically identical to the pre-drop instant-grant behavior.
 	OreDrops = {
 		minChunks = 1,
 		maxChunks = 1,
 		chunkSize = 0.9,
-		scatterSpeed = 0,
-		scatterHeight = 0,
-		gravity = 0,
-		-- Nodes sit 2 studs up (half their 4-stud size), so a 2-stud settle
-		-- height lands every chunk on its first update; with no pickup delay
-		-- it is collected on that same flush.
+		-- No scatter, flight or slide: every chunk rests where its node stood
+		-- (nodes sit 2 studs up, half their 4-stud size, so a 2-stud settle
+		-- height keeps it there) and, with no pickup delay, is collected on
+		-- the next update.
+		scatterRadius = 0,
+		minScatterFraction = 0.3,
+		flightTime = 0,
+		slideTime = 0,
 		settleHeight = 2,
 		pickupDelay = 0,
-		lifetime = 1e9,
 		maxConcurrent = 1e9,
 	},
 }
@@ -203,7 +207,11 @@ local mining = loadMiningService({
 	},
 	Remotes = {
 		Notify = {
-			FireClient = function(_, player)
+			-- Counts payout notices only; "oreBurst" is just the break sound.
+			FireClient = function(_, player, kind)
+				if kind ~= "oreChunk" and kind ~= "mined" then
+					return
+				end
 				notices[player] = (notices[player] or 0) + 1
 			end,
 		},
@@ -325,18 +333,18 @@ assert(paid[a] == 25, "a destroyed node cannot pay")
 
 -- Pickup radius: a chunk within Config.Golem.pickupRadius of the golem is
 -- auto-collected; farther out, it waits -- until a Magnet burst (see
--- CombatService.onCastSpell -> MiningService.triggerMagnetBurst) widens
--- that radius by Config.Spells.magnet.burstMultiplier.
+-- CombatService.onCastSpell -> MiningService.triggerMagnetBurst) pulls in
+-- the player's chunks from anywhere on the map.
 Config.Golem.pickupRadius = 5
 node = spawnNode()
-node.part.Position = v(12, 2, 0) -- 12 studs from the golem at the origin
+node.part.Position = v(5000, 2, 0) -- far across the map from the golem at the origin
 mining.damage(node, 100, a)
 mining.update(0)
-assert(paid[a] == 25, "a chunk 12 studs out, with only a 5-stud base radius, should still be waiting")
+assert(paid[a] == 25, "a chunk far out, with only a 5-stud base radius, should still be waiting")
 
 mining.triggerMagnetBurst(a)
 mining.update(0)
-assert(paid[a] == 35, "Magnet's 3x burst (radius 15) should reach a chunk sitting 12 studs out")
+assert(paid[a] == 35, "a Magnet burst should reach a chunk anywhere on the map")
 
 -- The golem mines from inside its own pickup radius, so a chunk must not be
 -- collected the tick it spawns (#250): it waits until it has landed and
@@ -353,17 +361,65 @@ mining.update(0)
 assert(paid[a] == 45, "once pickupDelay has passed, a landed chunk in range is collected")
 Config.OreDrops.pickupDelay = 0
 
--- A chunk still in the air is never collected, however close it is.
-Config.OreDrops.scatterHeight = 10
+-- A chunk still flying or sliding is never collected, however close it is.
+Config.OreDrops.flightTime = 0.03
+Config.OreDrops.slideTime = 0.03
 node = spawnNode()
 mining.damage(node, 100, a)
-mining.update(0.01)
+mining.update(0)
 assert(paid[a] == 45, "a chunk still flying must not be collected")
-Config.OreDrops.gravity = 1e4
-mining.update(0.1)
-assert(paid[a] == 55, "the chunk is collected once it lands")
-Config.OreDrops.scatterHeight = 0
-Config.OreDrops.gravity = 0
+waitStart = os.clock()
+repeat
+until os.clock() - waitStart >= 0.075
+mining.update(0)
+assert(paid[a] == 55, "the chunk is collected once it has landed and slid to rest")
+Config.OreDrops.flightTime = 0
+Config.OreDrops.slideTime = 0
+
+-- Chunks rest at 0.3-1.0 of the scatter radius from their node, and each
+-- one pays (and announces) its own share of the node's yield.
+Config.OreDrops.scatterRadius = 15
+Config.OreDrops.minChunks = 4
+Config.OreDrops.maxChunks = 4
+Config.Golem.pickupRadius = 1e9
+local before = #createdChunks
+local noticesBefore = notices[a]
+node = spawnNode()
+local origin = node.part.Position
+mining.damage(node, 100, a)
+for index = before + 1, #createdChunks do
+	local rest = createdChunks[index].Position
+	local distance = math.sqrt((rest.X - origin.X) ^ 2 + (rest.Z - origin.Z) ^ 2)
+	assert(distance >= 15 * 0.3 - 1e-6 and distance <= 15 + 1e-6, "a chunk rests 0.3-1.0 of scatterRadius out")
+end
+assert(#createdChunks - before == 4)
+mining.update(0)
+assert(paid[a] == 65, "four chunks of a 10-yield node still pay 10 in total")
+assert(notices[a] - noticesBefore == 4, "each chunk announces its own share")
+Config.OreDrops.scatterRadius = 0
+Config.OreDrops.minChunks = 1
+Config.OreDrops.maxChunks = 1
+Config.Golem.pickupRadius = 5
+
+-- Chunks never time out. Only past Config.OreDrops.maxConcurrent does the
+-- oldest pay out where it lies to make room, tagged "Expired" so clients
+-- sparkle it in place instead of flying it to a distant golem. (No update
+-- here: making room happens when the next node breaks.)
+Config.OreDrops.maxConcurrent = 1
+node = spawnNode()
+mining.damage(node, 100, a)
+local oldest = createdChunks[#createdChunks]
+assert(paid[a] == 65 and not oldest.destroyed, "a chunk under the cap waits to be collected")
+node = spawnNode()
+mining.damage(node, 100, a)
+assert(paid[a] == 75, "the oldest chunk pays out to make room past the cap")
+assert(
+	oldest.destroyed and oldest:GetAttribute("Expired") == true,
+	"a chunk paid out by the cap is tagged for the client"
+)
+mining.update(0)
+assert(paid[a] == 85, "the newer chunk is still collected normally")
+Config.OreDrops.maxConcurrent = 1e9
 
 -- A winner who disconnects before collecting forfeits the reward rather
 -- than being paid late (matches damage()'s own "a departed player cannot

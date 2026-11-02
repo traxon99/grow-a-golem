@@ -26,7 +26,7 @@ Game code lives in this repo and syncs into Roblox Studio with [Rojo](https://ro
 | Quake (area damage) | Q | X | Quake button |
 | Optional rune cast (+50% auto-attack for 8s after 3 correct taps) | T, then 1/2/3 | L2, then X/Y/B | Rune Cast, then three rune buttons |
 | Mend (heal) | E | Y | Mend button |
-| Magnet (2x minerals for 10 s) | R | B | Magnet button |
+| Magnet (2x minerals for 10 s; pulls in all your dropped ore) | R | B | Magnet button |
 | Mount / dismount | F | R1 | Mount button |
 | Menus | Buttons on the left | | Buttons on the left |
 
