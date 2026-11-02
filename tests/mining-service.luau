@@ -413,7 +413,10 @@ assert(paid[a] == 65 and not oldest.destroyed, "a chunk under the cap waits to b
 node = spawnNode()
 mining.damage(node, 100, a)
 assert(paid[a] == 75, "the oldest chunk pays out to make room past the cap")
-assert(oldest.destroyed and oldest:GetAttribute("Expired") == true, "a chunk paid out by the cap is tagged for the client")
+assert(
+	oldest.destroyed and oldest:GetAttribute("Expired") == true,
+	"a chunk paid out by the cap is tagged for the client"
+)
 mining.update(0)
 assert(paid[a] == 85, "the newer chunk is still collected normally")
 Config.OreDrops.maxConcurrent = 1e9
