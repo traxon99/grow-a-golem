@@ -174,6 +174,15 @@ local function updateGolem(player: Player, golem: GolemService.Golem, dt: number
 
 	local stats = golem.stats
 	local now = os.clock()
+	-- Opening a kingdom obstacle holds the golem still; steering cancels it.
+	if golem.busyUntil > 0 then
+		if now >= golem.busyUntil or GolemService.getSteer(golem).Magnitude > 0 then
+			golem.busyUntil = 0
+		else
+			golem.humanoid:Move(Vector3.zero)
+			return
+		end
+	end
 	local position = golem.root.Position
 	local aggro = Config.Golem.aggroRange * stats.scale
 

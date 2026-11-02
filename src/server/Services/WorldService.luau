@@ -4,17 +4,29 @@
 -- Once you build real islands in Studio, name each ground part "Zone1",
 -- "Zone2"... (and "Hub" for the hub) and this service will use yours instead
 -- of making flat ones.
+--
+-- With Config.Kingdom.enabled, the regions in Config.Kingdom.layout (the
+-- quarry and hub so far) are one connected graybox route instead, and every
+-- answer for them comes from KingdomLayout rather than a ground part (#214).
 
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local KingdomLayout = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KingdomLayout"))
+local KingdomRules = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("KingdomRules"))
 local Islands = require(script.Parent.Parent.Models.Islands)
+local Kingdom = require(script.Parent.Parent.Models.Kingdom)
 
 local WorldService = {}
 
 local grounds: { [number]: BasePart } = {}
 local folders: { [string]: Folder } = {}
+
+-- Set by useKingdom: the layout's pieces and the region ids they own.
+local kingdomLayout: any = nil
+local kingdomPieces: { KingdomLayout.Piece } = {}
+local kingdomZones: { [number]: boolean } = {}
 
 local function getOrMakeFolder(name: string): Folder
 	local existing = workspace:FindFirstChild(name)
@@ -177,8 +189,14 @@ function WorldService.start()
 	for id, zone in Config.Zones do
 		table.insert(islands, { id = id, zone = zone })
 	end
+	if Config.Kingdom.enabled then
+		WorldService.useKingdom(Config.Kingdom.layout)
+	end
 	for _, island in islands do
 		local id, zone = island.id, island.zone
+		if kingdomZones[id] then
+			continue
+		end
 		local name = if id == Config.HubZone then "Hub" else "Zone" .. id
 		local ground = workspace:FindFirstChild(name)
 		if not (ground and ground:IsA("BasePart")) then
@@ -218,6 +236,85 @@ function WorldService.start()
 	placeSpawns()
 end
 
+-- Switches the layout's regions to the connected kingdom route: builds the
+-- graybox and answers spawn, boss, random and membership queries from it.
+function WorldService.useKingdom(layout: any)
+	kingdomLayout = layout
+	kingdomPieces = KingdomLayout.pieces(layout)
+	kingdomZones = KingdomLayout.zones(kingdomPieces)
+	Kingdom.build(layout, Config.Kingdom.obstacles, Config.Kingdom.titanSilhouette)
+end
+
+-- Whether a zone is part of the connected kingdom route right now.
+function WorldService.isKingdomZone(zoneId: number): boolean
+	return kingdomZones[zoneId] == true
+end
+
+-- The obstacle id the kingdom ground at `position` waits on, if any.
+function WorldService.requiredObstacleAt(position: Vector3): string?
+	if not next(kingdomZones) then
+		return nil
+	end
+	local _, piece = KingdomLayout.groundAt(kingdomPieces, position.X, position.Z)
+	return if piece then piece.requires else nil
+end
+
+-- The discovery the kingdom ground at `position` records on a first visit.
+function WorldService.discoveryAt(position: Vector3): string?
+	if not next(kingdomZones) then
+		return nil
+	end
+	local _, piece = KingdomLayout.groundAt(kingdomPieces, position.X, position.Z)
+	return if piece then piece.discovery else nil
+end
+
+-- Whether this player may stand at `position`: true off the kingdom route,
+-- and on it unless the ground there waits on an obstacle they haven't opened.
+function WorldService.routeOpen(data: any, position: Vector3): boolean
+	return KingdomRules.pieceOpen(data, WorldService.requiredObstacleAt(position))
+end
+
+-- Where a golem blocked at `position` should go back to: the nearest point
+-- of its current region, `margin` from the edge, on ground this player may
+-- stand on (`data`, when given). Islands use their spawn.
+function WorldService.safePointNear(zoneId: number, position: Vector3, margin: number, data: any?): Vector3
+	if kingdomZones[zoneId] then
+		local allow = if data
+			then function(piece: KingdomLayout.Piece): boolean
+				return KingdomRules.pieceOpen(data, piece.requires)
+			end
+			else nil
+		local x, y, z = KingdomLayout.safePointNear(kingdomPieces, zoneId, position.X, position.Z, margin, allow)
+		if x and y and z then
+			return Vector3.new(x, y, z)
+		end
+	end
+	return WorldService.getSpawnPoint(zoneId)
+end
+
+-- Whether walking straight from `from` to `to` stays on kingdom ground.
+-- Always true off the kingdom route, where islands are single flat parts.
+function WorldService.groundedPath(from: Vector3, to: Vector3): boolean
+	if not next(kingdomZones) then
+		return true
+	end
+	if
+		not KingdomLayout.zoneAt(kingdomPieces, from.X, from.Z)
+		and not KingdomLayout.zoneAt(kingdomPieces, to.X, to.Z)
+	then
+		return true
+	end
+	local dx, dz = to.X - from.X, to.Z - from.Z
+	local steps = math.max(1, math.ceil(math.sqrt(dx * dx + dz * dz) / 4))
+	for step = 0, steps do
+		local t = step / steps
+		if not KingdomLayout.groundAt(kingdomPieces, from.X + dx * t, from.Z + dz * t) then
+			return false
+		end
+	end
+	return true
+end
+
 -- Builds (once) a flat arena ground that works like any island: spawn points,
 -- random points and surface height all answer for its zone id. Used by the
 -- co-op tower; arenas have no scenery, nodes or regular spawns.
@@ -242,19 +339,35 @@ function WorldService.getFolder(name: string): Folder
 	return folders[name]
 end
 
--- Height of the walkable top surface of a zone.
+-- Height of the walkable top surface of a zone. For the kingdom route this
+-- is its lowest walkable height, the reference for the fall check.
 function WorldService.getSurfaceY(zoneId: number): number
+	if kingdomZones[zoneId] then
+		return KingdomLayout.floorY(kingdomPieces)
+	end
 	local ground = grounds[zoneId]
 	return ground.Position.Y + ground.Size.Y / 2
 end
 
+local function kingdomAnchor(zoneId: number, kind: string): Vector3
+	local x, y, z = KingdomLayout.anchor(kingdomPieces, kingdomLayout, zoneId, kind)
+	assert(x and y and z, `Kingdom region {zoneId} has no ground for its {kind} anchor`)
+	return Vector3.new(x, y, z)
+end
+
 function WorldService.getSpawnPoint(zoneId: number): Vector3
+	if kingdomZones[zoneId] then
+		return kingdomAnchor(zoneId, "spawn")
+	end
 	local ground = grounds[zoneId]
 	return Vector3.new(ground.Position.X, WorldService.getSurfaceY(zoneId), ground.Position.Z)
 end
 
 -- Where the zone's boss lives: the far corner, away from the spawn.
 function WorldService.getBossPoint(zoneId: number): Vector3
+	if kingdomZones[zoneId] then
+		return kingdomAnchor(zoneId, "boss")
+	end
 	local ground = grounds[zoneId]
 	local x = ground.Position.X + ground.Size.X * 0.32
 	local z = ground.Position.Z - ground.Size.Z * 0.32
@@ -262,6 +375,13 @@ function WorldService.getBossPoint(zoneId: number): Vector3
 end
 
 function WorldService.randomPoint(zoneId: number, margin: number): Vector3
+	if kingdomZones[zoneId] then
+		local x, y, z = KingdomLayout.randomPoint(kingdomPieces, zoneId, margin, math.random)
+		if x and y and z then
+			return Vector3.new(x, y, z)
+		end
+		return WorldService.getSpawnPoint(zoneId)
+	end
 	local ground = grounds[zoneId]
 	local halfX = math.max(ground.Size.X / 2 - margin, 0)
 	local halfZ = math.max(ground.Size.Z / 2 - margin, 0)
@@ -270,8 +390,15 @@ function WorldService.randomPoint(zoneId: number, margin: number): Vector3
 	return Vector3.new(x, WorldService.getSurfaceY(zoneId), z)
 end
 
--- Which zone a point is over, or nil.
+-- Which zone a point is over, or nil. Kingdom ground is checked first and
+-- only counts its authored pieces, so the void between them is nothing.
 function WorldService.zoneAt(position: Vector3): number?
+	if next(kingdomZones) then
+		local zoneId = KingdomLayout.zoneAt(kingdomPieces, position.X, position.Z)
+		if zoneId then
+			return zoneId
+		end
+	end
 	for id, ground in grounds do
 		local offset = position - ground.Position
 		if math.abs(offset.X) <= ground.Size.X / 2 and math.abs(offset.Z) <= ground.Size.Z / 2 then

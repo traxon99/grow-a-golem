@@ -9,6 +9,9 @@
 --   spellCast     (player, spellId)
 --   partCrafted   (player, slot, tier)
 --   abilityLearned(player, abilityId)       forge taught an exploration tool
+--   obstacleOpened(player, obstacleId)      a kingdom obstacle opened for this player
+--   discovered    (player, discoveryId)     first visit to a kingdom discovery
+--   projectCompleted(player, projectId)     a sanctuary restoration finished
 --   artifactFound (player, artifactId)
 --   bossEngaged   (player, zoneId)         first hit on a boss
 --   zoneEntered   (player, zoneId)         travelled to an island

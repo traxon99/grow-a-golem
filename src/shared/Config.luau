@@ -24,6 +24,7 @@ Config.Kingdom = {
 			description = "Break cracked walls.",
 			region = 1,
 			hint = "A cracked wall blocks the quarry road.",
+			forgeHint = "Forge a copper arm.",
 		},
 		lift = {
 			tier = "iron",
@@ -32,6 +33,7 @@ Config.Kingdom = {
 			description = "Raise fallen gates.",
 			region = 2,
 			hint = "A fallen gate waits at the end of the Ember road.",
+			forgeHint = "Forge an iron arm.",
 		},
 		reveal = {
 			tier = "crystal",
@@ -40,6 +42,7 @@ Config.Kingdom = {
 			description = "Uncover hidden paths.",
 			region = 3,
 			hint = "Glasswood hides a road among its trees.",
+			forgeHint = "Forge a crystal core.",
 		},
 		conduit = {
 			tier = "stormglass",
@@ -48,6 +51,7 @@ Config.Kingdom = {
 			description = "Channel storms into old machines.",
 			region = 4,
 			hint = "Storm Peak's machinery needs a spark.",
+			forgeHint = "Forge a stormglass body.",
 		},
 		anchor = {
 			tier = "abyssite",
@@ -56,6 +60,121 @@ Config.Kingdom = {
 			description = "Hold steady in deep water.",
 			region = 5,
 			hint = "The flooded city's currents push you back.",
+			forgeHint = "Forge abyssite legs.",
+		},
+	},
+	-- Graybox first route (#214): the quarry, a road, the sanctuary approach
+	-- and the public hub on one continuous ground, away from the legacy
+	-- islands. Terraces are flat rectangles (top height `y`); ramps join them
+	-- along a straight lane. Membership, ground height and safe points come
+	-- from this table (see KingdomLayout), never from a part's bounding box.
+	-- Pieces may share edges; the higher surface wins, then list order.
+	-- `spawns = false` keeps enemies, nodes and relics off a piece.
+	layout = {
+		minLaneWidth = 64, -- every road and ramp; fits the largest golem turning
+		terraces = {
+			{
+				name = "Mossy Quarry",
+				zoneId = 1,
+				center = Vector3.new(0, 0, -1500),
+				size = Vector3.new(320, 0, 320),
+				y = 60,
+			},
+			{
+				name = "Quarry Road",
+				zoneId = 1,
+				center = Vector3.new(-330, 0, -1500),
+				size = Vector3.new(140, 0, 64),
+				y = 72,
+				spawns = false,
+				requires = "quarryWall", -- walkable once this player broke the wall
+			},
+			{
+				name = "Sanctuary Approach",
+				zoneId = 1,
+				center = Vector3.new(-480, 0, -1500),
+				size = Vector3.new(160, 0, 160),
+				y = 72,
+				spawns = false,
+				requires = "quarryWall", -- walkable once this player broke the wall
+				discovery = "sanctuary", -- first time this player stands here
+			},
+			{
+				name = "Golem Hub",
+				zoneId = 0,
+				center = Vector3.new(-480, 0, -1330),
+				size = Vector3.new(180, 0, 180),
+				y = 72,
+			},
+		},
+		ramps = {
+			{
+				name = "Quarry Ramp",
+				zoneId = 1,
+				from = Vector3.new(-160, 60, -1500),
+				to = Vector3.new(-260, 72, -1500),
+				width = 64,
+				requires = "quarryWall",
+			},
+		},
+		anchors = {
+			[0] = { spawn = Vector3.new(-480, 0, -1300) },
+			[1] = { spawn = Vector3.new(0, 0, -1420), boss = Vector3.new(100, 0, -1600) },
+		},
+		pushBackMargin = 12, -- studs inside the current region a blocked golem is returned to
+		lockedMessageSeconds = 4, -- at most one "locked" message this often
+	},
+	-- Obstacles a golem opens with a learned tool (#216). One contextual,
+	-- untimed command; the server checks everything. `requires` on a layout
+	-- piece names the obstacle that must be open before that piece is
+	-- walkable. `gate` holds extra first-time needs (size, boss) checked
+	-- after the tool. `opensRegion` (optional) grants that campaign region.
+	-- First visits recorded in campaign.discoveries (RegionService).
+	discoveries = {
+		sanctuary = { name = "Sanctuary", message = "You found the Sanctuary!" },
+	},
+	-- A far-off titan seen over the sanctuary from the first breakout (#217).
+	-- Decoration only: it never collides, blocks rays or casts a shadow.
+	titanSilhouette = { position = Vector3.new(-1100, 72, -1500), height = 180 },
+	-- One personal sanctuary plot per player on the Sanctuary Approach (#218).
+	-- Plots are runtime-only: a save keeps its restoration, not a plot number.
+	-- When every plot is taken, newcomers queue and keep their saved work.
+	sanctuary = {
+		plots = {
+			Vector3.new(-530, 72, -1550),
+			Vector3.new(-480, 72, -1550),
+			Vector3.new(-430, 72, -1550),
+			Vector3.new(-530, 72, -1500),
+			Vector3.new(-530, 72, -1450),
+			Vector3.new(-480, 72, -1450),
+			Vector3.new(-430, 72, -1450),
+			Vector3.new(-480, 72, -1500),
+		},
+		hearth = {
+			name = "Hearth",
+			cost = { stone = 120, copper = 30 }, -- shown on the prompt before you restore
+			reachRadius = 22, -- studs from the hearth, plus the golem's own reach at its size
+		},
+		returnOffset = Vector3.new(0, 0, 14), -- where Return Home stands the golem, from the hearth
+		fullText = "Every sanctuary plot is in use. Your hearth is saved and will appear when one frees up.",
+		freedText = "A sanctuary plot is free! Your hearth is waiting there.",
+	},
+	obstacleOrder = { "quarryWall" },
+	obstacles = {
+		quarryWall = {
+			name = "Cracked Wall",
+			ability = "smash",
+			verb = "Smash",
+			zoneId = 1,
+			position = Vector3.new(-156, 60, -1500), -- foot of the wall, on the quarry side
+			size = Vector3.new(6, 28, 64),
+			approachRadius = 24, -- studs from the wall, plus the golem's own reach at its size
+			promptSlack = 16, -- the prompt shows this much farther out than the golem can act
+			actionSeconds = 1.5, -- how long the golem's smash takes
+			cooldownSeconds = 2,
+			gate = {},
+			revealTitle = "THE WAY IS OPEN!",
+			revealText = "Follow the road to the sanctuary.",
 		},
 	},
 }
@@ -1293,6 +1412,39 @@ local tutorial: { [any]: any } = {
 	doneText = "Ready! Follow your Goal to grow.",
 }
 Config.Tutorial = tutorial
+
+-- With Config.Kingdom.enabled, the first session follows the breakout (#217):
+-- mine, forge a copper arm, smash the wall, reach the sanctuary. A step with
+-- `completeOn` finishes on that event and value, or at once if the save
+-- already has it (an already-open wall, a learned tool).
+Config.Kingdom.tutorial = {
+	steerSeconds = tutorial.steerSeconds,
+	steps = {
+		tutorialSteps[1], -- steer
+		tutorialSteps[2], -- mine
+		{
+			id = "forgeArm",
+			text = "Open Forge. Build a copper arm!",
+			menuText = "Forge a copper arm!",
+			pointer = "forge",
+			-- Guarantee the first useful forge: top minerals up to this part's cost.
+			topUpPart = { slot = "armL", tier = "copper" },
+			touchKey = "Tap",
+			completeOn = { event = "abilityLearned", value = "smash" },
+		},
+		{
+			id = "breakWall",
+			text = "Ride to the cracked wall. Smash it!",
+			completeOn = { event = "obstacleOpened", value = "quarryWall" },
+		},
+		{
+			id = "reachSanctuary",
+			text = "Follow the road to the sanctuary.",
+			completeOn = { event = "discovered", value = "sanctuary" },
+		},
+	},
+	doneText = "Ready! Follow your Goal to grow.",
+}
 
 ---------------------------------------------------------------- analytics
 

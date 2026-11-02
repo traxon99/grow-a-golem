@@ -75,6 +75,17 @@ function Stats.partCost(slot: string, tier: string): { [string]: number }
 	return cost
 end
 
+-- "120 Stone, 30 Copper", in mineral order. Plain numbers for server text.
+function Stats.costText(cost: { [string]: number }): string
+	local parts = {}
+	for _, id in Config.MineralOrder do
+		if cost[id] then
+			table.insert(parts, `{cost[id]} {Config.Minerals[id].displayName}`)
+		end
+	end
+	return table.concat(parts, ", ")
+end
+
 function Stats.canAfford(data: any, cost: { [string]: number }): boolean
 	for mineral, amount in cost do
 		if (data.minerals[mineral] or 0) < amount then
@@ -178,6 +189,28 @@ function Stats.travelUnlocked(data: any, zoneId: number): (boolean, string?)
 		return Stats.campaignZoneUnlocked(data, zoneId)
 	end
 	return Stats.zoneUnlocked(data, zoneId)
+end
+
+---------------------------------------------------------------- tutorial
+
+-- The tutorial in play: the kingdom breakout while the kingdom is on.
+function Stats.tutorial(): any
+	return if Config.Kingdom.enabled then Config.Kingdom.tutorial else Config.Tutorial
+end
+
+-- Whether the save already satisfies a `completeOn` step.
+function Stats.tutorialStepMet(data: any, step: any): boolean
+	local on = step.completeOn
+	local campaign = data.campaign
+	if not on or not campaign then
+		return false
+	end
+	local list = if on.event == "abilityLearned"
+		then campaign.abilities
+		elseif on.event == "obstacleOpened" then campaign.obstacles
+		elseif on.event == "discovered" then campaign.discoveries
+		else nil
+	return list ~= nil and list[on.value] == true
 end
 
 ---------------------------------------------------------------- material mastery

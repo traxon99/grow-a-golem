@@ -82,6 +82,20 @@ local service = loadGolemService(
 			zoneAt = function()
 				return 1
 			end,
+			isKingdomZone = function()
+				return false
+			end,
+			groundedPath = function()
+				return true
+			end,
+			routeOpen = function()
+				return true
+			end,
+		},
+		DataService = {
+			get = function()
+				return {}
+			end,
 		},
 	},
 	game,

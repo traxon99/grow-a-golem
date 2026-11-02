@@ -303,7 +303,7 @@ function AnalyticsService.start()
 	Events.connect("zoneEntered", function(player, zoneId)
 		zoneStep(player, zoneId, 2)
 	end)
-	local tutorialSteps = #Config.Tutorial.steps
+	local tutorialSteps = #Stats.tutorial().steps
 	Events.connect("bossEngaged", function(player, zoneId)
 		zoneStep(player, zoneId, 3)
 		if zoneId == Config.ZoneOrder[1] then

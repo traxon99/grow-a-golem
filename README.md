@@ -60,6 +60,9 @@ Let go of the controls and the golem plays itself: it fights enemies nearby, and
 | UI materials: wood, stone, metal, studs and crystal surfaces, tiling textures | `Ui.surface` in `src/client/Ui.luau`, `Config.UiTextures`, `assets/ui-textures/` |
 | Boss health bar, artifact reveal card, level-up banner | `src/client/Moments.luau` |
 | Island scenery, lighting | `WorldService`, `src/server/Models/Islands.luau` |
+| Connected kingdom route (behind `Config.Kingdom.enabled`): graybox quarry, road, sanctuary approach and hub; walking between regions | `WorldService`, `RegionService`, `src/shared/KingdomLayout.luau`, `src/server/Models/Kingdom.luau`, `Config.Kingdom.layout` |
+| Kingdom obstacles (the Cracked Wall so far): requirement resolver, server action, per-player route locks, client prompts | `KingdomService`, `src/shared/KingdomRules.luau`, `src/client/KingdomPrompts.luau`, `Config.Kingdom.obstacles` |
+| Sanctuary plots and the hearth restoration (kingdom flag): plot assignment and queue, owner-only restore, Return Home | `SanctuaryService`, `src/server/Models/Kingdom.luau` (`buildPlots`, `showHearth`), `src/client/KingdomPrompts.luau`, `Config.Kingdom.sanctuary` |
 | Enemy and boss models | `src/server/Models/EnemyModels.luau` |
 | Walk, punch and slam animation | `src/client/Animator.luau` |
 | Sound effects | `src/client/Sfx.luau`, `Config.SoundEffects` |
