@@ -212,8 +212,7 @@ function Sfx.start()
 			end
 		elseif kind == "mined" or kind == "oreBurst" then
 			-- "oreBurst" is a node breaking into chunks; "mined" is a
-			-- weakspot rush bonus or the instant grant past
-			-- Config.OreDrops.maxConcurrent.
+			-- weakspot rush bonus.
 			Sfx.play("mineBreak", myGolemRoot())
 		elseif kind == "defeated" then
 			Sfx.play("defeat")

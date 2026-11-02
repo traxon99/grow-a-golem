@@ -679,8 +679,7 @@ function Hud.start()
 	Remotes.Notify.OnClientEvent:Connect(function(kind: string, ...)
 		local args = { ... }
 		if kind == "oreChunk" or kind == "mined" then
-			-- "mined" is a weakspot rush bonus or the instant grant past
-			-- Config.OreDrops.maxConcurrent: the same counter, as one number.
+			-- "mined" is a weakspot rush bonus: the same counter, as one number.
 			addOre(args[1], args[2])
 		elseif kind == "defeated" then
 			showToast(`Beat {args[1]}! +{args[2]} XP`)

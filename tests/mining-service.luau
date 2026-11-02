@@ -154,7 +154,7 @@ local Config = {
 	-- pickup-radius block near the end shrinks this back down to something
 	-- testable.
 	Golem = { pickupRadius = 1e9 },
-	Spells = { magnet = { burstMultiplier = 3, burstDuration = 10 } },
+	Spells = { magnet = { burstDuration = 10 } },
 	-- One chunk per node, for the whole node's yield, keeps every assertion
 	-- below arithmetically identical to the pre-drop instant-grant behavior.
 	OreDrops = {
@@ -171,7 +171,6 @@ local Config = {
 		slideTime = 0,
 		settleHeight = 2,
 		pickupDelay = 0,
-		lifetime = 1e9,
 		maxConcurrent = 1e9,
 	},
 }
@@ -334,18 +333,18 @@ assert(paid[a] == 25, "a destroyed node cannot pay")
 
 -- Pickup radius: a chunk within Config.Golem.pickupRadius of the golem is
 -- auto-collected; farther out, it waits -- until a Magnet burst (see
--- CombatService.onCastSpell -> MiningService.triggerMagnetBurst) widens
--- that radius by Config.Spells.magnet.burstMultiplier.
+-- CombatService.onCastSpell -> MiningService.triggerMagnetBurst) pulls in
+-- the player's chunks from anywhere on the map.
 Config.Golem.pickupRadius = 5
 node = spawnNode()
-node.part.Position = v(12, 2, 0) -- 12 studs from the golem at the origin
+node.part.Position = v(5000, 2, 0) -- far across the map from the golem at the origin
 mining.damage(node, 100, a)
 mining.update(0)
-assert(paid[a] == 25, "a chunk 12 studs out, with only a 5-stud base radius, should still be waiting")
+assert(paid[a] == 25, "a chunk far out, with only a 5-stud base radius, should still be waiting")
 
 mining.triggerMagnetBurst(a)
 mining.update(0)
-assert(paid[a] == 35, "Magnet's 3x burst (radius 15) should reach a chunk sitting 12 studs out")
+assert(paid[a] == 35, "a Magnet burst should reach a chunk anywhere on the map")
 
 -- The golem mines from inside its own pickup radius, so a chunk must not be
 -- collected the tick it spawns (#250): it waits until it has landed and
@@ -402,17 +401,22 @@ Config.OreDrops.minChunks = 1
 Config.OreDrops.maxChunks = 1
 Config.Golem.pickupRadius = 5
 
--- A chunk nobody reaches still pays out after its lifetime, tagged "Expired"
--- so clients sparkle it in place instead of flying it to a distant golem.
-Config.OreDrops.lifetime = 0
+-- Chunks never time out. Only past Config.OreDrops.maxConcurrent does the
+-- oldest pay out where it lies to make room, tagged "Expired" so clients
+-- sparkle it in place instead of flying it to a distant golem. (No update
+-- here: making room happens when the next node breaks.)
+Config.OreDrops.maxConcurrent = 1
 node = spawnNode()
-node.part.Position = v(50, 2, 0) -- beyond even the Magnet burst's radius
 mining.damage(node, 100, a)
+local oldest = createdChunks[#createdChunks]
+assert(paid[a] == 65 and not oldest.destroyed, "a chunk under the cap waits to be collected")
+node = spawnNode()
+mining.damage(node, 100, a)
+assert(paid[a] == 75, "the oldest chunk pays out to make room past the cap")
+assert(oldest.destroyed and oldest:GetAttribute("Expired") == true, "a chunk paid out by the cap is tagged for the client")
 mining.update(0)
-local expired = createdChunks[#createdChunks]
-assert(paid[a] == 75, "an expired chunk still pays out")
-assert(expired.destroyed and expired:GetAttribute("Expired") == true, "an expired chunk is tagged for the client")
-Config.OreDrops.lifetime = 1e9
+assert(paid[a] == 85, "the newer chunk is still collected normally")
+Config.OreDrops.maxConcurrent = 1e9
 
 -- A winner who disconnects before collecting forfeits the reward rather
 -- than being paid late (matches damage()'s own "a departed player cannot

@@ -496,6 +496,7 @@ type DropVisual = {
 	sucking: boolean,
 	suckFrom: Vector3,
 	suckStart: number,
+	suckTime: number,
 	target: BasePart?,
 	ownerId: number,
 }
@@ -593,16 +594,27 @@ local function watchDrop(chunk: Instance)
 	local touchdown = origin:Lerp(rest, 1 - cfg.slideFraction)
 	local color = chunk.Color
 
-	local part = Instance.new("Part")
+	-- A 3D model for this mineral when one has been added (see
+	-- Config.OreDrops.chunkModels), else a plain cube in the mineral's colour.
+	local models = ReplicatedStorage:FindFirstChild(cfg.chunkModels)
+	local mineral = chunk:GetAttribute("Mineral")
+	local template = models
+		and ((type(mineral) == "string" and models:FindFirstChild(mineral)) or models:FindFirstChild("Default"))
+	local part: BasePart
+	if template and template:IsA("BasePart") then
+		part = template:Clone()
+	else
+		part = Instance.new("Part")
+		part.Size = chunk.Size
+		part.Color = color
+		part.Material = chunk.Material
+	end
 	part.Name = "OreChunkFx"
 	part.Anchored = true
 	part.CanCollide = false
 	part.CanQuery = false
 	part.CanTouch = false
 	part.CastShadow = false
-	part.Size = chunk.Size
-	part.Color = color
-	part.Material = chunk.Material
 	part.CFrame = CFrame.new(origin)
 	part.Parent = folder
 
@@ -618,13 +630,13 @@ local function watchDrop(chunk: Instance)
 	aura.Material = Enum.Material.Neon
 	aura.Color = color:Lerp(Color3.new(1, 1, 1), 0.25)
 	aura.Transparency = cfg.auraTransparency
-	aura.Size = chunk.Size * cfg.auraScale
+	aura.Size = part.Size * cfg.auraScale
 	aura.CFrame = CFrame.new(origin)
 	aura.Parent = part
 
 	local visual: DropVisual = {
 		part = part,
-		size = chunk.Size,
+		size = part.Size,
 		aura = aura,
 		trail = nil,
 		light = nil,
@@ -639,6 +651,7 @@ local function watchDrop(chunk: Instance)
 		sucking = false,
 		suckFrom = rest,
 		suckStart = 0,
+		suckTime = cfg.suckTime,
 		target = nil,
 		ownerId = ownerId,
 	}
@@ -713,6 +726,9 @@ local function dropRemoved(chunk: Instance)
 	visual.target = target
 	visual.suckFrom = visual.part.Position
 	visual.suckStart = os.clock()
+	-- A Magnet pull from far off takes a little longer, so it reads as a
+	-- flight rather than a teleport.
+	visual.suckTime = Config.OreDrops.suckTime * math.clamp((target.Position - position).Magnitude / 20, 1, 3)
 	if visual.trail then
 		visual.trail.Enabled = true
 	end
@@ -723,7 +739,7 @@ local function stepDrops()
 	local now = workspace:GetServerTimeNow()
 	for key, visual in drops do
 		if visual.sucking then
-			local p = math.min((os.clock() - visual.suckStart) / cfg.suckTime, 1)
+			local p = math.min((os.clock() - visual.suckStart) / visual.suckTime, 1)
 			local eased = p * p
 			local target = visual.target
 			local goal = if target and target.Parent then target.Position else visual.suckFrom

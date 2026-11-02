@@ -149,7 +149,7 @@ Config.Golem = {
 	miningDamage = 10,
 	miningCooldown = 0.8,
 	miningRange = 10,
-	pickupRadius = 12, -- landed ore chunks this close to the golem are auto-collected; the farthest-flung wait for a step or a Magnet cast
+	pickupRadius = 12, -- landed ore chunks this close to the golem are auto-collected; the rest wait for a step or a Magnet cast
 	seekRange = 150, -- when idle, golem walks to nodes this far away
 	respawnTime = 5,
 	mountCooldown = 1, -- seconds between mount/dismount requests
@@ -191,13 +191,18 @@ Config.OreDrops = {
 	slideTime = 0.35, -- seconds the slide takes (eases out)
 	settleHeight = 1.2, -- studs above ground the chunk rests at once it lands
 	pickupDelay = 0.6, -- seconds a chunk must exist (and have landed) before it can be collected, so players always see it pop out
-	lifetime = 14, -- auto-collected after this long even if never reached, so a reward is never lost
-	maxConcurrent = 150, -- server-wide cap; a node breaking past it grants instantly instead (see art-audio.md's juice note on pooling/capping debris)
+	-- Chunks never time out. Past this many on the server, the oldest pay out
+	-- where they lie to make room (see performance-mobile.md on capping debris).
+	maxConcurrent = 300,
 	-- Client visuals (Fx.luau and the Hud ore counter)
+	-- A folder in ReplicatedStorage of MeshParts named after minerals (or
+	-- "Default"). Fx draws a chunk as a clone of the matching one when it
+	-- exists, and as a plain cube otherwise, so 3D models can drop in later.
+	chunkModels = "OreChunkModels",
 	spinSpeed = 2, -- radians/sec a resting chunk turns, like a dropped item
 	bobHeight = 0.3, -- studs a resting chunk bobs up and down
-	suckTime = 0.3, -- seconds a collected chunk takes to fly into its golem
-	suckReach = 40, -- studs; a golem farther than this gets a sparkle in place instead (covers Magnet's 36)
+	suckTime = 0.3, -- seconds a collected chunk takes to fly into its golem from up to 20 studs; farther ones take up to 3x
+	suckReach = 120, -- studs; a golem farther than this (a Magnet pull from far off) gets a sparkle in place instead
 	restLights = 24, -- at most this many resting chunks keep a small glow, per client
 	auraScale = 2.2, -- the glowing shell around each chunk, as a multiple of its size
 	auraTransparency = 0.55, -- the shell pulses about this (+-0.15), so chunks stand out from the grass
@@ -323,8 +328,7 @@ Config.Spells = {
 		cooldown = 30,
 		duration = 10,
 		mineralBonus = 1.0,
-		burstMultiplier = 3, -- pickup radius is multiplied by this for burstDuration on cast
-		burstDuration = 1, -- seconds the widened pickup radius lasts
+		burstDuration = 1, -- seconds after a cast that the golem collects its landed ore chunks from anywhere on the map
 	},
 }
 

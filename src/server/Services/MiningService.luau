@@ -255,6 +255,51 @@ local function placeNode(zoneId: number)
 	end)
 end
 
+local function collect(chunk: Chunk)
+	local given = EconomyService.grant(
+		chunk.owner,
+		{ minerals = { [chunk.mineral] = chunk.amount } },
+		"mining",
+		chunk.group.zoneId
+	)
+	local amount = if given.minerals then (given.minerals[chunk.mineral] or 0) else 0
+	chunk.group.remaining -= 1
+	chunk.group.given += amount
+	chunk.part:Destroy()
+	-- Each chunk announces its own share, which the Hud adds into a running
+	-- on-screen total (+5 +5 +5 -> +15).
+	Remotes.Notify:FireClient(chunk.owner, "oreChunk", chunk.mineral, amount)
+	if chunk.group.remaining <= 0 then
+		-- Last chunk of this node's drop: count the node once.
+		DataService.update(chunk.owner, function(data)
+			data.totals.nodes += 1
+		end)
+		Events.fire("nodeMined", chunk.owner, chunk.group.mineral)
+	end
+end
+
+-- Chunks wait on the ground until collected, however long that takes. Only
+-- past the server-wide cap (see performance-mobile.md's note on capping
+-- pooled debris) do the oldest pay out where they lie to make room, tagged
+-- "Expired" so clients sparkle them in place (see Fx.dropRemoved).
+local function makeRoom(needed: number)
+	local excess = #drops + needed - Config.OreDrops.maxConcurrent
+	for _ = 1, excess do
+		local oldest = table.remove(drops, 1)
+		if not oldest then
+			return
+		end
+		if oldest.owner.Parent then
+			oldest.part:SetAttribute("Expired", true)
+			collect(oldest)
+		else
+			-- Owner already left: forfeited, same as in `update`.
+			oldest.part:SetAttribute("Forfeited", true)
+			oldest.part:Destroy()
+		end
+	end
+end
+
 -- Splits a broken node's yield across a few physical chunks that pop out of
 -- where it stood, arc through the air and settle nearby, instead of handing
 -- the reward over instantly. Only the node's winner (see `damage` below) can
@@ -269,20 +314,8 @@ local function spawnDrops(node: Node, owner: Player)
 		-- but `remaining` never reaching 0, which would strand its payout.
 		return
 	end
-	if #drops >= cfg.maxConcurrent then
-		-- Hit the server-wide cap: grant instantly rather than drop a chunk
-		-- nobody has room to track (see performance-mobile.md's note on
-		-- capping pooled debris).
-		local given = EconomyService.grant(owner, { minerals = { [node.mineral] = total } }, "mining", node.zoneId)
-		DataService.update(owner, function(data)
-			data.totals.nodes += 1
-		end)
-		Events.fire("nodeMined", owner, node.mineral)
-		Remotes.Notify:FireClient(owner, "mined", node.mineral, given.minerals and given.minerals[node.mineral] or 0)
-		return
-	end
-
 	local count = math.clamp(math.random(cfg.minChunks, cfg.maxChunks), 1, math.max(1, total))
+	makeRoom(count)
 	local group: DropGroup = {
 		owner = owner,
 		mineral = node.mineral,
@@ -329,6 +362,7 @@ local function spawnDrops(node: Node, owner: Player)
 		part:SetAttribute("Flight", flight)
 		part:SetAttribute("LaunchedAt", Workspace:GetServerTimeNow())
 		part:SetAttribute("OwnerId", owner.UserId)
+		part:SetAttribute("Mineral", node.mineral) -- picks the client's 3D model, if any (Config.OreDrops.chunkModels)
 		part.Parent = WorldService.getFolder("Drops")
 
 		local now = os.clock()
@@ -346,45 +380,26 @@ local function spawnDrops(node: Node, owner: Player)
 end
 
 -- The pickup radius the given player's golem currently sucks chunks in from:
--- its base range (scaled with size, like the other golem ranges), widened
--- 3x for a second right after a Magnet cast (see CombatService.onCastSpell).
--- `update` also waits for each chunk to land and be pickupDelay old.
+-- its base range (scaled with size, like the other golem ranges), or the
+-- whole map for a moment right after a Magnet cast (see
+-- CombatService.onCastSpell), which pulls in every chunk the player has left
+-- lying anywhere. `update` also waits for each chunk to land and be
+-- pickupDelay old.
 local function pickupRadius(player: Player): (number?, GolemService.Golem?)
 	local golem = GolemService.get(player)
 	if not golem or not GolemService.isActive(golem) then
 		return nil, nil
 	end
 	local burstUntil = magnetBurstUntil[player]
-	local multiplier = if burstUntil and os.clock() < burstUntil then Config.Spells.magnet.burstMultiplier else 1
-	return Config.Golem.pickupRadius * golem.stats.scale * multiplier, golem
-end
-
-local function collect(chunk: Chunk)
-	local given = EconomyService.grant(
-		chunk.owner,
-		{ minerals = { [chunk.mineral] = chunk.amount } },
-		"mining",
-		chunk.group.zoneId
-	)
-	local amount = if given.minerals then (given.minerals[chunk.mineral] or 0) else 0
-	chunk.group.remaining -= 1
-	chunk.group.given += amount
-	chunk.part:Destroy()
-	-- Each chunk announces its own share, which the Hud adds into a running
-	-- on-screen total (+5 +5 +5 -> +15).
-	Remotes.Notify:FireClient(chunk.owner, "oreChunk", chunk.mineral, amount)
-	if chunk.group.remaining <= 0 then
-		-- Last chunk of this node's drop: count the node once.
-		DataService.update(chunk.owner, function(data)
-			data.totals.nodes += 1
-		end)
-		Events.fire("nodeMined", chunk.owner, chunk.group.mineral)
+	if burstUntil and os.clock() < burstUntil then
+		return math.huge, golem
 	end
+	return Config.Golem.pickupRadius * golem.stats.scale, golem
 end
 
--- Collects every chunk that has come to rest within range (or outlived its
--- lifetime). Called from CombatService's tick loop, same cadence as golem
--- updates; the movement itself is drawn client-side, so `_dt` is unused.
+-- Collects every chunk that has come to rest within range. Called from
+-- CombatService's tick loop, same cadence as golem updates; the movement
+-- itself is drawn client-side, so `_dt` is unused.
 function MiningService.update(_dt: number)
 	local cfg = Config.OreDrops
 	local now = os.clock()
@@ -407,7 +422,6 @@ function MiningService.update(_dt: number)
 		-- pickupDelay can be picked up. The golem mines from inside its
 		-- pickup radius, so without this every chunk was collected on the
 		-- tick it spawned and never reached a client (#250).
-		local collected = false
 		local radius, golem = pickupRadius(chunk.owner)
 		if
 			radius
@@ -416,24 +430,14 @@ function MiningService.update(_dt: number)
 			and now - chunk.spawnedAt >= cfg.pickupDelay
 			and (golem.root.Position - chunk.part.Position).Magnitude <= radius
 		then
-			collected = true
-		end
-		if not collected and now - chunk.spawnedAt >= cfg.lifetime then
-			-- Safety net: an unreachable or forgotten chunk still pays out,
-			-- it just never got the collection flourish. "Expired" tells
-			-- clients to sparkle it where it lies instead of flying it to a
-			-- golem that may be across the map (see Fx.dropRemoved).
-			chunk.part:SetAttribute("Expired", true)
-			collected = true
-		end
-		if collected then
 			collect(chunk)
 			table.remove(drops, i)
 		end
 	end
 end
 
--- Widens the caller's pickup radius for Config.Spells.magnet.burstDuration.
+-- Opens the caller's pickup radius to the whole map for
+-- Config.Spells.magnet.burstDuration.
 function MiningService.triggerMagnetBurst(player: Player)
 	magnetBurstUntil[player] = os.clock() + Config.Spells.magnet.burstDuration
 end
