@@ -6,6 +6,9 @@
 
 set -euo pipefail
 
+# GitHub CLI reads GH_TOKEN; Actions injects GITHUB_TOKEN automatically.
+export GH_TOKEN="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
+
 : "${ROJO:?}"
 : "${STYLUA:?}"
 : "${SELENE:?}"

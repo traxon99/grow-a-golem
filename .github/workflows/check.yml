@@ -11,6 +11,8 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
       - name: Test RTBF dry-run and deletion helper
@@ -53,6 +55,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     env:
+      GH_TOKEN: ${{ github.token }}
       ROJO: 7.6.1
       STYLUA: 2.6.0
       SELENE: 0.32.0
