@@ -4,11 +4,8 @@
 -- gameplay flow; this file asserts its formulas themselves, including
 -- boundary cases those flows don't happen to hit.
 --
--- Out of scope (left for a future PR): migrateCampaign, highestZone,
--- highestUnlockedIslandIndex (exercised indirectly below, through
--- coreUpgradeRankCap/returnMiningMultiplier), zoneSetComplete/artifactsFound/
--- zoneArtifactCount, bagKey, bossDefeated and isTowerZone are thinner
--- wrappers not asserted directly here.
+-- Still thin wrappers here (not asserted directly): zoneSetComplete,
+-- artifactsFound/zoneArtifactCount, bagKey, bossDefeated and isTowerZone.
 
 local function freshData()
 	local minerals = {}
@@ -424,6 +421,72 @@ do
 	mixed.golem.parts = { core = "crystal", torso = "stone", armL = "stone", armR = "stone", legs = "stone" }
 	local stats = Stats.compute(mixed, { passes = {}, now = 1000 })
 	assert(stats.fullSet == nil)
+end
+
+---------------------------------------------------------------- campaign migration (#213)
+
+do
+	local wasEnabled = Config.Kingdom.enabled
+	Config.Kingdom.enabled = false
+	local data = freshData()
+	data.campaign.version = 0
+	data.golem.parts = { armL = "copper", armR = "iron" }
+	data.bossesDefeated = { ["1"] = true, ["2"] = true }
+	data.golem.xp = Stats.xpForLevel(10) -- size 3, unlocks zone 3 in legacy mode
+	Stats.migrateCampaign(data)
+	assert(data.campaign.version == Config.Kingdom.campaignVersion)
+	assert(data.campaign.regions["1"] and data.campaign.regions["2"] and data.campaign.regions["3"])
+	assert(not data.campaign.regions["4"])
+	assert(data.campaign.abilities.smash and data.campaign.abilities.lift)
+	assert(not data.campaign.abilities.reveal)
+	assert(data.campaign.legacyPending == true, "rollout off marks a final legacy capture on leave")
+	assert(
+		(not data.campaign.obstacles or next(data.campaign.obstacles) == nil)
+			and (not data.campaign.projects or next(data.campaign.projects) == nil),
+		"migration never invents obstacles or projects"
+	)
+	Config.Kingdom.enabled = true
+	Stats.migrateCampaign(data)
+	assert(data.campaign.legacyPending == nil)
+	assert(data.campaign.regions["3"], "already-migrated regions stay")
+	-- Kingdom on and version current: new run progress does not backfill regions.
+	data.bossesDefeated["3"] = true
+	Stats.migrateCampaign(data)
+	assert(not data.campaign.regions["4"], "no retroactive region grant after version is current")
+	Config.Kingdom.enabled = wasEnabled
+end
+
+---------------------------------------------------------------- highestZone and island index
+
+do
+	local wasEnabled = Config.Kingdom.enabled
+	Config.Kingdom.enabled = false
+	local data = freshData()
+	assert(Stats.highestZone(data) == 1)
+	assert(Stats.highestUnlockedIslandIndex(data) == 1)
+	data.bossesDefeated["1"] = true
+	assert(Stats.highestZone(data) == 2)
+	assert(Stats.highestUnlockedIslandIndex(data) == 2)
+	data.bossesDefeated["2"] = true
+	data.golem.xp = Stats.xpForLevel(10)
+	assert(Stats.highestZone(data) == 3)
+	assert(Stats.highestUnlockedIslandIndex(data) == 3)
+	data.bossesDefeated["3"] = true
+	data.golem.xp = Stats.xpForLevel(18) -- size 4 for zone 4
+	assert(Stats.highestZone(data) == 4)
+	assert(Stats.highestUnlockedIslandIndex(data) == 4)
+	Config.Kingdom.enabled = wasEnabled
+end
+
+do
+	local wasEnabled = Config.Kingdom.enabled
+	Config.Kingdom.enabled = true
+	local data = freshData()
+	data.campaign.regions = { ["1"] = true, ["6"] = true }
+	assert(Stats.highestZone(data) == 1, "campaign travel ignores run boss gates")
+	assert(Stats.travelUnlocked(data, 6) and not Stats.zoneUnlocked(data, 6))
+	assert(not Stats.travelUnlocked(data, 2))
+	Config.Kingdom.enabled = wasEnabled
 end
 
 print("stats: core progression/economy math checks passed")

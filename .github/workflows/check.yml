@@ -11,6 +11,8 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
       - name: Test RTBF dry-run and deletion helper
@@ -33,9 +35,19 @@ jobs:
           python3 scripts/create_assets.py
           git diff --exit-code -- assets/models assets/audio
       - name: Build with Rojo 7.6.1
+        env:
+          ROJO_SHA256: a9542a713036897fdbd0173e7a105ea409658333133c949025fcb6f1a7ca909d
         run: |
-          curl -fsSL https://github.com/rojo-rbx/rojo/releases/download/v7.6.1/rojo-7.6.1-linux-x86_64.zip -o "$RUNNER_TEMP/rojo.zip"
-          unzip "$RUNNER_TEMP/rojo.zip" -d "$RUNNER_TEMP/rojo"
+          rojo_zip="$RUNNER_TEMP/rojo-7.6.1-linux-x86_64.zip"
+          curl -fsSL -H "Accept: application/octet-stream" \
+            https://api.github.com/repos/rojo-rbx/rojo/releases/assets/313571919 \
+            -o "$rojo_zip" || {
+            curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors \
+              https://github.com/rojo-rbx/rojo/releases/download/v7.6.1/rojo-7.6.1-linux-x86_64.zip \
+              -o "$rojo_zip"
+          }
+          echo "${ROJO_SHA256}  ${rojo_zip}" | sha256sum -c -
+          unzip "$rojo_zip" -d "$RUNNER_TEMP/rojo"
           chmod +x "$RUNNER_TEMP/rojo/rojo"
           "$RUNNER_TEMP/rojo/rojo" build default.project.json -o "$RUNNER_TEMP/grow-a-golem.rbxlx"
 
@@ -43,25 +55,32 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     env:
+      GH_TOKEN: ${{ github.token }}
       ROJO: 7.6.1
       STYLUA: 2.6.0
       SELENE: 0.32.0
       LUAU_LSP_VERSION: 1.70.0
     steps:
       - uses: actions/checkout@v4
+      - name: Cache pinned lint tool binaries
+        uses: actions/cache@v4
+        id: lint-tools-cache
+        with:
+          path: ${{ runner.temp }}/ci-lint-tools
+          key: ci-lint-tools-rojo-${{ env.ROJO }}-stylua-${{ env.STYLUA }}-selene-${{ env.SELENE }}-luau-lsp-${{ env.LUAU_LSP_VERSION }}
       - name: Install Rojo, StyLua, selene and luau-lsp
+        if: steps.lint-tools-cache.outputs.cache-hit != 'true'
+        run: bash scripts/ci_install_lint_tools.sh
+      - name: Use lint tools
         run: |
-          bin="$RUNNER_TEMP/bin"
-          mkdir -p "$bin"
-          get() { curl -fsSL "$1" -o "$RUNNER_TEMP/tool.zip" && unzip -oq "$RUNNER_TEMP/tool.zip" -d "$bin"; }
-          get "https://github.com/rojo-rbx/rojo/releases/download/v$ROJO/rojo-$ROJO-linux-x86_64.zip"
-          get "https://github.com/JohnnyMorganz/StyLua/releases/download/v$STYLUA/stylua-linux-x86_64.zip"
-          get "https://github.com/Kampfkarren/selene/releases/download/$SELENE/selene-$SELENE-linux.zip"
-          get "https://github.com/JohnnyMorganz/luau-lsp/releases/download/$LUAU_LSP_VERSION/luau-lsp-linux-x86_64.zip"
-          # Roblox API types from the same luau-lsp release, so they always parse.
-          curl -fsSL "https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/$LUAU_LSP_VERSION/scripts/globalTypes.d.luau" -o "$RUNNER_TEMP/globalTypes.d.luau"
-          chmod +x "$bin"/*
-          echo "$bin" >> "$GITHUB_PATH"
+          echo "${RUNNER_TEMP}/ci-lint-tools/bin" >> "$GITHUB_PATH"
+          echo "GLOBAL_TYPES_PATH=${RUNNER_TEMP}/ci-lint-tools/globalTypes.d.luau" >> "$GITHUB_ENV"
+          test -x "${RUNNER_TEMP}/ci-lint-tools/bin/rojo"
+          test -s "${RUNNER_TEMP}/ci-lint-tools/globalTypes.d.luau"
+          rojo --version
+          stylua --version
+          selene --version
+          luau-lsp --version
       - name: StyLua format check (files in .styluaignore are not formatted yet)
         run: stylua --check src tests
       - name: selene lint (errors fail, warnings are shown)
@@ -69,4 +88,4 @@ jobs:
       - name: luau-lsp type check against scripts/type-baseline.json
         run: |
           rojo sourcemap default.project.json -o sourcemap.json
-          python3 scripts/typecheck.py --definitions "$RUNNER_TEMP/globalTypes.d.luau"
+          python3 scripts/typecheck.py --definitions "$GLOBAL_TYPES_PATH"
